@@ -463,18 +463,29 @@ function renderTypeSection(id, req) {
     const key = id + '-' + req.requestType;
     const steps = SUB_STEPS[req.requestType] || [];
     const saved = trackingData[key] || {};
-    const sectionOverall = getSectionOverall(key, steps);
+    
+    // If the source status from SharePoint is Complete, auto-complete all sub-steps
+    const sourceComplete = (req.status || '').toLowerCase() === 'complete' || (req.status || '').toLowerCase() === 'canceled';
+    
+    const sectionOverall = sourceComplete ? 'complete' : getSectionOverall(key, steps);
     const titleClass = 'title-' + getBadgeClass(req.requestType);
 
     const rows = steps.map(step => {
-        const val = saved[step.id] || 'Not Started';
+        // If source is complete, force all steps to show as Complete
+        let val;
+        if (sourceComplete) {
+            val = (step.id === 'ags-approved-role') ? 'Approved' : 'Complete';
+        } else {
+            val = saved[step.id] || 'Not Started';
+        }
         const cls = selectClass(val);
+        const disabled = sourceComplete ? 'disabled' : '';
         const opts = statusOptions(req.requestType, step.id).map(s =>
             `<option value="${s}"${s===val?' selected':''}>${s}</option>`
         ).join('');
         return `<div class="substep-row">
           <span class="substep-label">${step.label}</span>
-          <select class="substep-select ${cls}" onchange="updateStep('${key}','${step.id}',this.value,this)">${opts}</select>
+          <select class="substep-select ${cls}" ${disabled} onchange="updateStep('${key}','${step.id}',this.value,this)">${opts}</select>
         </div>`;
     }).join('');
 
