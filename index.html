@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>IFS Request Tracker — DA Ops</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23041c32'/><text x='4' y='23' font-size='18' font-family='sans-serif' fill='%234ec8f0' font-weight='bold'>IFS</text></svg>">
 <link href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@700,400&f[]=satoshi@400,700&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -207,6 +208,8 @@ const CONFIG = {
 // ============================================================
 const SUB_STEPS = {
     'Portal Creation': [
+        {id:'create-da', label:'Create DA'},
+        {id:'create-portal', label:'Create Portal'},
         {id:'configure-ags', label:'Configure AGS'},
         {id:'configure-jsm', label:'Configure JSM (Jira Service Management)'},
         {id:'configure-security-ft', label:'Configure Security File Transfer'},
@@ -284,8 +287,8 @@ async function fetchAndRender() {
             });
         });
 
-        // Load tracking from localStorage (NOT demo data)
-        loadTracking();
+        // Load tracking from GitHub (shared between Jenn and Jair)
+        await loadTracking();
         
         const now = new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
         updateSync(rawRequests.length + ' requests (' + allRequests.length + ' services) \u00b7 ' + now);
@@ -325,26 +328,76 @@ function normalizeType(type) {
 }
 
 // ============================================================
-// TRACKING: Stored in localStorage + GitHub API for sharing
+// TRACKING: Shared via GitHub API — both Jenn and Jair see same data
 // ============================================================
-function loadTracking() {
-    const saved = localStorage.getItem('ifs-tracker-data');
-    if (saved) {
-        const parsed = JSON.parse(saved);
-        // If tracking has demo data keys that don't match real data, clear it
-        if (parsed['2679-Portal Creation'] && parsed['2679-Portal Creation']['configure-ags'] === 'Complete') {
-            // This is old demo data — clear it
-            trackingData = {};
-            localStorage.removeItem('ifs-tracker-data');
-            return;
+const GITHUB_REPO = 'jairgarciaintel/ifs-request-tracker';
+const TRACKING_PATH = 'data/tracking.json';
+
+function getGithubToken() {
+    let token = localStorage.getItem('ifs-gh-token');
+    if (!token) {
+        token = prompt('Enter GitHub token (one-time setup for shared tracking):');
+        if (token) localStorage.setItem('ifs-gh-token', token);
+    }
+    return token;
+}
+
+let trackingSha = null;
+
+async function loadTracking() {
+    const token = getGithubToken();
+    if (!token) {
+        const saved = localStorage.getItem('ifs-tracker-data');
+        if (saved) trackingData = JSON.parse(saved);
+        return;
+    }
+    try {
+        const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${TRACKING_PATH}`, {
+            headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github+json' }
+        });
+        if (res.ok) {
+            const data = await res.json();
+            trackingSha = data.sha;
+            const content = atob(data.content);
+            trackingData = JSON.parse(content);
+            localStorage.setItem('ifs-tracker-data', JSON.stringify(trackingData));
         }
-        trackingData = parsed;
+    } catch(e) {
+        const saved = localStorage.getItem('ifs-tracker-data');
+        if (saved) trackingData = JSON.parse(saved);
     }
 }
 
-function saveTracking() {
+async function saveTracking() {
     trackingData._lastSaved = new Date().toISOString();
     localStorage.setItem('ifs-tracker-data', JSON.stringify(trackingData));
+    
+    const token = localStorage.getItem('ifs-gh-token');
+    if (!token) return;
+    
+    try {
+        const content = btoa(unescape(encodeURIComponent(JSON.stringify(trackingData, null, 2))));
+        const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${TRACKING_PATH}`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/vnd.github+json',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                message: 'tracking update',
+                content: content,
+                sha: trackingSha,
+                branch: 'main'
+            })
+        });
+        if (res.ok) {
+            const data = await res.json();
+            trackingSha = data.content.sha;
+        }
+    } catch(e) {
+        console.warn('GitHub save failed:', e);
+    }
 }
 
 function buildExcelData() {
@@ -610,7 +663,8 @@ function selectClass(val) {
 
 function statusOptions(reqType, stepId) {
     if (stepId === 'ags-approved-role') return ['Not Started','Send for Approval','Approved'];
-    if (reqType === 'Portal Creation' && stepId !== 'ags-approved-role') return ['Not Started','In Progress','Complete','Fail'];
+    if (stepId === 'create-da' || stepId === 'create-portal') return ['Not Started','In Progress','Complete','Fail'];
+    if (reqType === 'Portal Creation') return ['Not Started','In Progress','Complete','Fail'];
     if (reqType === 'New DA') {
         if (stepId === 'acknowledge') return ['Not Started','Complete'];
         return ['Not Started','In Progress','Complete'];
