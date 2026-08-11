@@ -215,8 +215,32 @@ const SUB_STEPS = {
     'Codename': [
         {id:'codename-created', label:'Codename Created'}
     ],
-    'WebView': [
-        {id:'webview-done', label:'WebView Done'}
+    'WebView AGS Role': [
+        {id:'webview-ags-done', label:'WebView AGS Role'}
+    ],
+    'Portal Unencryption': [
+        {id:'portal-unencryption-done', label:'Portal Unencryption'}
+    ],
+    'Secure Chamber': [
+        {id:'secure-chamber-done', label:'Secure Chamber Setup'}
+    ],
+    'IFS NDA': [
+        {id:'ifs-nda-done', label:'IFS NDA Executed'}
+    ],
+    'MP-NDA': [
+        {id:'mp-nda-done', label:'MP-NDA Executed'}
+    ],
+    'DA Edit': [
+        {id:'da-edit-done', label:'DA Edit Completed'}
+    ],
+    'COD': [
+        {id:'cod-done', label:'COD Completed'}
+    ],
+    'DocuSign Request': [
+        {id:'docusign-done', label:'DocuSign Sent'}
+    ],
+    'Redbook Release': [
+        {id:'redbook-done', label:'Redbook Released'}
     ]
 };
 
@@ -238,13 +262,26 @@ async function fetchAndRender() {
         // Load requests JSON (served by GitHub Pages from same directory)
         const reqRes = await fetch(CONFIG.dataFile + '?v=' + Date.now());
         if (!reqRes.ok) throw new Error('Cannot load ' + CONFIG.dataFile + ' (HTTP ' + reqRes.status + ')');
-        allRequests = await reqRes.json();
+        const rawRequests = await reqRes.json();
+        
+        // SPLIT multi-service requests: "Code Name Request;#Portal creation;#New DA"
+        // becomes 3 separate entries with the same ID
+        allRequests = [];
+        rawRequests.forEach(r => {
+            const types = (r.requestType || 'Unknown').split(';#');
+            types.forEach(t => {
+                const normalizedType = normalizeType(t.trim());
+                if (normalizedType) {
+                    allRequests.push({ ...r, requestType: normalizedType });
+                }
+            });
+        });
 
-        // Load tracking from localStorage
+        // Load tracking from localStorage (NOT demo data)
         loadTracking();
         
         const now = new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
-        updateSync(allRequests.length + ' requests loaded \u00b7 ' + now);
+        updateSync(rawRequests.length + ' requests (' + allRequests.length + ' services) \u00b7 ' + now);
         renderRequests();
         startAutoRefresh();
     } catch(err) {
@@ -254,12 +291,48 @@ async function fetchAndRender() {
     }
 }
 
+// Normalize request type names to standard categories
+function normalizeType(type) {
+    const t = type.toLowerCase();
+    if (t.includes('portal creation') || t === 'portal creation') return 'Portal Creation';
+    if (t.includes('new da') || t === 'new da') return 'New DA';
+    if (t.includes('code name') || t.includes('codename')) return 'Codename';
+    if (t.includes('webview') || t.includes('ags role')) return 'WebView AGS Role';
+    if (t.includes('portal unencryption') || t.includes('unecrypted')) return 'Portal Unencryption';
+    if (t.includes('secure chamber')) return 'Secure Chamber';
+    if (t.includes('ifs nda')) return 'IFS NDA';
+    if (t.includes('mp-nda')) return 'MP-NDA';
+    if (t.includes('da edit')) return 'DA Edit';
+    if (t.includes('cod') && !t.includes('code')) return 'COD';
+    if (t.includes('docusign')) return 'DocuSign Request';
+    if (t.includes('redbook')) return 'Redbook Release';
+    if (t.includes('collateral')) return 'Collateral List Change';
+    if (t.includes('add product') || t.includes('new product')) return 'Add Product';
+    if (t.includes('portal addition')) return 'Portal Addition';
+    if (t.includes('mrunda')) return 'MRUNDA';
+    if (t.includes('mpa-ic')) return 'MPA-IC';
+    if (t.includes('ext. spo')) return 'Ext. SPO';
+    if (t.includes('new folder')) return 'New Folder in SFT';
+    // If it doesn't match known types, keep as-is
+    return type.trim();
+}
+
 // ============================================================
 // TRACKING: Stored in localStorage + GitHub API for sharing
 // ============================================================
 function loadTracking() {
     const saved = localStorage.getItem('ifs-tracker-data');
-    if (saved) trackingData = JSON.parse(saved);
+    if (saved) {
+        const parsed = JSON.parse(saved);
+        // If tracking has demo data keys that don't match real data, clear it
+        if (parsed['2679-Portal Creation'] && parsed['2679-Portal Creation']['configure-ags'] === 'Complete') {
+            // This is old demo data — clear it
+            trackingData = {};
+            localStorage.removeItem('ifs-tracker-data');
+            return;
+        }
+        trackingData = parsed;
+    }
 }
 
 function saveTracking() {
@@ -459,7 +532,14 @@ function exportJSON() {
 // HELPERS
 // ============================================================
 function getBadgeClass(type) {
-    return {'Portal Creation':'portal','New DA':'nda','Codename':'codename','WebView':'webview'}[type]||'nda';
+    const map = {
+        'Portal Creation':'portal','New DA':'nda','Codename':'codename',
+        'WebView AGS Role':'webview','Portal Unencryption':'webview',
+        'Secure Chamber':'portal','IFS NDA':'nda','MP-NDA':'nda',
+        'DA Edit':'codename','COD':'codename','DocuSign Request':'nda',
+        'Redbook Release':'webview'
+    };
+    return map[type]||'nda';
 }
 
 function selectClass(val) {
@@ -469,9 +549,13 @@ function selectClass(val) {
 
 function statusOptions(reqType, stepId) {
     if (stepId === 'ags-approved-role') return ['Not Started','Send for Approval','Approved'];
-    if (reqType === 'Codename' || reqType === 'WebView') return ['Not Started','Done'];
-    if (stepId === 'acknowledge') return ['Not Started','Complete'];
-    return ['Not Started','In Progress','Complete','Fail'];
+    if (reqType === 'Portal Creation' && stepId !== 'ags-approved-role') return ['Not Started','In Progress','Complete','Fail'];
+    if (reqType === 'New DA') {
+        if (stepId === 'acknowledge') return ['Not Started','Complete'];
+        return ['Not Started','In Progress','Complete'];
+    }
+    // Single-step services (Codename, WebView, etc.)
+    return ['Not Started','In Progress','Complete','Done'];
 }
 
 function getSectionOverall(key, steps) {
@@ -518,33 +602,16 @@ function loadDemoData() {
         {id:2679,requestType:'New DA',customer:'Acapella',requestor:'John Smith',created:'2026-07-15T10:00:00Z'},
         {id:2679,requestType:'Codename',customer:'Acapella',requestor:'John Smith',created:'2026-07-15T10:00:00Z'},
         {id:2678,requestType:'Portal Creation',customer:'Synopsys',requestor:'Jane Doe',created:'2026-07-14T09:00:00Z'},
-        {id:2678,requestType:'New DA',customer:'Synopsys',requestor:'Jane Doe',created:'2026-07-14T09:00:00Z'},
         {id:2677,requestType:'Codename',customer:'TSMC',requestor:'Bob Wilson',created:'2026-07-13T14:00:00Z'},
-        {id:2676,requestType:'WebView',customer:'ARM Holdings',requestor:'Alice Brown',created:'2026-07-12T08:00:00Z'},
-        {id:2675,requestType:'Portal Creation',customer:'Qualcomm',requestor:'Charlie Davis',created:'2026-07-11T11:00:00Z'},
-        {id:2675,requestType:'New DA',customer:'Qualcomm',requestor:'Charlie Davis',created:'2026-07-11T11:00:00Z'},
-        {id:2675,requestType:'Codename',customer:'Qualcomm',requestor:'Charlie Davis',created:'2026-07-11T11:00:00Z'},
-        {id:2675,requestType:'WebView',customer:'Qualcomm',requestor:'Charlie Davis',created:'2026-07-11T11:00:00Z'},
-        {id:2674,requestType:'New DA',customer:'MediaTek',requestor:'Eve Garcia',created:'2026-07-10T16:00:00Z'},
-        {id:2673,requestType:'Portal Creation',customer:'Samsung',requestor:'Frank Lee',created:'2026-07-09T07:00:00Z'},
-        {id:2672,requestType:'WebView',customer:'Broadcom',requestor:'Grace Kim',created:'2026-07-08T13:00:00Z'},
-        {id:2671,requestType:'New DA',customer:'Marvell',requestor:'Hank Torres',created:'2026-07-07T10:00:00Z'},
-        {id:2670,requestType:'Portal Creation',customer:'Applied Materials',requestor:'Iris Chen',created:'2026-07-05T09:00:00Z'},
-        {id:2670,requestType:'New DA',customer:'Applied Materials',requestor:'Iris Chen',created:'2026-07-05T09:00:00Z'}
+        {id:2676,requestType:'Portal Creation',customer:'Qualcomm',requestor:'Charlie Davis',created:'2026-07-11T11:00:00Z'},
+        {id:2676,requestType:'New DA',customer:'Qualcomm',requestor:'Charlie Davis',created:'2026-07-11T11:00:00Z'}
     ];
-    trackingData = {
-        "2679-Portal Creation":{"configure-ags":"Complete","configure-jsm":"In Progress","configure-security-ft":"Not Started","configure-access-mgmt":"Not Started","ags-approved-role":"Not Started","_updated":"2026-08-09T14:30:00Z"},
-        "2679-New DA":{"acknowledge":"Complete","in-approval-loop":"In Progress","add-force-signature":"Not Started","_updated":"2026-08-09T14:30:00Z"},
-        "2679-Codename":{"codename-created":"Done","_updated":"2026-08-08T10:00:00Z"},
-        "2678-Portal Creation":{"configure-ags":"Complete","configure-jsm":"Complete","configure-security-ft":"Complete","configure-access-mgmt":"Complete","ags-approved-role":"Approved","_updated":"2026-08-07T16:00:00Z"},
-        "2678-New DA":{"acknowledge":"Complete","in-approval-loop":"Complete","add-force-signature":"Complete","_updated":"2026-08-07T16:00:00Z"},
-        "2675-Portal Creation":{"configure-ags":"Complete","configure-jsm":"Fail","configure-security-ft":"Not Started","configure-access-mgmt":"Not Started","ags-approved-role":"Not Started","_updated":"2026-08-06T11:00:00Z"}
-    };
+    trackingData = {};
     renderRequests();
 }
 
 // ============================================================
-// INIT
+// INIT — also clears old demo tracking on first real data load
 // ============================================================
 document.addEventListener('DOMContentLoaded', fetchAndRender);
 </script>
