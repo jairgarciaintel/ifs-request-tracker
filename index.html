@@ -187,6 +187,15 @@ body{
 .notif-text strong{color:var(--cyan);}
 .notif-close{background:none;border:none;color:rgba(255,255,255,0.5);font-size:16px;cursor:pointer;padding:0 4px;}
 .notif-close:hover{color:var(--white);}
+/* === PRESENCE BADGE === */
+.presence-badge{
+  font-size:11px;color:var(--cyan);font-weight:600;
+  margin-left:10px;padding:2px 8px;
+  background:rgba(78,200,240,0.1);border-radius:8px;
+  border:1px solid rgba(78,200,240,0.3);
+  animation:pulse 2s infinite;
+}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.6;}}
 </style>
 
 <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
@@ -384,10 +393,24 @@ async function saveTracking() {
     }
 }
 
-// Send a notification when a step changes
-async function sendNotification(requestId, customer, reqType, stepLabel, newValue) {
+// (notifications handled by logHistory below)
+
+// Set presence (who is working on a section)
+async function setPresence(requestId, reqType) {
     const user = ensureUsername();
-    const notification = {
+    try {
+        await fetch(`${FIREBASE_DB}/presence/${requestId}---${reqType.replace(/\s/g,'_')}.json`, {
+            method: 'PUT',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ user: user, since: new Date().toISOString() })
+        });
+    } catch(e) {}
+}
+
+// Log change to history
+async function logHistory(requestId, customer, reqType, stepLabel, newValue) {
+    const user = ensureUsername();
+    const entry = {
         user: user,
         requestId: requestId,
         customer: customer,
@@ -397,50 +420,86 @@ async function sendNotification(requestId, customer, reqType, stepLabel, newValu
         timestamp: new Date().toISOString()
     };
     try {
-        await fetch(`${FIREBASE_DB}/notifications.json`, {
+        await fetch(`${FIREBASE_DB}/history.json`, {
             method: 'POST',
             headers: {'Content-Type':'application/json'},
-            body: JSON.stringify(notification)
+            body: JSON.stringify(entry)
         });
-    } catch(e) {}
-}
-
-// Set presence (who is working)
-async function setPresence(requestId, reqType) {
-    const user = ensureUsername();
-    try {
-        await fetch(`${FIREBASE_DB}/presence/${requestId}-${reqType}.json`, {
+        // Also store as latest notification
+        await fetch(`${FIREBASE_DB}/lastChange.json`, {
             method: 'PUT',
             headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({ user: user, since: new Date().toISOString() })
+            body: JSON.stringify(entry)
         });
     } catch(e) {}
 }
 
-// Poll for notifications and presence every 5 seconds
-let lastNotifCheck = new Date().toISOString();
+// Poll for changes every 5 seconds
+let lastChangeTimestamp = '';
+let presenceData = {};
+
 function startRealtimePolling() {
     setInterval(async () => {
-        // Check for new notifications
+        // 1. Check last change notification
         try {
-            const res = await fetch(`${FIREBASE_DB}/notifications.json?orderBy="timestamp"&startAt="${lastNotifCheck}"`);
+            const res = await fetch(`${FIREBASE_DB}/lastChange.json`);
             if (res.ok) {
                 const data = await res.json();
-                if (data) {
-                    Object.values(data).forEach(n => {
-                        if (n.user !== currentUser && n.timestamp > lastNotifCheck) {
-                            showNotification(n);
-                        }
-                    });
+                if (data && data.timestamp !== lastChangeTimestamp && data.user !== currentUser) {
+                    lastChangeTimestamp = data.timestamp;
+                    showNotification(data);
+                } else if (data) {
+                    lastChangeTimestamp = data.timestamp;
                 }
             }
-            lastNotifCheck = new Date().toISOString();
         } catch(e) {}
         
-        // Reload tracking to see other user's changes
+        // 2. Load presence data
+        try {
+            const res = await fetch(`${FIREBASE_DB}/presence.json`);
+            if (res.ok) {
+                presenceData = await res.json() || {};
+                updatePresenceUI();
+            }
+        } catch(e) {}
+        
+        // 3. Reload tracking to see other user's changes
         await loadTracking();
         renderRequests();
     }, 5000);
+}
+
+function updatePresenceUI() {
+    // Add presence indicators to type sections
+    document.querySelectorAll('.type-section').forEach(section => {
+        const existingBadge = section.querySelector('.presence-badge');
+        if (existingBadge) existingBadge.remove();
+    });
+    
+    const now = new Date().getTime();
+    Object.entries(presenceData).forEach(([key, val]) => {
+        if (!val || val.user === currentUser) return;
+        // Only show if presence is less than 2 minutes old
+        const since = new Date(val.since).getTime();
+        if (now - since > 120000) return;
+        
+        // Find the matching section in the DOM
+        const parts = key.split('---');
+        const id = parts[0];
+        const reqType = (parts[1] || '').replace(/_/g, ' ');
+        const card = document.getElementById('group-' + id);
+        if (!card) return;
+        
+        const sections = card.querySelectorAll('.type-section-title');
+        sections.forEach(titleEl => {
+            if (titleEl.textContent === reqType) {
+                const badge = document.createElement('span');
+                badge.className = 'presence-badge';
+                badge.textContent = '\u2014 ' + val.user;
+                titleEl.parentElement.insertBefore(badge, titleEl.nextSibling);
+            }
+        });
+    });
 }
 
 function showNotification(n) {
@@ -672,7 +731,7 @@ function updateStep(key, stepId, value, el) {
     const stepLabel = stepObj ? stepObj.label : stepId;
     const req = allRequests.find(r => String(r.id) === id && r.requestType === reqType);
     const customer = req ? req.customer : '';
-    sendNotification(id, customer, reqType, stepLabel, value);
+    logHistory(id, customer, reqType, stepLabel, value);
     setPresence(id, reqType);
     
     // Refresh section status icon
