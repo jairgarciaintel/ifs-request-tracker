@@ -313,7 +313,13 @@ function renderRequests() {
     const statusFilter = document.getElementById('filter-status').value;
     const search = document.getElementById('search-box').value.toLowerCase();
 
-    let filtered = allRequests;
+    // Filter only 2026 requests
+    let filtered = allRequests.filter(r => {
+        if (!r.created) return false;
+        const year = new Date(r.created).getFullYear();
+        return year === 2026;
+    });
+
     if (typeFilter !== 'all') filtered = filtered.filter(r => r.requestType === typeFilter);
     if (search) filtered = filtered.filter(r =>
         (r.customer||'').toLowerCase().includes(search) ||
@@ -322,8 +328,8 @@ function renderRequests() {
 
     const grouped = groupByID(filtered);
 
-    // Stats (based on all data, not filtered)
-    const allGrouped = groupByID(allRequests);
+    // Stats (based on 2026 data)
+    const allGrouped = groupByID(filtered);
     let totalGroups = Object.keys(allGrouped).length;
     let wipCount = 0, doneCount = 0, newCount = 0;
     Object.entries(allGrouped).forEach(([id, reqs]) => {
@@ -343,6 +349,9 @@ function renderRequests() {
         ids = ids.filter(id => getGroupOverall(id, grouped[id]) === statusFilter);
     }
 
+    // Sort IDs descending (highest/newest first)
+    ids.sort((a, b) => Number(b) - Number(a));
+
     if (ids.length === 0) {
         container.innerHTML = '<div class="empty-state"><h3>No requests match filters</h3></div>';
         return;
@@ -353,7 +362,7 @@ function renderRequests() {
 
 function renderGroupCard(id, reqs) {
     const customer = reqs[0].customer || '\u2014';
-    const date = reqs[0].created ? new Date(reqs[0].created).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '';
+    const date = reqs[0].created ? new Date(reqs[0].created).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}) : '';
     const overall = getGroupOverall(id, reqs);
     const badges = reqs.map(r => `<span class="badge badge-${getBadgeClass(r.requestType)}">${r.requestType}</span>`).join('');
 
