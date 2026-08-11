@@ -175,12 +175,12 @@ body{
   cursor:pointer;transition:background 0.2s;
 }
 .group-header:hover{background:rgba(78,200,240,0.03);}
-.group-id{font-family:'Cabinet Grotesk',sans-serif;font-size:16px;font-weight:700;color:var(--cyan);}
-.group-customer{flex:1;font-size:14px;color:var(--light);}
+.group-id{font-family:'Cabinet Grotesk',sans-serif;font-size:19px;font-weight:700;color:var(--cyan);}
+.group-customer{flex:1;font-size:19px;color:var(--light);}
 .group-badges{display:flex;gap:6px;flex-wrap:wrap;}
 /* === VIEWING HIGHLIGHT === */
-.group-card.being-viewed{border-color:var(--amber);box-shadow:0 0 12px rgba(240,160,48,0.15);}
-.viewing-badge{font-size:11px;color:var(--amber);font-weight:700;margin-left:10px;padding:2px 8px;background:rgba(240,160,48,0.12);border-radius:8px;border:1px solid rgba(240,160,48,0.3);animation:pulse 2s infinite;}
+.group-card.being-viewed{border-color:var(--amber);box-shadow:0 0 12px rgba(240,160,48,0.15);position:relative;}
+.viewing-badge{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:13px;color:var(--amber);font-weight:700;padding:6px 16px;background:rgba(240,160,48,0.15);border-radius:10px;border:1px solid rgba(240,160,48,0.4);animation:pulse 2s infinite;z-index:10;backdrop-filter:blur(4px);}
 .badge{font-size:9px;padding:2px 8px;border-radius:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;}
 .badge-portal{background:rgba(139,92,246,0.12);color:#a78bfa;border:1px solid rgba(139,92,246,0.25);}
 .badge-nda{background:rgba(78,200,240,0.1);color:var(--cyan);border:1px solid rgba(78,200,240,0.25);}
@@ -565,12 +565,11 @@ function startRealtimePolling() {
                     const card = document.getElementById('group-' + id);
                     if (card) {
                         card.classList.add('being-viewed');
-                        const header = card.querySelector('.group-customer');
-                        if (header && !card.querySelector('.viewing-badge')) {
+                        if (!card.querySelector('.viewing-badge')) {
                             const badge = document.createElement('span');
                             badge.className = 'viewing-badge';
                             badge.textContent = val.user;
-                            header.after(badge);
+                            card.appendChild(badge);
                         }
                     }
                 });
