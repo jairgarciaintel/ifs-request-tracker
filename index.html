@@ -219,6 +219,7 @@ body{
 .route-row .substep-label{color:#a78bfa;font-weight:600;}
 .route-chosen{opacity:0.7;font-size:11px;}
 .route-chosen .substep-label{font-size:11px;}
+.cod-da-header{border-bottom:2px solid rgba(139,92,246,0.15);margin-bottom:4px;padding-bottom:10px;}
 @media(max-width:768px){
   .header,.toolbar{flex-direction:column;gap:10px;padding:12px 16px;}
   .filters{flex-wrap:wrap;}.request-list{padding:12px 16px;}
@@ -359,15 +360,11 @@ const SUB_STEPS = {
         {id:'mp-nda-done', label:'MP-NDA Executed'}
     ],
     'DA Edit': [
-        {id:'da-edit-info-request', label:'Info Request to BD'},
-        {id:'da-edit-route', label:'Route: COD or DA Edit?', isRoute: true},
-        {id:'da-edit-approval-loop', label:'In Approval Loop', showWhen: 'DA Edit'},
-        {id:'da-edit-for-signature', label:'Add for Signature', showWhen: 'DA Edit'}
+        {id:'da-edit-approval-loop', label:'In Approval Loop'},
+        {id:'da-edit-for-signature', label:'Add for Signature'}
     ],
     'COD': [
-        {id:'cod-info-request', label:'Info Request to BD'},
-        {id:'cod-route', label:'Route: COD or DA Edit?', isRoute: true},
-        {id:'cod-send-signature', label:'Send for Signature', showWhen: 'COD'}
+        {id:'cod-send-signature', label:'Send for Signature'}
     ],
     'DocuSign Request': [
         {id:'docusign-done', label:'DocuSign Sent'}
@@ -821,7 +818,58 @@ function renderGroupCard(id, reqs) {
     const noteText = noteData.text || '';
     const noteBy = noteData.by ? ` (${noteData.by})` : '';
 
-    const sections = knownReqs.map(r => renderTypeSection(id, r)).join('');
+    // Handle COD/DA Edit combo: shared info request + route selector ABOVE the sections
+    const hasCOD = knownReqs.some(r => r.requestType === 'COD');
+    const hasDAEdit = knownReqs.some(r => r.requestType === 'DA Edit');
+    const isCodDaCombo = hasCOD && hasDAEdit;
+    
+    let codDaHeader = '';
+    let filteredReqs = knownReqs;
+    
+    if (isCodDaCombo) {
+        const comboKey = id + '-cod-da-route';
+        const saved = trackingData[comboKey] || {};
+        const infoStatus = saved['info-request'] || 'Not Started';
+        const routeChoice = saved['route'] || 'Waiting for BD';
+        const infoBy = saved['info-request_by'] || '';
+        const routeBy = saved['route_by'] || '';
+        const infoCls = selectClass(infoStatus);
+        const routeCls = 'st-route';
+        
+        codDaHeader = `<div class="type-section cod-da-header">
+          <div class="type-section-header"><span class="type-section-title title-codename">COD / DA Edit Decision</span></div>
+          <div class="substep-row">
+            <span class="substep-label">Info Request to BD</span>
+            <select class="substep-select ${infoCls}" onchange="updateCodDaRoute('${id}','info-request',this.value)">
+              <option value="Not Started"${infoStatus==='Not Started'?' selected':''}>Not Started</option>
+              <option value="In Progress"${infoStatus==='In Progress'?' selected':''}>In Progress</option>
+              <option value="Done"${infoStatus==='Done'?' selected':''}>Done</option>
+            </select>
+            ${infoBy ? '<span class="changed-by">'+infoBy+'</span>' : ''}
+          </div>
+          <div class="substep-row route-row">
+            <span class="substep-label">\u25C7 Route</span>
+            <select class="substep-select ${routeCls}" onchange="updateCodDaRoute('${id}','route',this.value)">
+              <option value="Waiting for BD"${routeChoice==='Waiting for BD'?' selected':''}>Waiting for BD</option>
+              <option value="COD"${routeChoice==='COD'?' selected':''}>COD</option>
+              <option value="DA Edit"${routeChoice==='DA Edit'?' selected':''}>DA Edit</option>
+            </select>
+            ${routeBy ? '<span class="changed-by">'+routeBy+'</span>' : ''}
+          </div>
+        </div>`;
+        
+        // Filter: only show the chosen path
+        if (routeChoice === 'COD') {
+            filteredReqs = knownReqs.filter(r => r.requestType !== 'DA Edit');
+        } else if (routeChoice === 'DA Edit') {
+            filteredReqs = knownReqs.filter(r => r.requestType !== 'COD');
+        } else {
+            // Waiting — hide both COD and DA Edit sections
+            filteredReqs = knownReqs.filter(r => r.requestType !== 'COD' && r.requestType !== 'DA Edit');
+        }
+    }
+    
+    const sections = filteredReqs.map(r => renderTypeSection(id, r)).join('');
 
     return `<div class="group-card" id="group-${id}">
       <div class="group-header" onclick="toggleGroup('${id}')">
@@ -835,6 +883,7 @@ function renderGroupCard(id, reqs) {
       </div>
       <div class="progress-track"><div class="progress-fill ${pfClass}" style="width:${progress}%"></div><span class="progress-pct">${progress}%</span></div>
       <div class="group-body">
+        ${codDaHeader}
         ${sections}
         <div class="notes-section">
           <textarea class="notes-input" placeholder="Notes (IT ticket, comments...)${noteBy}" onblur="saveNote('${id}',this)">${noteText}</textarea>
@@ -919,7 +968,6 @@ function renderTypeSection(id, req) {
 function toggleGroup(id) {
     const card = document.getElementById('group-' + id);
     card.classList.toggle('open');
-    // Notify presence: this user opened this request
     if (card.classList.contains('open')) {
         const user = ensureUsername();
         fetch(`${FIREBASE_DB}/viewing/${id}.json`, {
@@ -928,9 +976,32 @@ function toggleGroup(id) {
             body: JSON.stringify({ user: user, since: new Date().toISOString() })
         }).catch(()=>{});
     } else {
-        // User closed it — remove presence
         fetch(`${FIREBASE_DB}/viewing/${id}.json`, { method: 'DELETE' }).catch(()=>{});
     }
+}
+
+// COD/DA Edit shared route handler
+async function updateCodDaRoute(id, field, value) {
+    const comboKey = id + '-cod-da-route';
+    if (!trackingData[comboKey]) trackingData[comboKey] = {};
+    trackingData[comboKey][field] = value;
+    trackingData[comboKey][field + '_by'] = currentUser;
+    trackingData[comboKey]._updated = new Date().toISOString();
+    await saveTracking();
+    
+    // Re-render the entire card to show/hide sections
+    const card = document.getElementById('group-' + id);
+    const wasOpen = card.classList.contains('open');
+    const reqs = allRequests.filter(r => String(r.id) === id);
+    const grouped = groupByID(reqs);
+    const newCard = document.createElement('div');
+    newCard.innerHTML = renderGroupCard(id, grouped[id]);
+    card.replaceWith(newCard.firstElementChild);
+    if (wasOpen) document.getElementById('group-' + id).classList.add('open');
+    
+    // Log
+    const label = field === 'route' ? 'Route Decision' : 'Info Request to BD';
+    logHistory(id, reqs[0]?.customer || '', 'COD/DA Edit', label, value);
 }
 
 function updateStep(key, stepId, value, el) {
@@ -1031,9 +1102,9 @@ function statusOptions(reqType, stepId) {
     // COD / DA Edit route selector
     if (stepId === 'cod-route' || stepId === 'da-edit-route') return ['Waiting for BD','COD','DA Edit'];
     // COD
-    if (stepId === 'cod-info-request' || stepId === 'da-edit-info-request') return ['Not Started','In Progress','Done'];
     if (stepId === 'cod-send-signature') return ['Not Started','Send for Signature','Complete'];
     // DA Edit
+    if (stepId === 'da-edit-info-request' || stepId === 'cod-info-request') return ['Not Started','In Progress','Done'];
     if (stepId === 'da-edit-approval-loop') return ['Not Started','In Progress','Complete'];
     if (stepId === 'da-edit-for-signature') return ['Not Started','In Progress','Complete'];
     // Single-step services (Codename, WebView, etc.)
@@ -1248,6 +1319,32 @@ function getProgressPercent(id, reqs) {
     // If source status is Complete, it's 100%
     const sourceStatus = (reqs[0].status || '').toLowerCase();
     if (sourceStatus === 'complete' || sourceStatus === 'canceled') return 100;
+    
+    // Check COD/DA Edit combo
+    const hasCOD = reqs.some(r => r.requestType === 'COD');
+    const hasDAEdit = reqs.some(r => r.requestType === 'DA Edit');
+    if (hasCOD && hasDAEdit) {
+        const comboKey = id + '-cod-da-route';
+        const comboSaved = trackingData[comboKey] || {};
+        const routeChoice = comboSaved['route'] || 'Waiting for BD';
+        // Count: info request + route + chosen path steps
+        let total = 2; // info request + route decision
+        let done = 0;
+        if (comboSaved['info-request'] === 'Done') done++;
+        if (routeChoice !== 'Waiting for BD') {
+            done++; // route decided
+            const chosenType = routeChoice; // 'COD' or 'DA Edit'
+            const steps = SUB_STEPS[chosenType] || [];
+            const key = id + '-' + chosenType;
+            const saved = trackingData[key] || {};
+            total += steps.length;
+            steps.forEach(s => {
+                const val = saved[s.id] || 'Not Started';
+                if (val === 'Complete' || val === 'Done' || val === 'Approved') done++;
+            });
+        }
+        return total === 0 ? 0 : Math.round((done / total) * 100);
+    }
     
     let total = 0, done = 0;
     reqs.forEach(r => {
