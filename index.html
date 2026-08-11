@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>IFS Request Tracker — DA Ops</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23041c32'/><text x='4' y='23' font-size='18' font-family='sans-serif' fill='%234ec8f0' font-weight='bold'>IFS</text></svg>">
+<title>FS Request Tracker — DA Ops</title>
+<link rel="icon" href="Logo.png">
 <link href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@700,400&f[]=satoshi@400,700&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -45,7 +45,7 @@ body{
   <div class="header-left">
     <img src="Logo.png" alt="Intel Foundry" class="logo"/>
     <div class="header-title">
-      <h1>IFS <span class="accent">Request Tracker</span></h1>
+      <h1>FS <span class="accent">Request Tracker</span></h1>
       <p class="meta">DA Ops · Private View · Jenn &amp; Jair</p>
     </div>
   </div>
@@ -345,12 +345,12 @@ function normalizeType(type) {
 // TRACKING: Firebase Realtime Database — instant sync + notifications
 // ============================================================
 const FIREBASE_DB = 'https://fs-request-tracker-default-rtdb.firebaseio.com';
-let currentUser = localStorage.getItem('ifs-username') || '';
+let currentUser = localStorage.getItem('fs-username') || '';
 
 function ensureUsername() {
     if (!currentUser) {
         currentUser = prompt('Enter your name (e.g., Jair or Jenn):') || 'Anonymous';
-        localStorage.setItem('ifs-username', currentUser);
+        localStorage.setItem('fs-username', currentUser);
     }
     return currentUser;
 }
@@ -696,13 +696,13 @@ function exportExcel() {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Tracking');
     ws['!cols'] = Object.keys(data[0]||{}).map(()=>({wch:18}));
-    XLSX.writeFile(wb, 'IFS_Tracker_' + new Date().toISOString().slice(0,10) + '.xlsx');
+    XLSX.writeFile(wb, 'FS_Tracker_' + new Date().toISOString().slice(0,10) + '.xlsx');
 }
 
 function exportJSON() {
     const blob = new Blob([JSON.stringify({requests:allRequests,tracking:trackingData},null,2)],{type:'application/json'});
     const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
-    a.download='IFS_Tracker_'+new Date().toISOString().slice(0,10)+'.json'; a.click();
+    a.download='FS_Tracker_'+new Date().toISOString().slice(0,10)+'.json'; a.click();
 }
 
 // ============================================================
