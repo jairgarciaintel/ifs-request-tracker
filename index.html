@@ -75,10 +75,10 @@ body{
     <input type="text" id="search-box" placeholder="Search customer or ID..." oninput="renderRequests()"/>
   </div>
   <div class="stats-bar">
-    <span id="stat-total" class="stat-pill">0 total</span>
-    <span id="stat-progress" class="stat-pill s-progress">0 WIP</span>
-    <span id="stat-complete" class="stat-pill s-done">0 done</span>
-    <span id="stat-new" class="stat-pill s-new">0 new</span>
+    <span id="stat-total" class="stat-pill stat-clickable stat-active" onclick="toggleStatFilter('all')">0 total</span>
+    <span id="stat-progress" class="stat-pill s-progress stat-clickable" onclick="toggleStatFilter('in-progress')">0 WIP</span>
+    <span id="stat-complete" class="stat-pill s-done stat-clickable" onclick="toggleStatFilter('complete')">0 done</span>
+    <span id="stat-new" class="stat-pill s-new stat-clickable" onclick="toggleStatFilter('not-started')">0 new</span>
   </div>
 </div>
 
@@ -107,9 +107,15 @@ body{
 .filters select:focus,.filters input:focus{outline:none;border-color:var(--cyan);}
 .stats-bar{display:flex;gap:8px;}
 .stat-pill{font-size:11px;padding:4px 10px;border-radius:12px;font-weight:600;background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.5);}
+.stat-clickable{cursor:pointer;transition:all 0.2s;border:1px solid transparent;}
+.stat-clickable:hover{transform:translateY(-1px);opacity:0.9;}
+.stat-clickable.stat-active{border-color:rgba(255,255,255,0.3);box-shadow:0 0 6px rgba(255,255,255,0.1);}
 .s-progress{background:rgba(240,160,48,0.12);color:var(--amber);}
+.s-progress.stat-active{border-color:var(--amber);box-shadow:0 0 6px rgba(240,160,48,0.3);}
 .s-done{background:rgba(107,203,119,0.12);color:var(--green);}
+.s-done.stat-active{border-color:var(--green);box-shadow:0 0 6px rgba(107,203,119,0.3);}
 .s-new{background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.4);}
+.s-new.stat-active{border-color:rgba(255,255,255,0.4);box-shadow:0 0 6px rgba(255,255,255,0.1);}
 .request-list{padding:20px 32px;display:flex;flex-direction:column;gap:14px;}
 .empty-state{text-align:center;padding:80px 20px;color:rgba(255,255,255,0.4);}
 .empty-state h3{font-family:'Cabinet Grotesk',sans-serif;font-size:1.3rem;color:var(--cyan);}
@@ -250,6 +256,7 @@ const SUB_STEPS = {
 let allRequests = [];
 let trackingData = {};
 let refreshTimer = null;
+let activeStatFilters = new Set(['all']); // multi-select stat filter
 
 // ============================================================
 // DATA: Fetch directly from SharePoint REST API (browser session)
@@ -369,6 +376,39 @@ function updateSync(msg){ document.getElementById('sync-status').textContent = m
 function startAutoRefresh(){ if(refreshTimer)clearInterval(refreshTimer); refreshTimer=setInterval(fetchAndRender,CONFIG.refreshInterval); }
 
 // ============================================================
+// STAT FILTER: Click pills to filter, multi-select supported
+// ============================================================
+function toggleStatFilter(status) {
+    if (status === 'all') {
+        // Click "total" = show all, clear other selections
+        activeStatFilters = new Set(['all']);
+    } else {
+        // Remove 'all' if selecting specific filters
+        activeStatFilters.delete('all');
+        
+        if (activeStatFilters.has(status)) {
+            activeStatFilters.delete(status);
+        } else {
+            activeStatFilters.add(status);
+        }
+        
+        // If nothing selected, go back to all
+        if (activeStatFilters.size === 0) activeStatFilters = new Set(['all']);
+    }
+    
+    // Update visual active state
+    document.getElementById('stat-total').classList.toggle('stat-active', activeStatFilters.has('all'));
+    document.getElementById('stat-progress').classList.toggle('stat-active', activeStatFilters.has('in-progress'));
+    document.getElementById('stat-complete').classList.toggle('stat-active', activeStatFilters.has('complete'));
+    document.getElementById('stat-new').classList.toggle('stat-active', activeStatFilters.has('not-started'));
+    
+    // Also sync the dropdown filter
+    document.getElementById('filter-status').value = 'all';
+    
+    renderRequests();
+}
+
+// ============================================================
 // RENDERING: Group by ID — one card per request ID
 // ============================================================
 function groupByID(requests) {
@@ -383,7 +423,6 @@ function groupByID(requests) {
 function renderRequests() {
     const container = document.getElementById('request-list');
     const typeFilter = document.getElementById('filter-type').value;
-    const statusFilter = document.getElementById('filter-status').value;
     const search = document.getElementById('search-box').value.toLowerCase();
 
     // Filter only 2026 requests
@@ -416,9 +455,15 @@ function renderRequests() {
     document.getElementById('stat-complete').textContent = doneCount + ' done';
     document.getElementById('stat-new').textContent = newCount + ' new';
 
-    // Filter by overall status
+    // Filter by overall status (from pills or dropdown)
     let ids = Object.keys(grouped);
-    if (statusFilter !== 'all') {
+    const statusFilter = document.getElementById('filter-status').value;
+    
+    if (!activeStatFilters.has('all')) {
+        // Use pill multi-select
+        ids = ids.filter(id => activeStatFilters.has(getGroupOverall(id, grouped[id])));
+    } else if (statusFilter !== 'all') {
+        // Use dropdown single-select
         ids = ids.filter(id => getGroupOverall(id, grouped[id]) === statusFilter);
     }
 
