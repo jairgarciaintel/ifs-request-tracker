@@ -519,15 +519,18 @@ const POWER_AUTOMATE_URL = 'https://default46c98d88e3444ed484964ed7712e25.5d.env
 
 async function updateSharePoint(requestId, newStatus) {
     try {
-        await fetch(POWER_AUTOMATE_URL, {
+        const res = await fetch(POWER_AUTOMATE_URL, {
             method: 'POST',
-            mode: 'no-cors',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ id: parseInt(requestId), status: newStatus })
         });
-        console.log('SharePoint updated: #' + requestId + ' -> ' + newStatus);
+        if (res.ok) {
+            console.log('SharePoint updated: #' + requestId + ' -> ' + newStatus);
+        } else {
+            console.warn('SharePoint update response:', res.status);
+        }
     } catch(e) {
-        console.warn('Power Automate call failed:', e);
+        console.warn('Power Automate call:', e.message);
     }
 }
 
