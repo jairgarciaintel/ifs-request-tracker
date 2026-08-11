@@ -175,14 +175,22 @@ body{
 // CONFIG
 // ============================================================
 const CONFIG = {
-    // SharePoint REST API (direct from browser — uses your active session)
+    // Data files served from GitHub raw (same repo)
+    dataFile: 'data/requests.json',
+    trackingFile: 'data/tracking.json',
+    
+    // GitHub API for saving tracking (shared between Jenn and Jair)
+    github: {
+        owner: 'jairgarciaintel',
+        repo: 'ifs-request-tracker',
+        branch: 'main',
+        trackingPath: 'data/tracking.json'
+    },
+    
+    // SharePoint source (for reference)
     spSite: 'https://intel.sharepoint.com/sites/ifs-igo-requests',
     spList: 'New DA Request',
     dateFilter: '2026-07-01T00:00:00Z',
-    
-    // Local fallback files (if SharePoint call fails)
-    dataFile: 'data/requests.json',
-    trackingFile: 'data/tracking.json',
     
     // Auto-refresh every 10 minutes
     refreshInterval: 600000
@@ -225,102 +233,29 @@ let refreshTimer = null;
 // We just call the API — no login popup, no tokens, no MSAL needed.
 // ============================================================
 async function fetchAndRender() {
-    updateSync('Connecting to SharePoint...');
+    updateSync('Loading data...');
     try {
-        allRequests = await fetchFromSharePoint();
-        const now = new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
-        updateSync(allRequests.length + ' requests from SharePoint \u00b7 ' + now);
-        
-        // Load tracking from localStorage (your DB lives here + export)
+        // Load requests JSON (served by GitHub Pages from same directory)
+        const reqRes = await fetch(CONFIG.dataFile + '?v=' + Date.now());
+        if (!reqRes.ok) throw new Error('Cannot load ' + CONFIG.dataFile + ' (HTTP ' + reqRes.status + ')');
+        allRequests = await reqRes.json();
+
+        // Load tracking from localStorage
         loadTracking();
+        
+        const now = new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+        updateSync(allRequests.length + ' requests loaded \u00b7 ' + now);
         renderRequests();
         startAutoRefresh();
-        
-        // Also save fetched requests to local JSON for offline/backup
-        saveRequestsLocal();
     } catch(err) {
-        console.error('SharePoint fetch failed:', err);
-        updateSync('SharePoint unavailable \u2014 loading local data...');
-        // Fallback: try local JSON file
-        try {
-            const res = await fetch(CONFIG.dataFile + '?t=' + Date.now());
-            if (res.ok) allRequests = await res.json();
-            else throw new Error('No local data');
-            loadTracking();
-            renderRequests();
-            updateSync(allRequests.length + ' requests (local cache)');
-        } catch(e2) {
-            updateSync('No data available \u2014 demo mode');
-            loadDemoData();
-        }
+        console.error('Fetch failed:', err);
+        updateSync('Load failed \u2014 showing demo data');
+        loadDemoData();
     }
-}
-
-async function fetchFromSharePoint() {
-    // === METHOD 1: Direct fetch (works if page is hosted on *.intel.com or SharePoint) ===
-    // Your browser sends cookies automatically with credentials:'include'
-    
-    // Step 1: Get Request Digest for authenticated calls
-    const digestUrl = CONFIG.spSite + '/_api/contextinfo';
-    const digestRes = await fetch(digestUrl, {
-        method: 'POST',
-        headers: { 'Accept': 'application/json;odata=verbose' },
-        credentials: 'include'
-    });
-    
-    if (!digestRes.ok) {
-        // If CORS blocks this, it means the page is NOT on the same domain.
-        // Try Method 2 (see note below)
-        throw new Error('SharePoint blocked (HTTP ' + digestRes.status + '). See console for CORS info.');
-    }
-    
-    const digestData = await digestRes.json();
-    const digest = digestData.d.GetContextWebInformation.FormDigestValue;
-    
-    // Step 2: Query list items
-    const filter = "Created ge datetime'" + CONFIG.dateFilter + "'" +
-        " and Status ne 'Complete' and Status ne 'Closed' and Status ne 'Hidden'";
-    const select = 'Id,Title,Request_x0020_Type,Customer_x0020_Name,Created,Status,Author/Title';
-    const expand = 'Author';
-    
-    const apiUrl = CONFIG.spSite + "/_api/web/lists/getbytitle('" + 
-        encodeURIComponent(CONFIG.spList) + "')/items" +
-        '?$filter=' + encodeURIComponent(filter) +
-        '&$select=' + encodeURIComponent(select) +
-        '&$expand=' + expand +
-        '&$orderby=Id desc' +
-        '&$top=500';
-    
-    const listRes = await fetch(apiUrl, {
-        method: 'GET',
-        headers: {
-            'Accept': 'application/json;odata=verbose',
-            'X-RequestDigest': digest
-        },
-        credentials: 'include'
-    });
-    
-    if (!listRes.ok) {
-        throw new Error('List query failed (HTTP ' + listRes.status + ')');
-    }
-    
-    const listData = await listRes.json();
-    const items = listData.d.results || [];
-    
-    return items.map(item => ({
-        id: item.Id,
-        requestType: item.Request_x0020_Type || item.Title || 'Unknown',
-        customer: item.Customer_x0020_Name || item.Title || '\u2014',
-        requestor: (item.Author && item.Author.Title) || '\u2014',
-        created: item.Created,
-        status: item.Status || ''
-    }));
 }
 
 // ============================================================
-// TRACKING: Stored in localStorage + exportable to JSON/Excel
-// Since you can't write files on a static server, tracking lives
-// in the browser. Both Jenn and you export periodically to share.
+// TRACKING: Stored in localStorage + GitHub API for sharing
 // ============================================================
 function loadTracking() {
     const saved = localStorage.getItem('ifs-tracker-data');
@@ -330,11 +265,6 @@ function loadTracking() {
 function saveTracking() {
     trackingData._lastSaved = new Date().toISOString();
     localStorage.setItem('ifs-tracker-data', JSON.stringify(trackingData));
-}
-
-function saveRequestsLocal() {
-    // Cache the fetched requests so offline mode works
-    localStorage.setItem('ifs-tracker-requests', JSON.stringify(allRequests));
 }
 
 function buildExcelData() {
