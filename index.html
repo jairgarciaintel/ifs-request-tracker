@@ -399,9 +399,17 @@ async function fetchAndRender() {
         // becomes 3 separate entries with the same ID
         allRequests = [];
         rawRequests.forEach(r => {
-            const types = (r.requestType || 'Unknown').split(';#');
+            let rawType = r.requestType || 'Unknown';
+            let types;
+            // Handle JSON array format: ["DA edit","COD"]
+            if (rawType.startsWith('[')) {
+                try { types = JSON.parse(rawType); } catch(e) { types = [rawType]; }
+            } else {
+                // Handle ;# separator format: DA edit;#COD
+                types = rawType.split(';#');
+            }
             types.forEach(t => {
-                const normalizedType = normalizeType(t.trim());
+                const normalizedType = normalizeType(String(t).trim());
                 if (normalizedType) {
                     allRequests.push({ ...r, requestType: normalizedType });
                 }
