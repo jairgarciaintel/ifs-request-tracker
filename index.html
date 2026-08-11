@@ -354,10 +354,13 @@ const SUB_STEPS = {
         {id:'mp-nda-done', label:'MP-NDA Executed'}
     ],
     'DA Edit': [
-        {id:'da-edit-done', label:'DA Edit Completed'}
+        {id:'da-edit-info-request', label:'Info Request'},
+        {id:'da-edit-approval-loop', label:'In Approval Loop'},
+        {id:'da-edit-signature', label:'Add Force Signature'}
     ],
     'COD': [
-        {id:'cod-done', label:'COD Completed'}
+        {id:'cod-info-request', label:'Info Request'},
+        {id:'cod-send-signature', label:'Send for Signature'}
     ],
     'DocuSign Request': [
         {id:'docusign-done', label:'DocuSign Sent'}
@@ -971,7 +974,7 @@ function getBadgeClass(type) {
 }
 
 function selectClass(val) {
-    const m = {'Complete':'st-complete','Done':'st-done','Approved':'st-approved','In Progress':'st-inprogress','Send for Approval':'st-send','Fail':'st-fail','Not Started':'st-notstarted'};
+    const m = {'Complete':'st-complete','Done':'st-done','Approved':'st-approved','In Progress':'st-inprogress','Send for Approval':'st-send','Send for Signature':'st-send','Fail':'st-fail','Not Started':'st-notstarted'};
     return m[val]||'st-notstarted';
 }
 
@@ -983,6 +986,13 @@ function statusOptions(reqType, stepId) {
         if (stepId === 'acknowledge') return ['Not Started','Complete'];
         return ['Not Started','In Progress','Complete'];
     }
+    // COD
+    if (stepId === 'cod-info-request') return ['Not Started','In Progress','Done'];
+    if (stepId === 'cod-send-signature') return ['Not Started','Send for Signature','Complete'];
+    // DA Edit
+    if (stepId === 'da-edit-info-request') return ['Not Started','In Progress','Done'];
+    if (stepId === 'da-edit-approval-loop') return ['Not Started','In Progress','Complete'];
+    if (stepId === 'da-edit-signature') return ['Not Started','In Progress','Complete'];
     // Single-step services (Codename, WebView, etc.)
     return ['Not Started','In Progress','Complete','Done'];
 }
