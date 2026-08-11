@@ -244,9 +244,18 @@ body{
 .notes-input:focus{outline:none;border-color:var(--cyan);}
 .notes-input::placeholder{color:rgba(255,255,255,0.25);}
 /* === HISTORY === */
-.history-section{padding:8px 20px 12px;border-top:1px solid rgba(78,200,240,0.05);max-height:150px;overflow-y:auto;}
-.history-entry{font-size:11px;color:rgba(255,255,255,0.4);padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.03);}
+.history-toggle{padding:8px 20px;font-size:11px;color:var(--cyan);cursor:pointer;display:flex;align-items:center;gap:6px;border-top:1px solid rgba(78,200,240,0.05);}
+.history-toggle:hover{background:rgba(78,200,240,0.03);}
+.history-section{padding:8px 20px 12px;max-height:200px;overflow-y:auto;}
+.history-entry{font-size:11px;color:rgba(255,255,255,0.4);padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.03);display:flex;gap:8px;}
 .history-entry strong{color:var(--cyan);}
+.history-time{color:rgba(255,255,255,0.25);min-width:110px;}
+/* === PAGINATION === */
+.pagination{display:flex;align-items:center;justify-content:center;gap:10px;padding:16px;margin-top:10px;}
+.pagination button{background:rgba(78,200,240,0.1);border:1px solid rgba(78,200,240,0.2);color:var(--cyan);padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-family:'Satoshi',sans-serif;}
+.pagination button:hover{background:rgba(78,200,240,0.2);}
+.pagination button:disabled{opacity:0.3;cursor:default;}
+.pagination span{font-size:12px;color:rgba(255,255,255,0.5);}
 /* === LIGHT MODE === */
 body.light-mode{background:linear-gradient(160deg,#f0f4f8 0%,#e2e8f0 50%,#f8fafc 100%);color:#1a202c;}
 body.light-mode .header{background:rgba(255,255,255,0.95);border-color:rgba(0,113,197,0.15);}
@@ -705,7 +714,25 @@ function renderRequests() {
         return;
     }
 
-    container.innerHTML = ids.map(id => renderGroupCard(id, grouped[id])).join('');
+    // Pagination (50 per page)
+    const PAGE_SIZE = 50;
+    const totalPages = Math.ceil(ids.length / PAGE_SIZE);
+    const currentPage = window._currentPage || 1;
+    const startIdx = (currentPage - 1) * PAGE_SIZE;
+    const pageIds = ids.slice(startIdx, startIdx + PAGE_SIZE);
+
+    let html = pageIds.map(id => renderGroupCard(id, grouped[id])).join('');
+    
+    // Pagination controls
+    if (totalPages > 1) {
+        html += `<div class="pagination">
+          <button onclick="goToPage(${currentPage - 1})" ${currentPage <= 1 ? 'disabled' : ''}>Prev</button>
+          <span>Page ${currentPage} of ${totalPages} (${ids.length} requests)</span>
+          <button onclick="goToPage(${currentPage + 1})" ${currentPage >= totalPages ? 'disabled' : ''}>Next</button>
+        </div>`;
+    }
+    
+    container.innerHTML = html;
 }
 
 function renderGroupCard(id, reqs) {
@@ -748,6 +775,10 @@ function renderGroupCard(id, reqs) {
         <div class="notes-section">
           <textarea class="notes-input" placeholder="Notes (IT ticket, comments...)${noteBy}" onblur="saveNote('${id}',this)">${noteText}</textarea>
         </div>
+        <div class="history-toggle" onclick="loadRequestHistory('${id}',this)">
+          <svg width="12" height="12"><use href="#icon-progress"/></svg> View Change History
+        </div>
+        <div class="history-section" id="history-${id}" style="display:none;"></div>
       </div>
     </div>`;
 }
@@ -942,6 +973,80 @@ function loadDemoData() {
     trackingData = {};
     renderRequests();
 }
+
+// ============================================================
+// PAGINATION
+// ============================================================
+window._currentPage = 1;
+function goToPage(page) {
+    window._currentPage = page;
+    renderRequests();
+    window.scrollTo(0, 0);
+}
+
+// ============================================================
+// HISTORY: Load and display change history for a request
+// ============================================================
+async function loadRequestHistory(id, toggleEl) {
+    const historyDiv = document.getElementById('history-' + id);
+    
+    // Toggle visibility
+    if (historyDiv.style.display !== 'none') {
+        historyDiv.style.display = 'none';
+        return;
+    }
+    historyDiv.style.display = 'block';
+    historyDiv.innerHTML = '<div style="font-size:11px;color:rgba(255,255,255,0.3);">Loading...</div>';
+    
+    try {
+        const res = await fetch(`${FIREBASE_DB}/history.json`);
+        if (!res.ok) throw new Error('Failed');
+        const allHistory = await res.json();
+        
+        if (!allHistory) {
+            historyDiv.innerHTML = '<div style="font-size:11px;color:rgba(255,255,255,0.3);">No history yet</div>';
+            return;
+        }
+        
+        // Filter entries for this request ID
+        const entries = Object.values(allHistory)
+            .filter(h => String(h.requestId) === String(id))
+            .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+            .slice(0, 20); // last 20 changes
+        
+        if (entries.length === 0) {
+            historyDiv.innerHTML = '<div style="font-size:11px;color:rgba(255,255,255,0.3);">No changes recorded</div>';
+            return;
+        }
+        
+        historyDiv.innerHTML = entries.map(h => {
+            const time = new Date(h.timestamp).toLocaleString('en-US', {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+            return `<div class="history-entry">
+                <span class="history-time">${time}</span>
+                <span><strong>${h.user}</strong> set ${h.requestType} \u2192 ${h.step}: <strong>${h.value}</strong></span>
+            </div>`;
+        }).join('');
+    } catch(e) {
+        historyDiv.innerHTML = '<div style="font-size:11px;color:#ff6b6b;">Could not load history</div>';
+    }
+}
+
+// ============================================================
+// KEYBOARD SHORTCUTS
+// ============================================================
+document.addEventListener('keydown', (e) => {
+    // Ctrl+E = expand all, Ctrl+W = collapse all
+    if (e.ctrlKey && e.key === 'e') { e.preventDefault(); toggleAllCards(true); }
+    if (e.ctrlKey && e.key === 'w') { e.preventDefault(); toggleAllCards(false); }
+    // Arrow left/right for pagination
+    if (e.key === 'ArrowRight' && !e.target.matches('input,textarea,select')) {
+        const totalPages = Math.ceil(document.querySelectorAll('.group-card').length > 0 ? 999 : 1);
+        goToPage(Math.min((window._currentPage || 1) + 1, totalPages));
+    }
+    if (e.key === 'ArrowLeft' && !e.target.matches('input,textarea,select')) {
+        goToPage(Math.max((window._currentPage || 1) - 1, 1));
+    }
+});
 
 // ============================================================
 // DATE FILTER
