@@ -437,15 +437,20 @@ function renderGroupCard(id, reqs) {
     const customer = reqs[0].customer || '\u2014';
     const date = reqs[0].created ? new Date(reqs[0].created).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}) : '';
     const overall = getGroupOverall(id, reqs);
-    const badges = reqs.map(r => `<span class="badge badge-${getBadgeClass(r.requestType)}">${r.requestType}</span>`).join('');
+    const sourceStatus = reqs[0].status || '';
+    // Only show badges for known types (not Unknown)
+    const knownReqs = reqs.filter(r => r.requestType !== 'Unknown');
+    const badges = knownReqs.map(r => `<span class="badge badge-${getBadgeClass(r.requestType)}">${r.requestType}</span>`).join('');
+    // Show source status from SharePoint if it exists
+    const statusBadge = sourceStatus ? `<span class="badge badge-nda" style="font-style:italic;">${sourceStatus}</span>` : '';
 
-    const sections = reqs.map(r => renderTypeSection(id, r)).join('');
+    const sections = knownReqs.map(r => renderTypeSection(id, r)).join('');
 
     return `<div class="group-card" id="group-${id}">
       <div class="group-header" onclick="toggleGroup('${id}')">
         <span class="group-id">#${id}</span>
         <span class="group-customer">${customer}</span>
-        <div class="group-badges">${badges}</div>
+        <div class="group-badges">${badges}${statusBadge}</div>
         <span class="group-overall">${svgIcon(overall)}</span>
         <span class="group-date">${date}</span>
         <span class="chevron">\u203A</span>
@@ -559,6 +564,8 @@ function statusOptions(reqType, stepId) {
 }
 
 function getSectionOverall(key, steps) {
+    // If no sub-steps defined for this type, use the source status from Excel
+    if (!steps || steps.length === 0) return 'not-started';
     const saved = trackingData[key] || {};
     const vals = steps.map(s => saved[s.id] || 'Not Started');
     if (vals.some(v => v==='Fail')) return 'failed';
@@ -568,6 +575,12 @@ function getSectionOverall(key, steps) {
 }
 
 function getGroupOverall(id, reqs) {
+    // First check: if the SOURCE status from SharePoint says Complete/Canceled, use that
+    const sourceStatus = (reqs[0].status || '').toLowerCase();
+    if (sourceStatus === 'complete' || sourceStatus === 'canceled') return 'complete';
+    if (sourceStatus === 'wip' || sourceStatus === 'in approval loop' || sourceStatus === 'out for signature' || sourceStatus === 'it request submitted') return 'in-progress';
+    
+    // Otherwise, calculate from tracking sub-steps
     const sectionStatuses = reqs.map(r => {
         const key = id + '-' + r.requestType;
         const steps = SUB_STEPS[r.requestType] || [];
