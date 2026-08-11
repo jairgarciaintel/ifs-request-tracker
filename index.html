@@ -1090,6 +1090,50 @@ function updateStep(key, stepId, value, el) {
                 updateSharePoint(id, newSpStatus);
             }
         }
+        
+        // Also sync specific step statuses to SharePoint
+        const stepToSpMap = {
+            'Send for Signature': 'Out for Signature',
+            'In Progress': 'WIP',
+            'Done': 'Complete',
+            'Complete': 'Complete',
+            'Approved': 'Complete',
+            'Fail': 'On Hold'
+        };
+        // Use the most advanced step status for SharePoint
+        const allStepVals = [];
+        reqs.forEach(r => {
+            const rkey = id + '-' + r.requestType;
+            const rsaved = trackingData[rkey] || {};
+            const rsteps = SUB_STEPS[r.requestType] || [];
+            rsteps.forEach(s => { if(rsaved[s.id]) allStepVals.push(rsaved[s.id]); });
+        });
+        // Priority: Complete > Out for Signature > In Approval Loop > WIP > Info Requested
+        let bestSpStatus = null;
+        if (allStepVals.includes('Complete') || allStepVals.includes('Done') || allStepVals.includes('Approved')) {
+            // Check if ALL are complete
+            if (g === 'complete') bestSpStatus = 'Complete';
+            else if (allStepVals.includes('Send for Signature')) bestSpStatus = 'Out for Signature';
+            else bestSpStatus = 'WIP';
+        } else if (allStepVals.includes('Send for Signature')) {
+            bestSpStatus = 'Out for Signature';
+        } else if (allStepVals.includes('In Progress')) {
+            const hasApprovalLoop = allStepVals.some(v => v === 'In Progress');
+            // Check if it's specifically an approval loop step
+            const inApproval = reqs.some(r => {
+                const rkey = id + '-' + r.requestType;
+                const rsaved = trackingData[rkey] || {};
+                return rsaved['in-approval-loop'] === 'In Progress' || rsaved['da-edit-approval-loop'] === 'In Progress';
+            });
+            bestSpStatus = inApproval ? 'In Approval Loop' : 'WIP';
+        }
+        
+        if (bestSpStatus && g !== 'not-started') {
+            const currentSpStatus = (reqs[0].status || '');
+            if (currentSpStatus !== bestSpStatus) {
+                updateSharePoint(id, bestSpStatus);
+            }
+        }
     }
 }
 
