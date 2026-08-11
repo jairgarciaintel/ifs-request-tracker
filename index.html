@@ -214,6 +214,9 @@ body{
 .substep-select.st-inprogress,.substep-select.st-send{border-color:var(--amber);color:var(--amber);}
 .substep-select.st-fail{border-color:var(--red);color:#ff6b6b;}
 .substep-select.st-notstarted{border-color:rgba(255,255,255,0.08);color:rgba(255,255,255,0.35);}
+.substep-select.st-route{border-color:rgba(139,92,246,0.4);color:#a78bfa;background:rgba(139,92,246,0.08);}
+.route-row{background:rgba(139,92,246,0.04);border-radius:6px;margin:4px 0;padding:8px 0 8px 4px;}
+.route-row .substep-label{color:#a78bfa;font-weight:600;}
 @media(max-width:768px){
   .header,.toolbar{flex-direction:column;gap:10px;padding:12px 16px;}
   .filters{flex-wrap:wrap;}.request-list{padding:12px 16px;}
@@ -354,13 +357,15 @@ const SUB_STEPS = {
         {id:'mp-nda-done', label:'MP-NDA Executed'}
     ],
     'DA Edit': [
-        {id:'da-edit-info-request', label:'Info Request'},
-        {id:'da-edit-approval-loop', label:'In Approval Loop'},
-        {id:'da-edit-signature', label:'Add Force Signature'}
+        {id:'da-edit-info-request', label:'Info Request (asked BD)'},
+        {id:'da-edit-route', label:'Route: COD or DA Edit?', isRoute: true},
+        {id:'da-edit-approval-loop', label:'In Approval Loop', showWhen: 'DA Edit'},
+        {id:'da-edit-signature', label:'Add Force Signature', showWhen: 'DA Edit'}
     ],
     'COD': [
-        {id:'cod-info-request', label:'Info Request'},
-        {id:'cod-send-signature', label:'Send for Signature'}
+        {id:'cod-info-request', label:'Info Request (asked BD)'},
+        {id:'cod-route', label:'Route: COD or DA Edit?', isRoute: true},
+        {id:'cod-send-signature', label:'Send for Signature', showWhen: 'COD'}
     ],
     'DocuSign Request': [
         {id:'docusign-done', label:'DocuSign Sent'}
@@ -851,24 +856,34 @@ function renderTypeSection(id, req) {
     const sectionOverall = sourceComplete ? 'complete' : getSectionOverall(key, steps);
     const titleClass = 'title-' + getBadgeClass(req.requestType);
 
+    // Determine which route was selected (for COD/DA Edit conditional steps)
+    const routeStepId = steps.find(s => s.isRoute);
+    const selectedRoute = routeStepId ? (saved[routeStepId.id] || 'Waiting for BD') : null;
+
     const rows = steps.map(step => {
+        // Hide steps that don't match the selected route
+        if (step.showWhen && selectedRoute && selectedRoute !== step.showWhen && selectedRoute !== 'Waiting for BD') {
+            return ''; // hide this step
+        }
+        
         // If source is complete, force all steps to show as Complete
         let val;
         if (sourceComplete) {
-            val = (step.id === 'ags-approved-role') ? 'Approved' : 'Complete';
+            val = step.isRoute ? (saved[step.id] || 'Waiting for BD') : (step.id === 'ags-approved-role') ? 'Approved' : 'Complete';
         } else {
-            val = saved[step.id] || 'Not Started';
+            val = saved[step.id] || (step.isRoute ? 'Waiting for BD' : 'Not Started');
         }
-        const cls = selectClass(val);
+        const cls = step.isRoute ? 'st-route' : selectClass(val);
         const disabled = sourceComplete ? 'disabled' : '';
         const opts = statusOptions(req.requestType, step.id).map(s =>
             `<option value="${s}"${s===val?' selected':''}>${s}</option>`
         ).join('');
         // Show who made this change
         const changedBy = saved[step.id + '_by'] || '';
-        const byLabel = (changedBy && val !== 'Not Started') ? `<span class="changed-by">${changedBy}</span>` : '';
-        return `<div class="substep-row">
-          <span class="substep-label">${step.label}</span>
+        const byLabel = (changedBy && val !== 'Not Started' && val !== 'Waiting for BD') ? `<span class="changed-by">${changedBy}</span>` : '';
+        const rowClass = step.isRoute ? 'substep-row route-row' : 'substep-row';
+        return `<div class="${rowClass}">
+          <span class="substep-label">${step.isRoute ? '\u25C7 ' : ''}${step.label}</span>
           <select class="substep-select ${cls}" ${disabled} onchange="updateStep('${key}','${step.id}',this.value,this)">${opts}</select>
           ${byLabel}
         </div>`;
@@ -974,7 +989,7 @@ function getBadgeClass(type) {
 }
 
 function selectClass(val) {
-    const m = {'Complete':'st-complete','Done':'st-done','Approved':'st-approved','In Progress':'st-inprogress','Send for Approval':'st-send','Send for Signature':'st-send','Fail':'st-fail','Not Started':'st-notstarted'};
+    const m = {'Complete':'st-complete','Done':'st-done','Approved':'st-approved','In Progress':'st-inprogress','Send for Approval':'st-send','Send for Signature':'st-send','Fail':'st-fail','Not Started':'st-notstarted','Waiting for BD':'st-route','COD':'st-route','DA Edit':'st-route'};
     return m[val]||'st-notstarted';
 }
 
@@ -986,11 +1001,12 @@ function statusOptions(reqType, stepId) {
         if (stepId === 'acknowledge') return ['Not Started','Complete'];
         return ['Not Started','In Progress','Complete'];
     }
+    // COD / DA Edit route selector
+    if (stepId === 'cod-route' || stepId === 'da-edit-route') return ['Waiting for BD','COD','DA Edit'];
     // COD
-    if (stepId === 'cod-info-request') return ['Not Started','In Progress','Done'];
+    if (stepId === 'cod-info-request' || stepId === 'da-edit-info-request') return ['Not Started','In Progress','Done'];
     if (stepId === 'cod-send-signature') return ['Not Started','Send for Signature','Complete'];
     // DA Edit
-    if (stepId === 'da-edit-info-request') return ['Not Started','In Progress','Done'];
     if (stepId === 'da-edit-approval-loop') return ['Not Started','In Progress','Complete'];
     if (stepId === 'da-edit-signature') return ['Not Started','In Progress','Complete'];
     // Single-step services (Codename, WebView, etc.)
