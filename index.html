@@ -227,8 +227,9 @@ body{
   margin-left:8px;font-style:italic;
 }
 /* === PROGRESS BAR === */
-.progress-track{width:100%;height:4px;background:rgba(255,255,255,0.06);border-radius:2px;margin:6px 20px 0;}
+.progress-track{width:100%;height:4px;background:rgba(255,255,255,0.06);border-radius:2px;margin:6px 20px 0;position:relative;}
 .progress-fill{height:100%;border-radius:2px;transition:width 0.6s ease;}
+.progress-pct{position:absolute;right:0;top:-14px;font-size:10px;color:rgba(255,255,255,0.4);}
 .progress-fill.pf-done{background:var(--green);}
 .progress-fill.pf-wip{background:var(--amber);}
 .progress-fill.pf-new{background:rgba(255,255,255,0.1);}
@@ -774,11 +775,11 @@ function renderGroupCard(id, reqs) {
         <span class="group-customer">${customer}</span>
         <div class="group-badges">${badges}${statusBadge}</div>
         ${ageBadge}
-        <span class="group-overall">${svgIcon(overall)}</span>
+        <span class="group-overall" title="SharePoint status: ${sourceStatus || 'No status'}">${svgIcon(overall)}</span>
         <span class="group-date">${date}</span>
         <span class="chevron">\u203A</span>
       </div>
-      <div class="progress-track"><div class="progress-fill ${pfClass}" style="width:${progress}%"></div></div>
+      <div class="progress-track"><div class="progress-fill ${pfClass}" style="width:${progress}%"></div><span class="progress-pct">${progress}%</span></div>
       <div class="group-body">
         ${sections}
         <div class="notes-section">
