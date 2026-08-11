@@ -196,6 +196,10 @@ body{
   animation:pulse 2s infinite;
 }
 @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.6;}}
+.changed-by{
+  font-size:10px;color:rgba(78,200,240,0.7);font-weight:600;
+  margin-left:8px;font-style:italic;
+}
 </style>
 
 <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
@@ -358,7 +362,7 @@ let currentUser = localStorage.getItem('fs-username') || '';
 
 function ensureUsername() {
     if (!currentUser) {
-        currentUser = prompt('Enter your name (e.g., Jair or Jenn):') || 'Anonymous';
+        currentUser = prompt('Your name (one time only - e.g., Jair or Jenn):') || 'Anonymous';
         localStorage.setItem('fs-username', currentUser);
     }
     return currentUser;
@@ -693,9 +697,13 @@ function renderTypeSection(id, req) {
         const opts = statusOptions(req.requestType, step.id).map(s =>
             `<option value="${s}"${s===val?' selected':''}>${s}</option>`
         ).join('');
+        // Show who made this change
+        const changedBy = saved[step.id + '_by'] || '';
+        const byLabel = (changedBy && val !== 'Not Started') ? `<span class="changed-by">${changedBy}</span>` : '';
         return `<div class="substep-row">
           <span class="substep-label">${step.label}</span>
           <select class="substep-select ${cls}" ${disabled} onchange="updateStep('${key}','${step.id}',this.value,this)">${opts}</select>
+          ${byLabel}
         </div>`;
     }).join('');
 
@@ -718,6 +726,7 @@ function toggleGroup(id) {
 function updateStep(key, stepId, value, el) {
     if (!trackingData[key]) trackingData[key] = {};
     trackingData[key][stepId] = value;
+    trackingData[key][stepId + '_by'] = currentUser;
     trackingData[key]._updated = new Date().toISOString();
     trackingData[key]._updatedBy = currentUser;
     el.className = 'substep-select ' + selectClass(value);
