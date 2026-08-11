@@ -59,12 +59,23 @@ body{
 
 <div class="toolbar">
   <div class="filters">
+    <select id="filter-time" onchange="renderRequests()">
+      <option value="all">All 2026</option>
+      <option value="this-month">This Month</option>
+      <option value="last-month">Last Month</option>
+      <option value="2-months">2 Months Ago</option>
+      <option value="3-months">3 Months Ago</option>
+    </select>
     <select id="filter-type" onchange="renderRequests()">
       <option value="all">All Types</option>
       <option value="Portal Creation">Portal Creation</option>
       <option value="New DA">New DA</option>
       <option value="Codename">Codename</option>
-      <option value="WebView">WebView</option>
+      <option value="WebView AGS Role">WebView AGS Role</option>
+      <option value="Portal Unencryption">Portal Unencryption</option>
+      <option value="IFS NDA">IFS NDA</option>
+      <option value="DA Edit">DA Edit</option>
+      <option value="COD">COD</option>
     </select>
     <select id="filter-status" onchange="renderRequests()">
       <option value="all">All Statuses</option>
@@ -75,12 +86,24 @@ body{
     </select>
     <input type="text" id="search-box" placeholder="Search customer or ID..." oninput="renderRequests()"/>
   </div>
+  <div class="toolbar-actions">
+    <button class="btn btn-secondary btn-sm" onclick="toggleAllCards(true)">Expand All</button>
+    <button class="btn btn-secondary btn-sm" onclick="toggleAllCards(false)">Collapse All</button>
+    <button class="btn btn-secondary btn-sm" onclick="toggleTheme()">Light/Dark</button>
+  </div>
+</div>
+<div class="stats-row">
   <div class="stats-bar">
     <span id="stat-total" class="stat-pill stat-clickable stat-active" onclick="toggleStatFilter('all')">0 total</span>
     <span id="stat-progress" class="stat-pill s-progress stat-clickable" onclick="toggleStatFilter('in-progress')">0 WIP</span>
     <span id="stat-complete" class="stat-pill s-done stat-clickable" onclick="toggleStatFilter('complete')">0 done</span>
     <span id="stat-new" class="stat-pill s-new stat-clickable" onclick="toggleStatFilter('not-started')">0 new</span>
   </div>
+  <select id="sort-order" onchange="renderRequests()" style="background:rgba(4,28,50,0.8);color:var(--light);border:1px solid rgba(78,200,240,0.2);padding:5px 10px;border-radius:6px;font-size:11px;">
+    <option value="id-desc">Newest First (ID)</option>
+    <option value="id-asc">Oldest First (ID)</option>
+    <option value="age-desc">Oldest Unresolved</option>
+  </select>
 </div>
 
 <main id="request-list" class="request-list">
@@ -101,10 +124,13 @@ body{
 .btn-primary:hover{background:#7dd8f5;transform:translateY(-1px);}
 .btn-secondary{background:rgba(255,255,255,0.05);color:var(--light);border:1px solid var(--subtle);}
 .btn-secondary:hover{background:rgba(78,200,240,0.08);border-color:var(--cyan);color:var(--cyan);}
-.toolbar{padding:12px 32px;display:flex;align-items:center;justify-content:space-between;background:rgba(13,49,88,0.3);border-bottom:1px solid rgba(78,200,240,0.08);}
-.filters{display:flex;align-items:center;gap:10px;}
-.filters select,.filters input{background:rgba(4,28,50,0.8);color:var(--light);border:1px solid rgba(78,200,240,0.2);padding:6px 12px;border-radius:6px;font-size:12px;font-family:'Satoshi',sans-serif;}
-.filters input{width:180px;}
+.toolbar{padding:10px 32px;display:flex;align-items:center;justify-content:space-between;background:rgba(13,49,88,0.3);border-bottom:1px solid rgba(78,200,240,0.08);}
+.toolbar-actions{display:flex;gap:6px;}
+.btn-sm{padding:5px 10px;font-size:11px;}
+.stats-row{padding:8px 32px;display:flex;align-items:center;justify-content:space-between;background:rgba(13,49,88,0.15);}
+.filters{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.filters select,.filters input{background:rgba(4,28,50,0.8);color:var(--light);border:1px solid rgba(78,200,240,0.2);padding:6px 10px;border-radius:6px;font-size:11px;font-family:'Satoshi',sans-serif;}
+.filters input{width:160px;}
 .filters select:focus,.filters input:focus{outline:none;border-color:var(--cyan);}
 .stats-bar{display:flex;gap:8px;}
 .stat-pill{font-size:11px;padding:4px 10px;border-radius:12px;font-weight:600;background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.5);}
@@ -200,6 +226,40 @@ body{
   font-size:10px;color:rgba(78,200,240,0.7);font-weight:600;
   margin-left:8px;font-style:italic;
 }
+/* === PROGRESS BAR === */
+.progress-track{width:100%;height:4px;background:rgba(255,255,255,0.06);border-radius:2px;margin:6px 20px 0;}
+.progress-fill{height:100%;border-radius:2px;transition:width 0.6s ease;}
+.progress-fill.pf-done{background:var(--green);}
+.progress-fill.pf-wip{background:var(--amber);}
+.progress-fill.pf-new{background:rgba(255,255,255,0.1);}
+.progress-fill.pf-fail{background:var(--red);}
+/* === AGE BADGE === */
+.age-badge{font-size:10px;padding:2px 6px;border-radius:8px;margin-left:6px;}
+.age-ok{background:rgba(107,203,119,0.1);color:var(--green);}
+.age-warn{background:rgba(240,160,48,0.1);color:var(--amber);}
+.age-danger{background:rgba(204,0,0,0.1);color:#ff6b6b;}
+/* === NOTES === */
+.notes-section{padding:8px 20px 12px;border-top:1px solid rgba(78,200,240,0.05);}
+.notes-input{width:100%;background:rgba(4,28,50,0.8);color:var(--light);border:1px solid rgba(78,200,240,0.15);border-radius:6px;padding:8px 12px;font-size:12px;font-family:'Satoshi',sans-serif;resize:vertical;min-height:36px;}
+.notes-input:focus{outline:none;border-color:var(--cyan);}
+.notes-input::placeholder{color:rgba(255,255,255,0.25);}
+/* === HISTORY === */
+.history-section{padding:8px 20px 12px;border-top:1px solid rgba(78,200,240,0.05);max-height:150px;overflow-y:auto;}
+.history-entry{font-size:11px;color:rgba(255,255,255,0.4);padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.03);}
+.history-entry strong{color:var(--cyan);}
+/* === LIGHT MODE === */
+body.light-mode{background:linear-gradient(160deg,#f0f4f8 0%,#e2e8f0 50%,#f8fafc 100%);color:#1a202c;}
+body.light-mode .header{background:rgba(255,255,255,0.95);border-color:rgba(0,113,197,0.15);}
+body.light-mode .header-title h1{color:#1a202c;}
+body.light-mode .toolbar,.body.light-mode .stats-row{background:rgba(255,255,255,0.6);}
+body.light-mode .group-card{background:rgba(255,255,255,0.8);border-color:rgba(0,113,197,0.15);}
+body.light-mode .substep-label{color:#4a5568;}
+body.light-mode .substep-select{background:#fff;color:#1a202c;border-color:rgba(0,113,197,0.2);}
+body.light-mode .filters select,.body.light-mode .filters input{background:#fff;color:#1a202c;border-color:rgba(0,113,197,0.2);}
+body.light-mode .notification-banner{background:rgba(255,255,255,0.95);border-color:var(--blue);}
+body.light-mode .notif-text{color:#1a202c;}
+body.light-mode .notes-input{background:#fff;color:#1a202c;border-color:rgba(0,113,197,0.2);}
+body.light-mode .circle{display:none;}
 </style>
 
 <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
@@ -601,6 +661,9 @@ function renderRequests() {
         return year === 2026;
     });
 
+    // Time filter
+    filtered = filterByTime(filtered);
+
     if (typeFilter !== 'all') filtered = filtered.filter(r => r.requestType === typeFilter);
     if (search) filtered = filtered.filter(r =>
         (r.customer||'').toLowerCase().includes(search) ||
@@ -609,7 +672,7 @@ function renderRequests() {
 
     const grouped = groupByID(filtered);
 
-    // Stats (based on 2026 data)
+    // Stats
     const allGrouped = groupByID(filtered);
     let totalGroups = Object.keys(allGrouped).length;
     let wipCount = 0, doneCount = 0, newCount = 0;
@@ -619,7 +682,7 @@ function renderRequests() {
         else if (s==='in-progress') wipCount++;
         else newCount++;
     });
-    document.getElementById('stat-total').textContent = totalGroups + ' requests';
+    document.getElementById('stat-total').textContent = totalGroups + ' total';
     document.getElementById('stat-progress').textContent = wipCount + ' WIP';
     document.getElementById('stat-complete').textContent = doneCount + ' done';
     document.getElementById('stat-new').textContent = newCount + ' new';
@@ -629,15 +692,13 @@ function renderRequests() {
     const statusFilter = document.getElementById('filter-status').value;
     
     if (!activeStatFilters.has('all')) {
-        // Use pill multi-select
         ids = ids.filter(id => activeStatFilters.has(getGroupOverall(id, grouped[id])));
     } else if (statusFilter !== 'all') {
-        // Use dropdown single-select
         ids = ids.filter(id => getGroupOverall(id, grouped[id]) === statusFilter);
     }
 
-    // Sort IDs descending (highest/newest first)
-    ids.sort((a, b) => Number(b) - Number(a));
+    // Sort
+    ids = sortIds(ids, grouped);
 
     if (ids.length === 0) {
         container.innerHTML = '<div class="empty-state"><h3>No requests match filters</h3></div>';
@@ -652,11 +713,22 @@ function renderGroupCard(id, reqs) {
     const date = reqs[0].created ? new Date(reqs[0].created).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}) : '';
     const overall = getGroupOverall(id, reqs);
     const sourceStatus = reqs[0].status || '';
-    // Only show badges for known types (not Unknown)
     const knownReqs = reqs.filter(r => r.requestType !== 'Unknown');
     const badges = knownReqs.map(r => `<span class="badge badge-${getBadgeClass(r.requestType)}">${r.requestType}</span>`).join('');
-    // Show source status from SharePoint if it exists
     const statusBadge = sourceStatus ? `<span class="badge badge-nda" style="font-style:italic;">${sourceStatus}</span>` : '';
+
+    // Age badge
+    const ageDays = getAgeDays(reqs[0].created);
+    const ageBadge = (overall !== 'complete') ? getAgeBadge(ageDays) : '';
+
+    // Progress bar
+    const progress = getProgressPercent(id, knownReqs);
+    const pfClass = overall === 'complete' ? 'pf-done' : overall === 'failed' ? 'pf-fail' : progress > 0 ? 'pf-wip' : 'pf-new';
+
+    // Notes
+    const noteData = (trackingData._notes && trackingData._notes[id]) || {};
+    const noteText = noteData.text || '';
+    const noteBy = noteData.by ? ` (${noteData.by})` : '';
 
     const sections = knownReqs.map(r => renderTypeSection(id, r)).join('');
 
@@ -665,11 +737,18 @@ function renderGroupCard(id, reqs) {
         <span class="group-id">#${id}</span>
         <span class="group-customer">${customer}</span>
         <div class="group-badges">${badges}${statusBadge}</div>
+        ${ageBadge}
         <span class="group-overall">${svgIcon(overall)}</span>
         <span class="group-date">${date}</span>
         <span class="chevron">\u203A</span>
       </div>
-      <div class="group-body">${sections}</div>
+      <div class="progress-track"><div class="progress-fill ${pfClass}" style="width:${progress}%"></div></div>
+      <div class="group-body">
+        ${sections}
+        <div class="notes-section">
+          <textarea class="notes-input" placeholder="Notes (IT ticket, comments...)${noteBy}" onblur="saveNote('${id}',this)">${noteText}</textarea>
+        </div>
+      </div>
     </div>`;
 }
 
@@ -865,7 +944,119 @@ function loadDemoData() {
 }
 
 // ============================================================
-// INIT — also clears old demo tracking on first real data load
+// DATE FILTER
+// ============================================================
+function filterByTime(requests) {
+    const timeFilter = document.getElementById('filter-time').value;
+    if (timeFilter === 'all') return requests;
+    
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    
+    let startDate, endDate;
+    if (timeFilter === 'this-month') {
+        startDate = new Date(year, month, 1);
+        endDate = new Date(year, month + 1, 0, 23, 59, 59);
+    } else if (timeFilter === 'last-month') {
+        startDate = new Date(year, month - 1, 1);
+        endDate = new Date(year, month, 0, 23, 59, 59);
+    } else if (timeFilter === '2-months') {
+        startDate = new Date(year, month - 2, 1);
+        endDate = new Date(year, month - 1, 0, 23, 59, 59);
+    } else if (timeFilter === '3-months') {
+        startDate = new Date(year, month - 3, 1);
+        endDate = new Date(year, month - 2, 0, 23, 59, 59);
+    }
+    
+    return requests.filter(r => {
+        if (!r.created) return false;
+        const d = new Date(r.created);
+        return d >= startDate && d <= endDate;
+    });
+}
+
+// ============================================================
+// SORT
+// ============================================================
+function sortIds(ids, grouped) {
+    const sortOrder = document.getElementById('sort-order').value;
+    if (sortOrder === 'id-desc') return ids.sort((a,b) => Number(b) - Number(a));
+    if (sortOrder === 'id-asc') return ids.sort((a,b) => Number(a) - Number(b));
+    if (sortOrder === 'age-desc') {
+        return ids.sort((a,b) => {
+            const dateA = new Date(grouped[a][0].created || '2099-01-01');
+            const dateB = new Date(grouped[b][0].created || '2099-01-01');
+            return dateA - dateB; // oldest first
+        });
+    }
+    return ids;
+}
+
+// ============================================================
+// AGE CALCULATION
+// ============================================================
+function getAgeDays(dateStr) {
+    if (!dateStr) return 0;
+    const created = new Date(dateStr);
+    const now = new Date();
+    return Math.floor((now - created) / (1000*60*60*24));
+}
+
+function getAgeBadge(days) {
+    if (days <= 7) return `<span class="age-badge age-ok">${days}d</span>`;
+    if (days <= 30) return `<span class="age-badge age-warn">${days}d</span>`;
+    return `<span class="age-badge age-danger">${days}d</span>`;
+}
+
+// ============================================================
+// PROGRESS CALCULATION
+// ============================================================
+function getProgressPercent(id, reqs) {
+    let total = 0, done = 0;
+    reqs.forEach(r => {
+        const steps = SUB_STEPS[r.requestType] || [];
+        const key = id + '-' + r.requestType;
+        const saved = trackingData[key] || {};
+        steps.forEach(s => {
+            total++;
+            const val = saved[s.id] || 'Not Started';
+            if (val === 'Complete' || val === 'Done' || val === 'Approved') done++;
+        });
+    });
+    if (total === 0) return 0;
+    return Math.round((done / total) * 100);
+}
+
+// ============================================================
+// NOTES
+// ============================================================
+async function saveNote(id, el) {
+    if (!trackingData._notes) trackingData._notes = {};
+    trackingData._notes[id] = { text: el.value, by: currentUser, at: new Date().toISOString() };
+    await saveTracking();
+}
+
+// ============================================================
+// EXPAND/COLLAPSE ALL & THEME
+// ============================================================
+function toggleAllCards(expand) {
+    document.querySelectorAll('.group-card').forEach(card => {
+        if (expand) card.classList.add('open');
+        else card.classList.remove('open');
+    });
+}
+
+function toggleTheme() {
+    document.body.classList.toggle('light-mode');
+    localStorage.setItem('fs-theme', document.body.classList.contains('light-mode') ? 'light' : 'dark');
+}
+
+// Apply saved theme
+if (localStorage.getItem('fs-theme') === 'light') document.body.classList.add('light-mode');
+
+// ============================================================
+// INIT
 // ============================================================
 document.addEventListener('DOMContentLoaded', fetchAndRender);
 </script>
