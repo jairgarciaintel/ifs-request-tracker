@@ -514,6 +514,26 @@ async function setPresence(requestId, reqType) {
     } catch(e) {}
 }
 
+// Update SharePoint via Power Automate
+const POWER_AUTOMATE_URL = 'https://default46c98d88e3444ed484964ed7712e25.5d.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/40cbbde7f15d421caec3dc9010603c4c/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=32PeIbodqnXtws5Le8SmNHeMBLaXWEmueKq9uZHEiZk';
+
+async function updateSharePoint(requestId, newStatus) {
+    try {
+        const res = await fetch(POWER_AUTOMATE_URL, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ id: parseInt(requestId), status: newStatus })
+        });
+        if (res.ok) {
+            console.log('SharePoint updated: #' + requestId + ' -> ' + newStatus);
+        } else {
+            console.warn('SharePoint update failed:', res.status);
+        }
+    } catch(e) {
+        console.warn('Power Automate call failed:', e);
+    }
+}
+
 // Log change to history
 async function logHistory(requestId, customer, reqType, stepLabel, newValue) {
     const user = ensureUsername();
@@ -1059,6 +1079,17 @@ function updateStep(key, stepId, value, el) {
         const pPct = card.querySelector('.progress-pct');
         if (pBar) { pBar.style.width = progress + '%'; pBar.className = 'progress-fill ' + (g==='complete'?'pf-done':g==='failed'?'pf-fail':progress>0?'pf-wip':'pf-new'); }
         if (pPct) pPct.textContent = progress + '%';
+        
+        // Sync to SharePoint via Power Automate when overall status changes
+        const spStatusMap = {'complete':'Complete','in-progress':'WIP','failed':'On Hold'};
+        if (spStatusMap[g]) {
+            const currentSpStatus = (reqs[0].status || '').toLowerCase();
+            const newSpStatus = spStatusMap[g];
+            // Only update if status actually changed
+            if (currentSpStatus !== newSpStatus.toLowerCase()) {
+                updateSharePoint(id, newSpStatus);
+            }
+        }
     }
 }
 
