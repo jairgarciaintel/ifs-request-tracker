@@ -19,11 +19,11 @@
   },
   "2678-Portal Creation": {
     "configure-ags": "Not Started",
-    "configure-jsm": "Complete",
+    "configure-jsm": "Not Started",
     "configure-security-ft": "Complete",
     "configure-access-mgmt": "Complete",
     "ags-approved-role": "Approved",
-    "_updated": "2026-08-11T02:15:10.626Z"
+    "_updated": "2026-08-11T02:15:11.595Z"
   },
   "2678-New DA": {
     "acknowledge": "Complete",
@@ -39,5 +39,5 @@
     "ags-approved-role": "Send for Approval",
     "_updated": "2026-08-06T11:00:00Z"
   },
-  "_lastSaved": "2026-08-11T02:15:10.627Z"
+  "_lastSaved": "2026-08-11T02:15:11.595Z"
 }
