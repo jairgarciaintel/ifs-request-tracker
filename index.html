@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IFS Request Tracker — DA Ops</title>
+<link href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@700,400&f[]=satoshi@400,700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;overflow-x:hidden;}
+:root{
+  --navy:#041c32;--navy-mid:#0d3158;--blue:#0071c5;--cyan:#4ec8f0;
+  --green:#6bcb77;--amber:#f0a030;--red:#cc0000;--white:#ffffff;
+  --light:rgba(255,255,255,0.7);--subtle:rgba(255,255,255,0.15);
+}
+body{
+  font-family:'Satoshi',sans-serif;
+  background:linear-gradient(160deg,var(--navy) 0%,var(--navy-mid) 50%,#0a2540 100%);
+  color:var(--white);min-height:100vh;
+}
+.circle{position:fixed;border-radius:50%;border:1.5px solid;pointer-events:none;animation:float 8s ease-in-out infinite;}
+.circle-1{width:400px;height:400px;top:-100px;right:-80px;border-color:rgba(78,200,240,0.1);}
+.circle-2{width:250px;height:250px;bottom:-60px;left:-50px;border-color:rgba(0,113,197,0.12);}
+@keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-12px);}}
+</style>
+</head>
+<body>
+<div class="circle circle-1"></div>
+<div class="circle circle-2"></div>
+
+<!-- SVG Icons (inline defs) -->
+<svg style="display:none;">
+  <defs>
+    <symbol id="icon-check" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="none" stroke="#6bcb77" stroke-width="1.5"/><polyline points="4.5,8.5 7,11 11.5,5.5" fill="none" stroke="#6bcb77" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="icon-progress" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="none" stroke="#f0a030" stroke-width="1.5"/><path d="M8,4 v4 l3,2" fill="none" stroke="#f0a030" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="icon-fail" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="none" stroke="#ff6b6b" stroke-width="1.5"/><line x1="5.5" y1="5.5" x2="10.5" y2="10.5" stroke="#ff6b6b" stroke-width="1.8" stroke-linecap="round"/><line x1="10.5" y1="5.5" x2="5.5" y2="10.5" stroke="#ff6b6b" stroke-width="1.8" stroke-linecap="round"/></symbol>
+    <symbol id="icon-new" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/><circle cx="8" cy="8" r="2" fill="rgba(255,255,255,0.2)"/></symbol>
+    <symbol id="icon-sync" viewBox="0 0 16 16"><path d="M2,8 A6,6 0 0,1 14,8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M14,8 A6,6 0 0,1 2,8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><polyline points="12,5 14,8 11,8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="icon-export" viewBox="0 0 16 16"><rect x="2" y="2" width="12" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.3"/><polyline points="5,9 8,12 11,9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><line x1="8" y1="4" x2="8" y2="11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+  </defs>
+</svg>
+
+<header class="header">
+  <div class="header-left">
+    <img src="Logo.png" alt="Intel Foundry" class="logo"/>
+    <div class="header-title">
+      <h1>IFS <span class="accent">Request Tracker</span></h1>
+      <p class="meta">DA Ops · Private View · Jenn &amp; Jair</p>
+    </div>
+  </div>
+  <div class="header-right">
+    <span id="sync-status" class="sync-text">Loading...</span>
+    <button class="btn btn-primary" onclick="fetchAndRender()"><svg width="14" height="14"><use href="#icon-sync"/></svg> Sync</button>
+    <button class="btn btn-secondary" onclick="exportExcel()"><svg width="14" height="14"><use href="#icon-export"/></svg> Excel</button>
+    <button class="btn btn-secondary" onclick="exportJSON()"><svg width="14" height="14"><use href="#icon-export"/></svg> JSON</button>
+  </div>
+</header>
+
+<div class="toolbar">
+  <div class="filters">
+    <select id="filter-type" onchange="renderRequests()">
+      <option value="all">All Types</option>
+      <option value="Portal Creation">Portal Creation</option>
+      <option value="New DA">New DA</option>
+      <option value="Codename">Codename</option>
+      <option value="WebView">WebView</option>
+    </select>
+    <select id="filter-status" onchange="renderRequests()">
+      <option value="all">All Statuses</option>
+      <option value="not-started">Not Started</option>
+      <option value="in-progress">In Progress</option>
+      <option value="complete">Complete</option>
+      <option value="failed">Failed</option>
+    </select>
+    <input type="text" id="search-box" placeholder="Search customer or ID..." oninput="renderRequests()"/>
+  </div>
+  <div class="stats-bar">
+    <span id="stat-total" class="stat-pill">0 total</span>
+    <span id="stat-progress" class="stat-pill s-progress">0 WIP</span>
+    <span id="stat-complete" class="stat-pill s-done">0 done</span>
+    <span id="stat-new" class="stat-pill s-new">0 new</span>
+  </div>
+</div>
+
+<main id="request-list" class="request-list">
+  <div class="empty-state"><h3>Loading...</h3></div>
+</main>
+
+<style>
+.header{padding:16px 32px;display:flex;align-items:center;justify-content:space-between;background:rgba(4,28,50,0.92);border-bottom:1px solid rgba(78,200,240,0.15);backdrop-filter:blur(10px);position:sticky;top:0;z-index:100;}
+.header-left{display:flex;align-items:center;gap:16px;}
+.logo{height:28px;width:auto;}
+.header-title h1{font-family:'Cabinet Grotesk',sans-serif;font-size:1.3rem;font-weight:700;}
+.header-title h1 .accent{color:var(--cyan);}
+.header-title .meta{font-size:11px;color:rgba(255,255,255,0.4);margin-top:2px;}
+.header-right{display:flex;align-items:center;gap:12px;}
+.sync-text{font-size:12px;color:rgba(255,255,255,0.5);}
+.btn{border:none;padding:7px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.2s;font-family:'Satoshi',sans-serif;display:inline-flex;align-items:center;gap:5px;}
+.btn-primary{background:var(--cyan);color:var(--navy);}
+.btn-primary:hover{background:#7dd8f5;transform:translateY(-1px);}
+.btn-secondary{background:rgba(255,255,255,0.05);color:var(--light);border:1px solid var(--subtle);}
+.btn-secondary:hover{background:rgba(78,200,240,0.08);border-color:var(--cyan);color:var(--cyan);}
+.toolbar{padding:12px 32px;display:flex;align-items:center;justify-content:space-between;background:rgba(13,49,88,0.3);border-bottom:1px solid rgba(78,200,240,0.08);}
+.filters{display:flex;align-items:center;gap:10px;}
+.filters select,.filters input{background:rgba(4,28,50,0.8);color:var(--light);border:1px solid rgba(78,200,240,0.2);padding:6px 12px;border-radius:6px;font-size:12px;font-family:'Satoshi',sans-serif;}
+.filters input{width:180px;}
+.filters select:focus,.filters input:focus{outline:none;border-color:var(--cyan);}
+.stats-bar{display:flex;gap:8px;}
+.stat-pill{font-size:11px;padding:4px 10px;border-radius:12px;font-weight:600;background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.5);}
+.s-progress{background:rgba(240,160,48,0.12);color:var(--amber);}
+.s-done{background:rgba(107,203,119,0.12);color:var(--green);}
+.s-new{background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.4);}
+.request-list{padding:20px 32px;display:flex;flex-direction:column;gap:14px;}
+.empty-state{text-align:center;padding:80px 20px;color:rgba(255,255,255,0.4);}
+.empty-state h3{font-family:'Cabinet Grotesk',sans-serif;font-size:1.3rem;color:var(--cyan);}
+</style>
+
+<style>
+/* === GROUPED REQUEST CARD === */
+.group-card{
+  background:rgba(255,255,255,0.02);border:1px solid rgba(78,200,240,0.1);
+  border-radius:12px;overflow:hidden;transition:border-color 0.3s,box-shadow 0.3s;
+}
+.group-card:hover{border-color:rgba(78,200,240,0.25);box-shadow:0 4px 20px rgba(78,200,240,0.04);}
+.group-header{
+  display:flex;align-items:center;gap:14px;padding:16px 20px;
+  cursor:pointer;transition:background 0.2s;
+}
+.group-header:hover{background:rgba(78,200,240,0.03);}
+.group-id{font-family:'Cabinet Grotesk',sans-serif;font-size:16px;font-weight:700;color:var(--cyan);}
+.group-customer{flex:1;font-size:13px;color:var(--light);}
+.group-badges{display:flex;gap:6px;flex-wrap:wrap;}
+.badge{font-size:9px;padding:2px 8px;border-radius:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;}
+.badge-portal{background:rgba(139,92,246,0.12);color:#a78bfa;border:1px solid rgba(139,92,246,0.25);}
+.badge-nda{background:rgba(78,200,240,0.1);color:var(--cyan);border:1px solid rgba(78,200,240,0.25);}
+.badge-codename{background:rgba(107,203,119,0.1);color:var(--green);border:1px solid rgba(107,203,119,0.25);}
+.badge-webview{background:rgba(240,160,48,0.1);color:var(--amber);border:1px solid rgba(240,160,48,0.25);}
+.group-overall{min-width:20px;display:flex;align-items:center;}
+.group-date{font-size:11px;color:rgba(255,255,255,0.25);min-width:50px;text-align:right;}
+.chevron{font-size:16px;color:rgba(255,255,255,0.25);transition:transform 0.3s;margin-left:6px;}
+.group-card.open .chevron{transform:rotate(90deg);color:var(--cyan);}
+
+/* === SECTIONS INSIDE CARD === */
+.group-body{max-height:0;overflow:hidden;transition:max-height 0.5s ease;}
+.group-card.open .group-body{max-height:2000px;}
+.type-section{padding:10px 20px 14px;border-top:1px solid rgba(78,200,240,0.06);}
+.type-section-header{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.type-section-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;}
+.title-portal{color:#a78bfa;}
+.title-nda{color:var(--cyan);}
+.title-codename{color:var(--green);}
+.title-webview{color:var(--amber);}
+.section-status{margin-left:auto;display:flex;align-items:center;gap:4px;font-size:11px;color:rgba(255,255,255,0.5);}
+.substep-row{display:flex;align-items:center;padding:6px 0;border-top:1px solid rgba(255,255,255,0.03);}
+.substep-label{flex:1;font-size:12px;color:rgba(255,255,255,0.5);padding-left:14px;border-left:2px solid rgba(78,200,240,0.12);}
+.substep-select{
+  background:rgba(4,28,50,0.9);color:var(--light);border:1px solid rgba(78,200,240,0.15);
+  padding:5px 10px;border-radius:6px;font-size:11px;min-width:140px;
+  font-family:'Satoshi',sans-serif;cursor:pointer;transition:border-color 0.2s;
+}
+.substep-select:focus{outline:none;border-color:var(--cyan);}
+.substep-select.st-complete,.substep-select.st-done,.substep-select.st-approved{border-color:var(--green);color:var(--green);}
+.substep-select.st-inprogress,.substep-select.st-send{border-color:var(--amber);color:var(--amber);}
+.substep-select.st-fail{border-color:var(--red);color:#ff6b6b;}
+.substep-select.st-notstarted{border-color:rgba(255,255,255,0.08);color:rgba(255,255,255,0.35);}
+@media(max-width:768px){
+  .header,.toolbar{flex-direction:column;gap:10px;padding:12px 16px;}
+  .filters{flex-wrap:wrap;}.request-list{padding:12px 16px;}
+}
+</style>
+
+<script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+<script>
+// ============================================================
+// CONFIG
+// ============================================================
+const CONFIG = {
+    // SharePoint REST API (direct from browser — uses your active session)
+    spSite: 'https://intel.sharepoint.com/sites/ifs-igo-requests',
+    spList: 'New DA Request',
+    dateFilter: '2026-07-01T00:00:00Z',
+    
+    // Local fallback files (if SharePoint call fails)
+    dataFile: 'data/requests.json',
+    trackingFile: 'data/tracking.json',
+    
+    // Auto-refresh every 10 minutes
+    refreshInterval: 600000
+};
+
+// ============================================================
+// SUB-STEPS BY REQUEST TYPE
+// ============================================================
+const SUB_STEPS = {
+    'Portal Creation': [
+        {id:'configure-ags', label:'Configure AGS'},
+        {id:'configure-jsm', label:'Configure JSM (Jira Service Management)'},
+        {id:'configure-security-ft', label:'Configure Security File Transfer'},
+        {id:'configure-access-mgmt', label:'Configure Access Management'},
+        {id:'ags-approved-role', label:'AGS Approved Role'}
+    ],
+    'New DA': [
+        {id:'acknowledge', label:'Acknowledge'},
+        {id:'in-approval-loop', label:'In Approval Loop'},
+        {id:'add-force-signature', label:'Add Force Signature'}
+    ],
+    'Codename': [
+        {id:'codename-created', label:'Codename Created'}
+    ],
+    'WebView': [
+        {id:'webview-done', label:'WebView Done'}
+    ]
+};
+
+// ============================================================
+// STATE
+// ============================================================
+let allRequests = [];
+let trackingData = {};
+let refreshTimer = null;
+
+// ============================================================
+// DATA: Fetch directly from SharePoint REST API (browser session)
+// Your browser already has the auth cookie from being logged into SharePoint.
+// We just call the API — no login popup, no tokens, no MSAL needed.
+// ============================================================
+async function fetchAndRender() {
+    updateSync('Connecting to SharePoint...');
+    try {
+        allRequests = await fetchFromSharePoint();
+        const now = new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+        updateSync(allRequests.length + ' requests from SharePoint \u00b7 ' + now);
+        
+        // Load tracking from localStorage (your DB lives here + export)
+        loadTracking();
+        renderRequests();
+        startAutoRefresh();
+        
+        // Also save fetched requests to local JSON for offline/backup
+        saveRequestsLocal();
+    } catch(err) {
+        console.error('SharePoint fetch failed:', err);
+        updateSync('SharePoint unavailable \u2014 loading local data...');
+        // Fallback: try local JSON file
+        try {
+            const res = await fetch(CONFIG.dataFile + '?t=' + Date.now());
+            if (res.ok) allRequests = await res.json();
+            else throw new Error('No local data');
+            loadTracking();
+            renderRequests();
+            updateSync(allRequests.length + ' requests (local cache)');
+        } catch(e2) {
+            updateSync('No data available \u2014 demo mode');
+            loadDemoData();
+        }
+    }
+}
+
+async function fetchFromSharePoint() {
+    // === METHOD 1: Direct fetch (works if page is hosted on *.intel.com or SharePoint) ===
+    // Your browser sends cookies automatically with credentials:'include'
+    
+    // Step 1: Get Request Digest for authenticated calls
+    const digestUrl = CONFIG.spSite + '/_api/contextinfo';
+    const digestRes = await fetch(digestUrl, {
+        method: 'POST',
+        headers: { 'Accept': 'application/json;odata=verbose' },
+        credentials: 'include'
+    });
+    
+    if (!digestRes.ok) {
+        // If CORS blocks this, it means the page is NOT on the same domain.
+        // Try Method 2 (see note below)
+        throw new Error('SharePoint blocked (HTTP ' + digestRes.status + '). See console for CORS info.');
+    }
+    
+    const digestData = await digestRes.json();
+    const digest = digestData.d.GetContextWebInformation.FormDigestValue;
+    
+    // Step 2: Query list items
+    const filter = "Created ge datetime'" + CONFIG.dateFilter + "'" +
+        " and Status ne 'Complete' and Status ne 'Closed' and Status ne 'Hidden'";
+    const select = 'Id,Title,Request_x0020_Type,Customer_x0020_Name,Created,Status,Author/Title';
+    const expand = 'Author';
+    
+    const apiUrl = CONFIG.spSite + "/_api/web/lists/getbytitle('" + 
+        encodeURIComponent(CONFIG.spList) + "')/items" +
+        '?$filter=' + encodeURIComponent(filter) +
+        '&$select=' + encodeURIComponent(select) +
+        '&$expand=' + expand +
+        '&$orderby=Id desc' +
+        '&$top=500';
+    
+    const listRes = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+            'Accept': 'application/json;odata=verbose',
+            'X-RequestDigest': digest
+        },
+        credentials: 'include'
+    });
+    
+    if (!listRes.ok) {
+        throw new Error('List query failed (HTTP ' + listRes.status + ')');
+    }
+    
+    const listData = await listRes.json();
+    const items = listData.d.results || [];
+    
+    return items.map(item => ({
+        id: item.Id,
+        requestType: item.Request_x0020_Type || item.Title || 'Unknown',
+        customer: item.Customer_x0020_Name || item.Title || '\u2014',
+        requestor: (item.Author && item.Author.Title) || '\u2014',
+        created: item.Created,
+        status: item.Status || ''
+    }));
+}
+
+// ============================================================
+// TRACKING: Stored in localStorage + exportable to JSON/Excel
+// Since you can't write files on a static server, tracking lives
+// in the browser. Both Jenn and you export periodically to share.
+// ============================================================
+function loadTracking() {
+    const saved = localStorage.getItem('ifs-tracker-data');
+    if (saved) trackingData = JSON.parse(saved);
+}
+
+function saveTracking() {
+    trackingData._lastSaved = new Date().toISOString();
+    localStorage.setItem('ifs-tracker-data', JSON.stringify(trackingData));
+}
+
+function saveRequestsLocal() {
+    // Cache the fetched requests so offline mode works
+    localStorage.setItem('ifs-tracker-requests', JSON.stringify(allRequests));
+}
+
+function buildExcelData() {
+    const rows = [];
+    const grouped = groupByID(allRequests);
+    Object.keys(grouped).forEach(id => {
+        const group = grouped[id];
+        const customer = group[0].customer;
+        group.forEach(req => {
+            const key = id + '-' + req.requestType;
+            const steps = SUB_STEPS[req.requestType] || [];
+            const saved = trackingData[key] || {};
+            steps.forEach(step => {
+                rows.push({
+                    'ID': Number(id),
+                    'Customer': customer,
+                    'Request Type': req.requestType,
+                    'Sub-Step': step.label,
+                    'Status': saved[step.id] || 'Not Started',
+                    'Updated': saved._updated || ''
+                });
+            });
+        });
+    });
+    return rows;
+}
+
+function updateSync(msg){ document.getElementById('sync-status').textContent = msg; }
+function startAutoRefresh(){ if(refreshTimer)clearInterval(refreshTimer); refreshTimer=setInterval(fetchAndRender,CONFIG.refreshInterval); }
+
+// ============================================================
+// RENDERING: Group by ID — one card per request ID
+// ============================================================
+function groupByID(requests) {
+    const map = {};
+    requests.forEach(r => {
+        if (!map[r.id]) map[r.id] = [];
+        map[r.id].push(r);
+    });
+    return map;
+}
+
+function renderRequests() {
+    const container = document.getElementById('request-list');
+    const typeFilter = document.getElementById('filter-type').value;
+    const statusFilter = document.getElementById('filter-status').value;
+    const search = document.getElementById('search-box').value.toLowerCase();
+
+    let filtered = allRequests;
+    if (typeFilter !== 'all') filtered = filtered.filter(r => r.requestType === typeFilter);
+    if (search) filtered = filtered.filter(r =>
+        (r.customer||'').toLowerCase().includes(search) ||
+        String(r.id).includes(search)
+    );
+
+    const grouped = groupByID(filtered);
+
+    // Stats (based on all data, not filtered)
+    const allGrouped = groupByID(allRequests);
+    let totalGroups = Object.keys(allGrouped).length;
+    let wipCount = 0, doneCount = 0, newCount = 0;
+    Object.entries(allGrouped).forEach(([id, reqs]) => {
+        const s = getGroupOverall(id, reqs);
+        if (s==='complete') doneCount++;
+        else if (s==='in-progress') wipCount++;
+        else newCount++;
+    });
+    document.getElementById('stat-total').textContent = totalGroups + ' requests';
+    document.getElementById('stat-progress').textContent = wipCount + ' WIP';
+    document.getElementById('stat-complete').textContent = doneCount + ' done';
+    document.getElementById('stat-new').textContent = newCount + ' new';
+
+    // Filter by overall status
+    let ids = Object.keys(grouped);
+    if (statusFilter !== 'all') {
+        ids = ids.filter(id => getGroupOverall(id, grouped[id]) === statusFilter);
+    }
+
+    if (ids.length === 0) {
+        container.innerHTML = '<div class="empty-state"><h3>No requests match filters</h3></div>';
+        return;
+    }
+
+    container.innerHTML = ids.map(id => renderGroupCard(id, grouped[id])).join('');
+}
+
+function renderGroupCard(id, reqs) {
+    const customer = reqs[0].customer || '\u2014';
+    const date = reqs[0].created ? new Date(reqs[0].created).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '';
+    const overall = getGroupOverall(id, reqs);
+    const badges = reqs.map(r => `<span class="badge badge-${getBadgeClass(r.requestType)}">${r.requestType}</span>`).join('');
+
+    const sections = reqs.map(r => renderTypeSection(id, r)).join('');
+
+    return `<div class="group-card" id="group-${id}">
+      <div class="group-header" onclick="toggleGroup('${id}')">
+        <span class="group-id">#${id}</span>
+        <span class="group-customer">${customer}</span>
+        <div class="group-badges">${badges}</div>
+        <span class="group-overall">${svgIcon(overall)}</span>
+        <span class="group-date">${date}</span>
+        <span class="chevron">\u203A</span>
+      </div>
+      <div class="group-body">${sections}</div>
+    </div>`;
+}
+
+function renderTypeSection(id, req) {
+    const key = id + '-' + req.requestType;
+    const steps = SUB_STEPS[req.requestType] || [];
+    const saved = trackingData[key] || {};
+    const sectionOverall = getSectionOverall(key, steps);
+    const titleClass = 'title-' + getBadgeClass(req.requestType);
+
+    const rows = steps.map(step => {
+        const val = saved[step.id] || 'Not Started';
+        const cls = selectClass(val);
+        const opts = statusOptions(req.requestType, step.id).map(s =>
+            `<option value="${s}"${s===val?' selected':''}>${s}</option>`
+        ).join('');
+        return `<div class="substep-row">
+          <span class="substep-label">${step.label}</span>
+          <select class="substep-select ${cls}" onchange="updateStep('${key}','${step.id}',this.value,this)">${opts}</select>
+        </div>`;
+    }).join('');
+
+    return `<div class="type-section">
+      <div class="type-section-header">
+        <span class="type-section-title ${titleClass}">${req.requestType}</span>
+        <span class="section-status">${svgIcon(sectionOverall)} <span>${statusLabel(sectionOverall)}</span></span>
+      </div>
+      ${rows}
+    </div>`;
+}
+
+// ============================================================
+// INTERACTIONS
+// ============================================================
+function toggleGroup(id) {
+    document.getElementById('group-' + id).classList.toggle('open');
+}
+
+function updateStep(key, stepId, value, el) {
+    if (!trackingData[key]) trackingData[key] = {};
+    trackingData[key][stepId] = value;
+    trackingData[key]._updated = new Date().toISOString();
+    el.className = 'substep-select ' + selectClass(value);
+    saveTracking(); // writes to JSON + Excel on server
+    // refresh section status icon
+    const section = el.closest('.type-section');
+    const statusSpan = section.querySelector('.section-status');
+    const id = key.split('-')[0];
+    const reqType = key.substring(id.length + 1);
+    const steps = SUB_STEPS[reqType] || [];
+    const s = getSectionOverall(key, steps);
+    statusSpan.innerHTML = svgIcon(s) + ' <span>' + statusLabel(s) + '</span>';
+    // refresh group icon
+    const card = el.closest('.group-card');
+    const reqs = allRequests.filter(r => String(r.id) === id);
+    const g = getGroupOverall(id, reqs);
+    card.querySelector('.group-overall').innerHTML = svgIcon(g);
+}
+
+// ============================================================
+// EXPORT BUTTONS (manual download)
+// ============================================================
+function exportExcel() {
+    const data = buildExcelData();
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Tracking');
+    ws['!cols'] = Object.keys(data[0]||{}).map(()=>({wch:18}));
+    XLSX.writeFile(wb, 'IFS_Tracker_' + new Date().toISOString().slice(0,10) + '.xlsx');
+}
+
+function exportJSON() {
+    const blob = new Blob([JSON.stringify({requests:allRequests,tracking:trackingData},null,2)],{type:'application/json'});
+    const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
+    a.download='IFS_Tracker_'+new Date().toISOString().slice(0,10)+'.json'; a.click();
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+function getBadgeClass(type) {
+    return {'Portal Creation':'portal','New DA':'nda','Codename':'codename','WebView':'webview'}[type]||'nda';
+}
+
+function selectClass(val) {
+    const m = {'Complete':'st-complete','Done':'st-done','Approved':'st-approved','In Progress':'st-inprogress','Send for Approval':'st-send','Fail':'st-fail','Not Started':'st-notstarted'};
+    return m[val]||'st-notstarted';
+}
+
+function statusOptions(reqType, stepId) {
+    if (stepId === 'ags-approved-role') return ['Not Started','Send for Approval','Approved'];
+    if (reqType === 'Codename' || reqType === 'WebView') return ['Not Started','Done'];
+    if (stepId === 'acknowledge') return ['Not Started','Complete'];
+    return ['Not Started','In Progress','Complete','Fail'];
+}
+
+function getSectionOverall(key, steps) {
+    const saved = trackingData[key] || {};
+    const vals = steps.map(s => saved[s.id] || 'Not Started');
+    if (vals.some(v => v==='Fail')) return 'failed';
+    if (vals.every(v => v==='Complete'||v==='Done'||v==='Approved')) return 'complete';
+    if (vals.some(v => v!=='Not Started')) return 'in-progress';
+    return 'not-started';
+}
+
+function getGroupOverall(id, reqs) {
+    const sectionStatuses = reqs.map(r => {
+        const key = id + '-' + r.requestType;
+        const steps = SUB_STEPS[r.requestType] || [];
+        return getSectionOverall(key, steps);
+    });
+    if (sectionStatuses.some(s => s==='failed')) return 'failed';
+    if (sectionStatuses.every(s => s==='complete')) return 'complete';
+    if (sectionStatuses.some(s => s!=='not-started')) return 'in-progress';
+    return 'not-started';
+}
+
+function statusLabel(s) {
+    return {'complete':'Done','in-progress':'In Progress','failed':'Failed','not-started':'New'}[s]||'New';
+}
+
+function svgIcon(status) {
+    const map = {
+        'complete': '<svg width="16" height="16"><use href="#icon-check"/></svg>',
+        'in-progress': '<svg width="16" height="16"><use href="#icon-progress"/></svg>',
+        'failed': '<svg width="16" height="16"><use href="#icon-fail"/></svg>',
+        'not-started': '<svg width="16" height="16"><use href="#icon-new"/></svg>'
+    };
+    return map[status] || map['not-started'];
+}
+
+// ============================================================
+// DEMO DATA
+// ============================================================
+function loadDemoData() {
+    allRequests = [
+        {id:2679,requestType:'Portal Creation',customer:'Acapella',requestor:'John Smith',created:'2026-07-15T10:00:00Z'},
+        {id:2679,requestType:'New DA',customer:'Acapella',requestor:'John Smith',created:'2026-07-15T10:00:00Z'},
+        {id:2679,requestType:'Codename',customer:'Acapella',requestor:'John Smith',created:'2026-07-15T10:00:00Z'},
+        {id:2678,requestType:'Portal Creation',customer:'Synopsys',requestor:'Jane Doe',created:'2026-07-14T09:00:00Z'},
+        {id:2678,requestType:'New DA',customer:'Synopsys',requestor:'Jane Doe',created:'2026-07-14T09:00:00Z'},
+        {id:2677,requestType:'Codename',customer:'TSMC',requestor:'Bob Wilson',created:'2026-07-13T14:00:00Z'},
+        {id:2676,requestType:'WebView',customer:'ARM Holdings',requestor:'Alice Brown',created:'2026-07-12T08:00:00Z'},
+        {id:2675,requestType:'Portal Creation',customer:'Qualcomm',requestor:'Charlie Davis',created:'2026-07-11T11:00:00Z'},
+        {id:2675,requestType:'New DA',customer:'Qualcomm',requestor:'Charlie Davis',created:'2026-07-11T11:00:00Z'},
+        {id:2675,requestType:'Codename',customer:'Qualcomm',requestor:'Charlie Davis',created:'2026-07-11T11:00:00Z'},
+        {id:2675,requestType:'WebView',customer:'Qualcomm',requestor:'Charlie Davis',created:'2026-07-11T11:00:00Z'},
+        {id:2674,requestType:'New DA',customer:'MediaTek',requestor:'Eve Garcia',created:'2026-07-10T16:00:00Z'},
+        {id:2673,requestType:'Portal Creation',customer:'Samsung',requestor:'Frank Lee',created:'2026-07-09T07:00:00Z'},
+        {id:2672,requestType:'WebView',customer:'Broadcom',requestor:'Grace Kim',created:'2026-07-08T13:00:00Z'},
+        {id:2671,requestType:'New DA',customer:'Marvell',requestor:'Hank Torres',created:'2026-07-07T10:00:00Z'},
+        {id:2670,requestType:'Portal Creation',customer:'Applied Materials',requestor:'Iris Chen',created:'2026-07-05T09:00:00Z'},
+        {id:2670,requestType:'New DA',customer:'Applied Materials',requestor:'Iris Chen',created:'2026-07-05T09:00:00Z'}
+    ];
+    trackingData = {
+        "2679-Portal Creation":{"configure-ags":"Complete","configure-jsm":"In Progress","configure-security-ft":"Not Started","configure-access-mgmt":"Not Started","ags-approved-role":"Not Started","_updated":"2026-08-09T14:30:00Z"},
+        "2679-New DA":{"acknowledge":"Complete","in-approval-loop":"In Progress","add-force-signature":"Not Started","_updated":"2026-08-09T14:30:00Z"},
+        "2679-Codename":{"codename-created":"Done","_updated":"2026-08-08T10:00:00Z"},
+        "2678-Portal Creation":{"configure-ags":"Complete","configure-jsm":"Complete","configure-security-ft":"Complete","configure-access-mgmt":"Complete","ags-approved-role":"Approved","_updated":"2026-08-07T16:00:00Z"},
+        "2678-New DA":{"acknowledge":"Complete","in-approval-loop":"Complete","add-force-signature":"Complete","_updated":"2026-08-07T16:00:00Z"},
+        "2675-Portal Creation":{"configure-ags":"Complete","configure-jsm":"Fail","configure-security-ft":"Not Started","configure-access-mgmt":"Not Started","ags-approved-role":"Not Started","_updated":"2026-08-06T11:00:00Z"}
+    };
+    renderRequests();
+}
+
+// ============================================================
+// INIT
+// ============================================================
+document.addEventListener('DOMContentLoaded', fetchAndRender);
+</script>
+</body>
+</html>

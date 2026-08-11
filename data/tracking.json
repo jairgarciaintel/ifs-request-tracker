@@ -1,0 +1,42 @@
+{
+  "2679-Portal Creation": {
+    "configure-ags": "Complete",
+    "configure-jsm": "In Progress",
+    "configure-security-ft": "Not Started",
+    "configure-access-mgmt": "Not Started",
+    "ags-approved-role": "Not Started",
+    "_updated": "2026-08-09T14:30:00Z"
+  },
+  "2679-New DA": {
+    "acknowledge": "Complete",
+    "in-approval-loop": "In Progress",
+    "add-force-signature": "Not Started",
+    "_updated": "2026-08-09T14:30:00Z"
+  },
+  "2679-Codename": {
+    "codename-created": "Done",
+    "_updated": "2026-08-08T10:00:00Z"
+  },
+  "2678-Portal Creation": {
+    "configure-ags": "Complete",
+    "configure-jsm": "Complete",
+    "configure-security-ft": "Complete",
+    "configure-access-mgmt": "Complete",
+    "ags-approved-role": "Approved",
+    "_updated": "2026-08-07T16:00:00Z"
+  },
+  "2678-New DA": {
+    "acknowledge": "Complete",
+    "in-approval-loop": "Complete",
+    "add-force-signature": "Complete",
+    "_updated": "2026-08-07T16:00:00Z"
+  },
+  "2675-Portal Creation": {
+    "configure-ags": "Complete",
+    "configure-jsm": "Fail",
+    "configure-security-ft": "Not Started",
+    "configure-access-mgmt": "Not Started",
+    "ags-approved-role": "Send for Approval",
+    "_updated": "2026-08-06T11:00:00Z"
+  }
+}
