@@ -174,6 +174,19 @@ body{
   .header,.toolbar{flex-direction:column;gap:10px;padding:12px 16px;}
   .filters{flex-wrap:wrap;}.request-list{padding:12px 16px;}
 }
+/* === NOTIFICATION BANNER === */
+.notification-banner{
+  position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:1000;
+  background:rgba(13,49,88,0.95);border:1px solid var(--cyan);border-radius:8px;
+  padding:12px 20px;display:flex;align-items:center;gap:12px;
+  box-shadow:0 8px 32px rgba(0,0,0,0.4);animation:slideDown 0.3s ease;
+  max-width:90vw;
+}
+@keyframes slideDown{from{opacity:0;transform:translateX(-50%) translateY(-20px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
+.notif-text{font-size:13px;color:var(--light);}
+.notif-text strong{color:var(--cyan);}
+.notif-close{background:none;border:none;color:rgba(255,255,255,0.5);font-size:16px;cursor:pointer;padding:0 4px;}
+.notif-close:hover{color:var(--white);}
 </style>
 
 <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
@@ -287,13 +300,14 @@ async function fetchAndRender() {
             });
         });
 
-        // Load tracking from GitHub (shared between Jenn and Jair)
         await loadTracking();
         
         const now = new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
         updateSync(rawRequests.length + ' requests (' + allRequests.length + ' services) \u00b7 ' + now);
+        ensureUsername();
         renderRequests();
         startAutoRefresh();
+        startRealtimePolling();
     } catch(err) {
         console.error('Fetch failed:', err);
         updateSync('Load failed \u2014 showing demo data');
@@ -328,39 +342,25 @@ function normalizeType(type) {
 }
 
 // ============================================================
-// TRACKING: Shared via GitHub API — both Jenn and Jair see same data
+// TRACKING: Firebase Realtime Database — instant sync + notifications
 // ============================================================
-const GITHUB_REPO = 'jairgarciaintel/ifs-request-tracker';
-const TRACKING_PATH = 'data/tracking.json';
+const FIREBASE_DB = 'https://fs-request-tracker-default-rtdb.firebaseio.com';
+let currentUser = localStorage.getItem('ifs-username') || '';
 
-function getGithubToken() {
-    let token = localStorage.getItem('ifs-gh-token');
-    if (!token) {
-        token = prompt('Enter GitHub token (one-time setup for shared tracking):');
-        if (token) localStorage.setItem('ifs-gh-token', token);
+function ensureUsername() {
+    if (!currentUser) {
+        currentUser = prompt('Enter your name (e.g., Jair or Jenn):') || 'Anonymous';
+        localStorage.setItem('ifs-username', currentUser);
     }
-    return token;
+    return currentUser;
 }
 
-let trackingSha = null;
-
 async function loadTracking() {
-    const token = getGithubToken();
-    if (!token) {
-        const saved = localStorage.getItem('ifs-tracker-data');
-        if (saved) trackingData = JSON.parse(saved);
-        return;
-    }
     try {
-        const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${TRACKING_PATH}`, {
-            headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github+json' }
-        });
+        const res = await fetch(`${FIREBASE_DB}/tracking.json`);
         if (res.ok) {
             const data = await res.json();
-            trackingSha = data.sha;
-            const content = atob(data.content);
-            trackingData = JSON.parse(content);
-            localStorage.setItem('ifs-tracker-data', JSON.stringify(trackingData));
+            if (data) trackingData = data;
         }
     } catch(e) {
         const saved = localStorage.getItem('ifs-tracker-data');
@@ -370,34 +370,87 @@ async function loadTracking() {
 
 async function saveTracking() {
     trackingData._lastSaved = new Date().toISOString();
+    trackingData._lastUser = currentUser;
     localStorage.setItem('ifs-tracker-data', JSON.stringify(trackingData));
     
-    const token = localStorage.getItem('ifs-gh-token');
-    if (!token) return;
-    
     try {
-        const content = btoa(unescape(encodeURIComponent(JSON.stringify(trackingData, null, 2))));
-        const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${TRACKING_PATH}`, {
+        await fetch(`${FIREBASE_DB}/tracking.json`, {
             method: 'PUT',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Accept': 'application/vnd.github+json',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                message: 'tracking update',
-                content: content,
-                sha: trackingSha,
-                branch: 'main'
-            })
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify(trackingData)
         });
-        if (res.ok) {
-            const data = await res.json();
-            trackingSha = data.content.sha;
-        }
     } catch(e) {
-        console.warn('GitHub save failed:', e);
+        console.warn('Firebase save failed:', e);
     }
+}
+
+// Send a notification when a step changes
+async function sendNotification(requestId, customer, reqType, stepLabel, newValue) {
+    const user = ensureUsername();
+    const notification = {
+        user: user,
+        requestId: requestId,
+        customer: customer,
+        requestType: reqType,
+        step: stepLabel,
+        value: newValue,
+        timestamp: new Date().toISOString()
+    };
+    try {
+        await fetch(`${FIREBASE_DB}/notifications.json`, {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify(notification)
+        });
+    } catch(e) {}
+}
+
+// Set presence (who is working)
+async function setPresence(requestId, reqType) {
+    const user = ensureUsername();
+    try {
+        await fetch(`${FIREBASE_DB}/presence/${requestId}-${reqType}.json`, {
+            method: 'PUT',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ user: user, since: new Date().toISOString() })
+        });
+    } catch(e) {}
+}
+
+// Poll for notifications and presence every 5 seconds
+let lastNotifCheck = new Date().toISOString();
+function startRealtimePolling() {
+    setInterval(async () => {
+        // Check for new notifications
+        try {
+            const res = await fetch(`${FIREBASE_DB}/notifications.json?orderBy="timestamp"&startAt="${lastNotifCheck}"`);
+            if (res.ok) {
+                const data = await res.json();
+                if (data) {
+                    Object.values(data).forEach(n => {
+                        if (n.user !== currentUser && n.timestamp > lastNotifCheck) {
+                            showNotification(n);
+                        }
+                    });
+                }
+            }
+            lastNotifCheck = new Date().toISOString();
+        } catch(e) {}
+        
+        // Reload tracking to see other user's changes
+        await loadTracking();
+        renderRequests();
+    }, 5000);
+}
+
+function showNotification(n) {
+    const banner = document.createElement('div');
+    banner.className = 'notification-banner';
+    banner.innerHTML = `
+        <span class="notif-text"><strong>${n.user}</strong> changed #${n.requestId} ${n.requestType} \u2192 ${n.step}: <strong>${n.value}</strong></span>
+        <button class="notif-close" onclick="this.parentElement.remove()">\u2715</button>
+    `;
+    document.body.prepend(banner);
 }
 
 function buildExcelData() {
@@ -607,17 +660,27 @@ function updateStep(key, stepId, value, el) {
     if (!trackingData[key]) trackingData[key] = {};
     trackingData[key][stepId] = value;
     trackingData[key]._updated = new Date().toISOString();
+    trackingData[key]._updatedBy = currentUser;
     el.className = 'substep-select ' + selectClass(value);
-    saveTracking(); // writes to JSON + Excel on server
-    // refresh section status icon
-    const section = el.closest('.type-section');
-    const statusSpan = section.querySelector('.section-status');
+    saveTracking();
+    
+    // Send notification to other users
     const id = key.split('-')[0];
     const reqType = key.substring(id.length + 1);
     const steps = SUB_STEPS[reqType] || [];
+    const stepObj = steps.find(s => s.id === stepId);
+    const stepLabel = stepObj ? stepObj.label : stepId;
+    const req = allRequests.find(r => String(r.id) === id && r.requestType === reqType);
+    const customer = req ? req.customer : '';
+    sendNotification(id, customer, reqType, stepLabel, value);
+    setPresence(id, reqType);
+    
+    // Refresh section status icon
+    const section = el.closest('.type-section');
+    const statusSpan = section.querySelector('.section-status');
     const s = getSectionOverall(key, steps);
     statusSpan.innerHTML = svgIcon(s) + ' <span>' + statusLabel(s) + '</span>';
-    // refresh group icon
+    // Refresh group icon
     const card = el.closest('.group-card');
     const reqs = allRequests.filter(r => String(r.id) === id);
     const g = getGroupOverall(id, reqs);
