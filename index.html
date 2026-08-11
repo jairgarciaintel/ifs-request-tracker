@@ -536,9 +536,18 @@ function startRealtimePolling() {
             }
         } catch(e) {}
         
-        // 3. Reload tracking to see other user's changes
+        // 3. Reload tracking silently — do NOT re-render (causes cards to close)
+        // Only re-render if there's a new change from another user
+        const oldLastSaved = trackingData._lastSaved || '';
         await loadTracking();
-        renderRequests();
+        if (trackingData._lastSaved !== oldLastSaved && trackingData._lastUser !== currentUser) {
+            // Save which cards are open
+            const openCards = [];
+            document.querySelectorAll('.group-card.open').forEach(c => openCards.push(c.id));
+            renderRequests();
+            // Restore open state
+            openCards.forEach(id => { const el = document.getElementById(id); if(el) el.classList.add('open'); });
+        }
     }, 5000);
 }
 
