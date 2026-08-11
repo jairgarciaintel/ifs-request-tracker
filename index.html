@@ -217,6 +217,8 @@ body{
 .substep-select.st-route{border-color:rgba(139,92,246,0.4);color:#a78bfa;background:rgba(139,92,246,0.08);}
 .route-row{background:rgba(139,92,246,0.04);border-radius:6px;margin:4px 0;padding:8px 0 8px 4px;}
 .route-row .substep-label{color:#a78bfa;font-weight:600;}
+.route-chosen{opacity:0.7;font-size:11px;}
+.route-chosen .substep-label{font-size:11px;}
 @media(max-width:768px){
   .header,.toolbar{flex-direction:column;gap:10px;padding:12px 16px;}
   .filters{flex-wrap:wrap;}.request-list{padding:12px 16px;}
@@ -859,14 +861,18 @@ function renderTypeSection(id, req) {
     // Determine which route was selected (for COD/DA Edit conditional steps)
     const routeStepId = steps.find(s => s.isRoute);
     const selectedRoute = routeStepId ? (saved[routeStepId.id] || 'Waiting for BD') : null;
+    const routeChosen = selectedRoute && selectedRoute !== 'Waiting for BD';
 
     const rows = steps.map(step => {
-        // Hide steps that don't match the selected route
-        if (step.showWhen && selectedRoute && selectedRoute !== step.showWhen && selectedRoute !== 'Waiting for BD') {
-            return ''; // hide this step
+        // Once route is chosen: hide steps from the OTHER path
+        if (step.showWhen && routeChosen && selectedRoute !== step.showWhen) {
+            return '';
+        }
+        // Once route is chosen: hide info request (already done)
+        if (routeChosen && step.id.includes('info-request')) {
+            return '';
         }
         
-        // If source is complete, force all steps to show as Complete
         let val;
         if (sourceComplete) {
             val = step.isRoute ? (saved[step.id] || 'Waiting for BD') : (step.id === 'ags-approved-role') ? 'Approved' : 'Complete';
@@ -878,9 +884,18 @@ function renderTypeSection(id, req) {
         const opts = statusOptions(req.requestType, step.id).map(s =>
             `<option value="${s}"${s===val?' selected':''}>${s}</option>`
         ).join('');
-        // Show who made this change
         const changedBy = saved[step.id + '_by'] || '';
         const byLabel = (changedBy && val !== 'Not Started' && val !== 'Waiting for BD') ? `<span class="changed-by">${changedBy}</span>` : '';
+        
+        // Route selector after choosing: show compact with current choice
+        if (step.isRoute && routeChosen) {
+            return `<div class="substep-row route-row route-chosen">
+              <span class="substep-label">\u25C7 Path: <strong>${selectedRoute}</strong> (change \u2192)</span>
+              <select class="substep-select st-route" onchange="updateStep('${key}','${step.id}',this.value,this)">${opts}</select>
+              ${byLabel}
+            </div>`;
+        }
+        
         const rowClass = step.isRoute ? 'substep-row route-row' : 'substep-row';
         return `<div class="${rowClass}">
           <span class="substep-label">${step.isRoute ? '\u25C7 ' : ''}${step.label}</span>
@@ -938,22 +953,34 @@ function updateStep(key, stepId, value, el) {
     logHistory(id, customer, reqType, stepLabel, value);
     setPresence(id, reqType);
     
+    // If this is a route change, re-render the entire section
+    const isRouteStep = steps.find(s => s.id === stepId && s.isRoute);
+    if (isRouteStep) {
+        const section = el.closest('.type-section');
+        const newSection = document.createElement('div');
+        newSection.innerHTML = renderTypeSection(id, req);
+        section.replaceWith(newSection.firstElementChild);
+    }
+    
     // Refresh section status icon
     const section = el.closest('.type-section');
-    const statusSpan = section.querySelector('.section-status');
-    const s = getSectionOverall(key, steps);
-    statusSpan.innerHTML = svgIcon(s) + ' <span>' + statusLabel(s) + '</span>';
+    if (section) {
+        const statusSpan = section.querySelector('.section-status');
+        const s = getSectionOverall(key, steps);
+        if (statusSpan) statusSpan.innerHTML = svgIcon(s) + ' <span>' + statusLabel(s) + '</span>';
+    }
     // Refresh group icon + progress bar
     const card = el.closest('.group-card');
-    const reqs = allRequests.filter(r => String(r.id) === id);
-    const g = getGroupOverall(id, reqs);
-    card.querySelector('.group-overall').innerHTML = svgIcon(g);
-    // Update progress bar
-    const progress = getProgressPercent(id, reqs);
-    const pBar = card.querySelector('.progress-fill');
-    const pPct = card.querySelector('.progress-pct');
-    if (pBar) { pBar.style.width = progress + '%'; pBar.className = 'progress-fill ' + (g==='complete'?'pf-done':g==='failed'?'pf-fail':progress>0?'pf-wip':'pf-new'); }
-    if (pPct) pPct.textContent = progress + '%';
+    if (card) {
+        const reqs = allRequests.filter(r => String(r.id) === id);
+        const g = getGroupOverall(id, reqs);
+        card.querySelector('.group-overall').innerHTML = svgIcon(g);
+        const progress = getProgressPercent(id, reqs);
+        const pBar = card.querySelector('.progress-fill');
+        const pPct = card.querySelector('.progress-pct');
+        if (pBar) { pBar.style.width = progress + '%'; pBar.className = 'progress-fill ' + (g==='complete'?'pf-done':g==='failed'?'pf-fail':progress>0?'pf-wip':'pf-new'); }
+        if (pPct) pPct.textContent = progress + '%';
+    }
 }
 
 // ============================================================
