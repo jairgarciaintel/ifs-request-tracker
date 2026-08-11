@@ -33,21 +33,37 @@ def convert():
 def convert_csv():
     rows = []
     with open(str(CSV_FILE), 'r', encoding='utf-8-sig') as f:
-        reader = csv.DictReader(f)
-        for item in reader:
-            if not item.get('ID'):
-                continue
-            rows.append({
-                'id': int(item['ID']) if item['ID'].isdigit() else item['ID'],
-                'requestType': item.get('Request Type') or 'Unknown',
-                'customer': item.get('Company') or item.get('Project/Portal Name') or '',
-                'requestor': item.get('Created By') or '',
-                'created': str(item.get('Created') or ''),
-                'status': item.get('iGO Admin Only - Status') or '',
-                'engagementType': item.get('Engagement Type') or '',
-                'priority': item.get('Priority') or '',
-                'projectName': item.get('Project/Portal Name') or ''
-            })
+        lines = f.readlines()
+    
+    # Find the header line (starts with "ID" or contains "ID,")
+    header_idx = 0
+    for i, line in enumerate(lines):
+        if line.strip().startswith('"ID"') or line.strip().startswith('ID,') or line.strip().startswith('ID\t'):
+            header_idx = i
+            break
+    
+    # Parse from the header line onward
+    import io
+    csv_content = ''.join(lines[header_idx:])
+    reader = csv.DictReader(io.StringIO(csv_content))
+    
+    for item in reader:
+        raw_id = (item.get('ID') or '').strip()
+        if not raw_id or not raw_id.isdigit():
+            continue
+        rows.append({
+            'id': int(raw_id),
+            'requestType': item.get('Request Type') or 'Unknown',
+            'customer': item.get('Company') or item.get('Project/Portal Name') or '',
+            'requestor': item.get('Created By') or '',
+            'created': str(item.get('Created') or ''),
+            'status': item.get('iGO Admin Only - Status') or '',
+            'engagementType': item.get('Engagement Type') or '',
+            'priority': item.get('Priority') or '',
+            'projectName': item.get('Project/Portal Name') or '',
+            'assignedBD': item.get('Assigned BD') or '',
+            'details': item.get('iGO Admin Only - Details') or ''
+        })
     
     with open(str(JSON_FILE), 'w') as f:
         json.dump(rows, f, indent=2, default=str)
