@@ -762,7 +762,7 @@ function renderGroupCard(id, reqs) {
     const ageBadge = (overall !== 'complete') ? getAgeBadge(ageDays) : '';
 
     // Progress bar
-    const progress = getProgressPercent(id, knownReqs);
+    const progress = getProgressPercent(id, reqs);
     const pfClass = overall === 'complete' ? 'pf-done' : overall === 'failed' ? 'pf-fail' : progress > 0 ? 'pf-wip' : 'pf-new';
 
     // Notes
@@ -1131,6 +1131,7 @@ function getAgeBadge(days) {
 // PROGRESS CALCULATION
 // ============================================================
 function getProgressPercent(id, reqs) {
+    if (!reqs || reqs.length === 0) return 0;
     // If source status is Complete, it's 100%
     const sourceStatus = (reqs[0].status || '').toLowerCase();
     if (sourceStatus === 'complete' || sourceStatus === 'canceled') return 100;
