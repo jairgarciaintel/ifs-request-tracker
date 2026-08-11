@@ -43,33 +43,54 @@ def convert_and_push():
     print(f"[{datetime.now().strftime('%H:%M:%S')}] Change detected!")
     print(f"{'='*40}")
     
-    if not XLSX_FILE.exists():
-        print("  No requests.xlsx found. Waiting...")
+    if not XLSX_FILE.exists() and not (DATA_DIR / 'requests.csv').exists():
+        print("  No requests.xlsx or requests.csv found. Waiting...")
         return
     
-    # Convert
+    # Convert (CSV or XLSX)
     try:
-        import openpyxl
-        wb = openpyxl.load_workbook(str(XLSX_FILE))
-        ws = wb.active
-        headers = [cell.value for cell in ws[1]]
+        import csv as csv_mod
+        csv_file = DATA_DIR / 'requests.csv'
         
-        rows = []
-        for row in ws.iter_rows(min_row=2, values_only=True):
-            item = dict(zip(headers, row))
-            if item.get('ID') is None:
-                continue
-            rows.append({
-                'id': item['ID'],
-                'requestType': item.get('Request Type') or 'Unknown',
-                'customer': item.get('Company') or item.get('Project/Portal Name') or '',
-                'requestor': item.get('Created By') or '',
-                'created': str(item.get('Created') or ''),
-                'status': item.get('iGO Admin Only - Status') or '',
-                'engagementType': item.get('Engagement Type') or '',
-                'priority': item.get('Priority') or '',
-                'projectName': item.get('Project/Portal Name') or ''
-            })
+        if csv_file.exists():
+            rows = []
+            with open(str(csv_file), 'r', encoding='utf-8-sig') as f:
+                reader = csv_mod.DictReader(f)
+                for item in reader:
+                    if not item.get('ID'):
+                        continue
+                    rows.append({
+                        'id': int(item['ID']) if item['ID'].isdigit() else item['ID'],
+                        'requestType': item.get('Request Type') or 'Unknown',
+                        'customer': item.get('Company') or item.get('Project/Portal Name') or '',
+                        'requestor': item.get('Created By') or '',
+                        'created': str(item.get('Created') or ''),
+                        'status': item.get('iGO Admin Only - Status') or '',
+                        'engagementType': item.get('Engagement Type') or '',
+                        'priority': item.get('Priority') or '',
+                        'projectName': item.get('Project/Portal Name') or ''
+                    })
+        elif XLSX_FILE.exists():
+            import openpyxl
+            wb = openpyxl.load_workbook(str(XLSX_FILE))
+            ws = wb.active
+            headers = [cell.value for cell in ws[1]]
+            rows = []
+            for row in ws.iter_rows(min_row=2, values_only=True):
+                item = dict(zip(headers, row))
+                if item.get('ID') is None:
+                    continue
+                rows.append({
+                    'id': item['ID'],
+                    'requestType': item.get('Request Type') or 'Unknown',
+                    'customer': item.get('Company') or item.get('Project/Portal Name') or '',
+                    'requestor': item.get('Created By') or '',
+                    'created': str(item.get('Created') or ''),
+                    'status': item.get('iGO Admin Only - Status') or '',
+                    'engagementType': item.get('Engagement Type') or '',
+                    'priority': item.get('Priority') or '',
+                    'projectName': item.get('Project/Portal Name') or ''
+                })
         
         with open(str(JSON_FILE), 'w') as f:
             json.dump(rows, f, indent=2, default=str)
@@ -117,8 +138,8 @@ class XlsxHandler(FileSystemEventHandler):
         if event.is_directory:
             return
         path = Path(event.src_path)
-        # Only react to .xlsx files
-        if path.suffix.lower() != '.xlsx':
+        # React to .xlsx or .csv files
+        if path.suffix.lower() not in ('.xlsx', '.csv'):
             return
         # Debounce: ignore events within 5 seconds of each other
         now = time.time()
@@ -137,7 +158,7 @@ def main():
     print("FS Request Tracker — File Watcher Bot")
     print("="*50)
     print(f"\n  Watching: {DATA_DIR}")
-    print(f"  Trigger:  Save any .xlsx file here")
+    print(f"  Trigger:  Save any .xlsx or .csv file here")
     print(f"\n  When you download from SharePoint:")
     print(f"  1. Open the .iqy in Excel")
     print(f"  2. File > Save As > {XLSX_FILE}")

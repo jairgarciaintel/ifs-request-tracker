@@ -1,28 +1,68 @@
 """
-Convert requests.xlsx (exported from SharePoint) to requests.json
+Convert requests.xlsx or requests.csv (exported from SharePoint) to requests.json
 Then auto-push to GitHub.
 
 Usage:
     python convert_excel.py
 """
-import openpyxl
 import json
 import subprocess
 import sys
+import csv
 from pathlib import Path
 from datetime import datetime
 
 REPO_DIR = Path(__file__).parent
 DATA_DIR = REPO_DIR / 'data'
 EXCEL_FILE = DATA_DIR / 'requests.xlsx'
+CSV_FILE = DATA_DIR / 'requests.csv'
 JSON_FILE = DATA_DIR / 'requests.json'
 
 
 def convert():
-    if not EXCEL_FILE.exists():
-        print(f"Error: {EXCEL_FILE} not found")
+    # Try CSV first (simpler, no dependency needed), then XLSX
+    if CSV_FILE.exists():
+        return convert_csv()
+    elif EXCEL_FILE.exists():
+        return convert_xlsx()
+    else:
+        print(f"Error: No data file found. Place requests.csv or requests.xlsx in data/")
         sys.exit(1)
 
+
+def convert_csv():
+    rows = []
+    with open(str(CSV_FILE), 'r', encoding='utf-8-sig') as f:
+        reader = csv.DictReader(f)
+        for item in reader:
+            if not item.get('ID'):
+                continue
+            rows.append({
+                'id': int(item['ID']) if item['ID'].isdigit() else item['ID'],
+                'requestType': item.get('Request Type') or 'Unknown',
+                'customer': item.get('Company') or item.get('Project/Portal Name') or '',
+                'requestor': item.get('Created By') or '',
+                'created': str(item.get('Created') or ''),
+                'status': item.get('iGO Admin Only - Status') or '',
+                'engagementType': item.get('Engagement Type') or '',
+                'priority': item.get('Priority') or '',
+                'projectName': item.get('Project/Portal Name') or ''
+            })
+    
+    with open(str(JSON_FILE), 'w') as f:
+        json.dump(rows, f, indent=2, default=str)
+    
+    print(f"Converted {len(rows)} requests (CSV) -> {JSON_FILE}")
+    return len(rows)
+
+
+def convert_xlsx():
+    try:
+        import openpyxl
+    except ImportError:
+        print("openpyxl not installed. Use CSV instead, or: pip install openpyxl")
+        sys.exit(1)
+    
     wb = openpyxl.load_workbook(str(EXCEL_FILE))
     ws = wb.active
     headers = [cell.value for cell in ws[1]]
@@ -47,7 +87,8 @@ def convert():
     with open(str(JSON_FILE), 'w') as f:
         json.dump(rows, f, indent=2, default=str)
     
-    print(f"Converted {len(rows)} requests -> {JSON_FILE}")
+    print(f"Converted {len(rows)} requests (XLSX) -> {JSON_FILE}")
+    return len(rows)
     return len(rows)
 
 
