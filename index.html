@@ -357,13 +357,13 @@ const SUB_STEPS = {
         {id:'mp-nda-done', label:'MP-NDA Executed'}
     ],
     'DA Edit': [
-        {id:'da-edit-info-request', label:'Info Request (asked BD)'},
+        {id:'da-edit-info-request', label:'Info Request to BD'},
         {id:'da-edit-route', label:'Route: COD or DA Edit?', isRoute: true},
         {id:'da-edit-approval-loop', label:'In Approval Loop', showWhen: 'DA Edit'},
-        {id:'da-edit-signature', label:'Add Force Signature', showWhen: 'DA Edit'}
+        {id:'da-edit-for-signature', label:'Add for Signature', showWhen: 'DA Edit'}
     ],
     'COD': [
-        {id:'cod-info-request', label:'Info Request (asked BD)'},
+        {id:'cod-info-request', label:'Info Request to BD'},
         {id:'cod-route', label:'Route: COD or DA Edit?', isRoute: true},
         {id:'cod-send-signature', label:'Send for Signature', showWhen: 'COD'}
     ],
@@ -1008,7 +1008,7 @@ function statusOptions(reqType, stepId) {
     if (stepId === 'cod-send-signature') return ['Not Started','Send for Signature','Complete'];
     // DA Edit
     if (stepId === 'da-edit-approval-loop') return ['Not Started','In Progress','Complete'];
-    if (stepId === 'da-edit-signature') return ['Not Started','In Progress','Complete'];
+    if (stepId === 'da-edit-for-signature') return ['Not Started','In Progress','Complete'];
     // Single-step services (Codename, WebView, etc.)
     return ['Not Started','In Progress','Complete','Done'];
 }
