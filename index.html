@@ -1128,6 +1128,10 @@ function getAgeBadge(days) {
 // PROGRESS CALCULATION
 // ============================================================
 function getProgressPercent(id, reqs) {
+    // If source status is Complete, it's 100%
+    const sourceStatus = (reqs[0].status || '').toLowerCase();
+    if (sourceStatus === 'complete' || sourceStatus === 'canceled') return 100;
+    
     let total = 0, done = 0;
     reqs.forEach(r => {
         const steps = SUB_STEPS[r.requestType] || [];
