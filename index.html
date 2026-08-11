@@ -662,8 +662,10 @@ function toggleStatFilter(status) {
 function groupByID(requests) {
     const map = {};
     requests.forEach(r => {
-        if (!map[r.id]) map[r.id] = [];
-        map[r.id].push(r);
+        if (!r.id) return; // skip items without valid ID
+        const id = String(r.id);
+        if (!map[id]) map[id] = [];
+        map[id].push(r);
     });
     return map;
 }
@@ -746,6 +748,7 @@ function renderRequests() {
 }
 
 function renderGroupCard(id, reqs) {
+    if (!reqs || reqs.length === 0) return '';
     const customer = reqs[0].customer || '\u2014';
     const date = reqs[0].created ? new Date(reqs[0].created).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}) : '';
     const overall = getGroupOverall(id, reqs);
