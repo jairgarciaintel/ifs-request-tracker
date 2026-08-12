@@ -311,6 +311,9 @@ const CONFIG = {
     dataFile: 'data/requests.json',
     trackingFile: 'data/tracking.json',
     
+    // Power Automate: Get all requests from SharePoint
+    getRequestsUrl: 'https://default46c98d88e3444ed484964ed7712e25.5d.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/88801fb733444145b8ca749e66927689/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=HcsCbORO1YYwkskZfHdLpXS6ev5zJl_t3v6D5cMt3ik',
+    
     // GitHub API for saving tracking (shared between Jenn and Jair)
     github: {
         owner: 'jairgarciaintel',
@@ -395,10 +398,37 @@ let activeStatFilters = new Set(['all']); // multi-select stat filter
 async function fetchAndRender() {
     updateSync('Loading data...');
     try {
-        // Load requests JSON (served by GitHub Pages from same directory)
-        const reqRes = await fetch(CONFIG.dataFile + '?v=' + Date.now());
-        if (!reqRes.ok) throw new Error('Cannot load ' + CONFIG.dataFile + ' (HTTP ' + reqRes.status + ')');
-        const rawRequests = await reqRes.json();
+        let rawRequests;
+        
+        // Try Power Automate (live SharePoint data) first
+        if (CONFIG.getRequestsUrl) {
+            try {
+                const paRes = await fetch(CONFIG.getRequestsUrl, { method: 'POST' });
+                if (paRes.ok) {
+                    const paData = await paRes.json();
+                    // Power Automate returns SharePoint items directly
+                    rawRequests = (paData.value || paData).map(item => ({
+                        id: item.ID || item.Id,
+                        requestType: item.Request_x0020_Type || item.RequestType || item.OData__x0052_equestType || 'Unknown',
+                        customer: item.Title || item.Company || '',
+                        requestor: item.Author ? item.Author.DisplayName : (item.Created_x0020_By || ''),
+                        created: item.Created || '',
+                        status: item.Status || item.iGO_x0020_Admin_x0020_Only_x0020 || '',
+                        projectName: item.Project_x002f_PortalName || ''
+                    }));
+                    console.log('Loaded ' + rawRequests.length + ' from SharePoint via Power Automate');
+                }
+            } catch(e) {
+                console.warn('Power Automate fetch failed, falling back to JSON:', e.message);
+            }
+        }
+        
+        // Fallback: load from local JSON file
+        if (!rawRequests) {
+            const reqRes = await fetch(CONFIG.dataFile + '?v=' + Date.now());
+            if (!reqRes.ok) throw new Error('Cannot load ' + CONFIG.dataFile);
+            rawRequests = await reqRes.json();
+        }
         
         // SPLIT multi-service requests: "Code Name Request;#Portal creation;#New DA"
         // becomes 3 separate entries with the same ID
