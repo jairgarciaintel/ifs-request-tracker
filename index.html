@@ -423,6 +423,9 @@ async function fetchAndRender() {
 
         await loadTracking();
         
+        // Sync SharePoint status to internal sub-steps
+        syncSpStatusToSubSteps();
+        
         const now = new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
         updateSync(rawRequests.length + ' requests (' + allRequests.length + ' services) \u00b7 ' + now);
         ensureUsername();
@@ -716,6 +719,86 @@ function buildExcelData() {
 
 function updateSync(msg){ document.getElementById('sync-status').textContent = msg; }
 function startAutoRefresh(){ if(refreshTimer)clearInterval(refreshTimer); refreshTimer=setInterval(fetchAndRender,CONFIG.refreshInterval); }
+
+// ============================================================
+// SYNC SP STATUS TO INTERNAL SUB-STEPS
+// If SharePoint says "Out for Signature", make sure the corresponding
+// internal sub-step also reflects that (e.g., COD → Send for Signature)
+// ============================================================
+function syncSpStatusToSubSteps() {
+    const grouped = groupByID(allRequests);
+    let changed = false;
+    
+    Object.entries(grouped).forEach(([id, reqs]) => {
+        const spStatus = (reqs[0].status || '').trim();
+        if (!spStatus || spStatus === 'Not Started') return;
+        
+        reqs.forEach(r => {
+            const key = id + '-' + r.requestType;
+            const steps = SUB_STEPS[r.requestType] || [];
+            if (steps.length === 0) return;
+            if (!trackingData[key]) trackingData[key] = {};
+            const saved = trackingData[key];
+            
+            // Map SP status to internal step values
+            if (spStatus === 'Out for Signature') {
+                // COD: set Send for Signature
+                if (r.requestType === 'COD' && (!saved['cod-send-signature'] || saved['cod-send-signature'] === 'Not Started')) {
+                    saved['cod-send-signature'] = 'Send for Signature';
+                    changed = true;
+                }
+                // New DA: set Add for Signature in progress
+                if (r.requestType === 'New DA' && (!saved['add-force-signature'] || saved['add-force-signature'] === 'Not Started')) {
+                    saved['acknowledge'] = saved['acknowledge'] || 'Complete';
+                    saved['in-approval-loop'] = saved['in-approval-loop'] || 'Complete';
+                    saved['add-force-signature'] = 'In Progress';
+                    changed = true;
+                }
+            } else if (spStatus === 'In Approval Loop') {
+                if (r.requestType === 'New DA' && (!saved['in-approval-loop'] || saved['in-approval-loop'] === 'Not Started')) {
+                    saved['acknowledge'] = saved['acknowledge'] || 'Complete';
+                    saved['in-approval-loop'] = 'In Progress';
+                    changed = true;
+                }
+                if (r.requestType === 'DA Edit' && (!saved['da-edit-approval-loop'] || saved['da-edit-approval-loop'] === 'Not Started')) {
+                    saved['da-edit-approval-loop'] = 'In Progress';
+                    changed = true;
+                }
+            } else if (spStatus === 'Acknowledged') {
+                if (r.requestType === 'New DA' && (!saved['acknowledge'] || saved['acknowledge'] === 'Not Started')) {
+                    saved['acknowledge'] = 'Complete';
+                    changed = true;
+                }
+            } else if (spStatus === 'Complete') {
+                // All steps complete
+                steps.forEach(s => {
+                    if (!saved[s.id] || saved[s.id] === 'Not Started' || saved[s.id] === 'In Progress') {
+                        if (s.id === 'ags-approved-role') saved[s.id] = 'Approved';
+                        else if (s.id === 'cod-send-signature') saved[s.id] = 'Complete';
+                        else saved[s.id] = 'Complete';
+                        changed = true;
+                    }
+                });
+            } else if (spStatus === 'WIP') {
+                // At least first step should be in progress
+                if (steps.length > 0 && (!saved[steps[0].id] || saved[steps[0].id] === 'Not Started')) {
+                    saved[steps[0].id] = 'In Progress';
+                    changed = true;
+                }
+            } else if (spStatus === 'Info Requested') {
+                // For COD/DA Edit combo, set info request
+                const comboKey = id + '-cod-da-route';
+                if (!trackingData[comboKey]) trackingData[comboKey] = {};
+                if (!trackingData[comboKey]['info-request'] || trackingData[comboKey]['info-request'] === 'Not Started') {
+                    trackingData[comboKey]['info-request'] = 'In Progress';
+                    changed = true;
+                }
+            }
+        });
+    });
+    
+    if (changed) saveTracking();
+}
 
 // ============================================================
 // STAT FILTER: Click pills to filter, multi-select supported
@@ -1384,26 +1467,27 @@ function getProgressPercent(id, reqs) {
         const comboKey = id + '-cod-da-route';
         const comboSaved = trackingData[comboKey] || {};
         const routeChoice = comboSaved['route'] || 'Waiting for BD';
-        // Count: info request + route + chosen path steps
-        let total = 2; // info request + route decision
-        let done = 0;
-        if (comboSaved['info-request'] === 'Done') done++;
+        let total = 2;
+        let progress = 0;
+        if (comboSaved['info-request'] === 'Done') progress++;
+        else if (comboSaved['info-request'] === 'In Progress') progress += 0.5;
         if (routeChoice !== 'Waiting for BD') {
-            done++; // route decided
-            const chosenType = routeChoice; // 'COD' or 'DA Edit'
+            progress++;
+            const chosenType = routeChoice;
             const steps = SUB_STEPS[chosenType] || [];
             const key = id + '-' + chosenType;
             const saved = trackingData[key] || {};
             total += steps.length;
             steps.forEach(s => {
                 const val = saved[s.id] || 'Not Started';
-                if (val === 'Complete' || val === 'Done' || val === 'Approved') done++;
+                if (val === 'Complete' || val === 'Done' || val === 'Approved') progress++;
+                else if (val === 'In Progress' || val === 'Send for Signature' || val === 'Send for Approval') progress += 0.5;
             });
         }
-        return total === 0 ? 0 : Math.round((done / total) * 100);
+        return total === 0 ? 0 : Math.round((progress / total) * 100);
     }
     
-    let total = 0, done = 0;
+    let total = 0, progress = 0;
     reqs.forEach(r => {
         const steps = SUB_STEPS[r.requestType] || [];
         const key = id + '-' + r.requestType;
@@ -1411,11 +1495,12 @@ function getProgressPercent(id, reqs) {
         steps.forEach(s => {
             total++;
             const val = saved[s.id] || 'Not Started';
-            if (val === 'Complete' || val === 'Done' || val === 'Approved') done++;
+            if (val === 'Complete' || val === 'Done' || val === 'Approved') progress++;
+            else if (val === 'In Progress' || val === 'Send for Signature' || val === 'Send for Approval') progress += 0.5;
         });
     });
     if (total === 0) return 0;
-    return Math.round((done / total) * 100);
+    return Math.round((progress / total) * 100);
 }
 
 // ============================================================
