@@ -408,15 +408,23 @@ async function fetchAndRender() {
                     const paData = await paRes.json();
                     // Power Automate returns SharePoint items directly
                     rawRequests = (paData.value || paData).map(item => {
-                        // Handle requestType: can be string, array, or object
+                        // Handle requestType: can be string, array of strings, array of objects, or object
                         let reqType = item.RequestType || item.Request_x0020_Type || item.OData__x0052_equestType || 'Unknown';
-                        if (Array.isArray(reqType)) reqType = reqType.join(';#');
-                        else if (typeof reqType === 'object' && reqType.results) reqType = reqType.results.join(';#');
-                        else reqType = String(reqType);
+                        if (Array.isArray(reqType)) {
+                            reqType = reqType.map(t => {
+                                if (typeof t === 'object' && t !== null) return t.Value || t.Label || t.value || JSON.stringify(t);
+                                return String(t);
+                            }).join(';#');
+                        } else if (typeof reqType === 'object' && reqType !== null) {
+                            if (reqType.results) reqType = reqType.results.map(t => typeof t === 'object' ? (t.Value || t.Label || '') : String(t)).join(';#');
+                            else reqType = reqType.Value || reqType.Label || JSON.stringify(reqType);
+                        } else {
+                            reqType = String(reqType);
+                        }
                         
                         // Handle status: can be string or object
                         let status = item.Status || '';
-                        if (typeof status === 'object') status = status.Value || status.Label || JSON.stringify(status);
+                        if (typeof status === 'object' && status !== null) status = status.Value || status.Label || '';
                         else status = String(status || '');
                         
                         return {
