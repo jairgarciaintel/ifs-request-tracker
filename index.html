@@ -778,7 +778,8 @@ function syncSpStatusToSubSteps() {
     let changed = false;
     
     Object.entries(grouped).forEach(([id, reqs]) => {
-        const spStatus = (reqs[0].status || '').trim();
+        if (!reqs[0]) return;
+        const spStatus = String(reqs[0].status || '').trim();
         if (!spStatus || spStatus === 'Not Started') return;
         
         reqs.forEach(r => {
