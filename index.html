@@ -347,22 +347,22 @@ const SUB_STEPS = {
         {id:'add-force-signature', label:'Add Force Signature'}
     ],
     'Codename': [
-        {id:'codename-status', label:'Codename', spSync: true}
+        {id:'codename-created', label:'Codename Created'}
     ],
     'WebView AGS Role': [
-        {id:'webview-status', label:'WebView AGS Role', spSync: true}
+        {id:'webview-ags-done', label:'WebView AGS Role'}
     ],
     'Portal Unencryption': [
-        {id:'portal-unencryption-status', label:'Portal Unencryption', spSync: true}
+        {id:'portal-unencryption-done', label:'Portal Unencryption'}
     ],
     'Secure Chamber': [
-        {id:'secure-chamber-status', label:'Secure Chamber', spSync: true}
+        {id:'secure-chamber-done', label:'Secure Chamber'}
     ],
     'IFS NDA': [
-        {id:'ifs-nda-status', label:'IFS NDA', spSync: true}
+        {id:'ifs-nda-done', label:'IFS NDA'}
     ],
     'MP-NDA': [
-        {id:'mp-nda-status', label:'MP-NDA', spSync: true}
+        {id:'mp-nda-done', label:'MP-NDA'}
     ],
     'DA Edit': [
         {id:'da-edit-approval-loop', label:'In Approval Loop'},
@@ -929,6 +929,21 @@ function renderGroupCard(id, reqs) {
       </div>
       <div class="progress-track"><div class="progress-fill ${pfClass}" style="width:${progress}%"></div><span class="progress-pct">${progress}%</span></div>
       <div class="group-body">
+        <div class="sp-status-row">
+          <span class="sp-status-label">SharePoint Status:</span>
+          <select class="sp-status-select" onclick="event.stopPropagation()" onchange="changeSpStatus('${id}',this.value)">
+            <option value=""${!sourceStatus?' selected':''}>-- Not Set --</option>
+            <option value="Info Requested"${sourceStatus==='Info Requested'?' selected':''}>Info Requested</option>
+            <option value="Acknowledged"${sourceStatus==='Acknowledged'?' selected':''}>Acknowledged</option>
+            <option value="In Approval Loop"${sourceStatus==='In Approval Loop'?' selected':''}>In Approval Loop</option>
+            <option value="Out for Signature"${sourceStatus==='Out for Signature'?' selected':''}>Out for Signature</option>
+            <option value="WIP"${sourceStatus==='WIP'?' selected':''}>WIP</option>
+            <option value="IT Request Submitted"${sourceStatus==='IT Request Submitted'?' selected':''}>IT Request Submitted</option>
+            <option value="Complete"${sourceStatus==='Complete'?' selected':''}>Complete</option>
+            <option value="On Hold"${sourceStatus==='On Hold'?' selected':''}>On Hold</option>
+            <option value="Canceled"${sourceStatus==='Canceled'?' selected':''}>Canceled</option>
+          </select>
+        </div>
         ${codDaHeader}
         ${sections}
         <div class="notes-section">
@@ -1070,12 +1085,6 @@ function updateStep(key, stepId, value, el) {
     logHistory(id, customer, reqType, stepLabel, value);
     setPresence(id, reqType);
     
-    // If this step syncs to SharePoint, send the update
-    const stepDef = steps.find(s => s.id === stepId);
-    if (stepDef && stepDef.spSync && value !== 'Not Started') {
-        updateSharePoint(id, value);
-    }
-    
     // If this is a route change, re-render the entire section
     const isRouteStep = steps.find(s => s.id === stepId && s.isRoute);
     if (isRouteStep) {
@@ -1144,29 +1153,18 @@ function selectClass(val) {
 }
 
 function statusOptions(reqType, stepId) {
-    // SharePoint-synced single steps get SP status options
-    const spStatuses = ['Not Started','Info Requested','Acknowledged','In Approval Loop','Out for Signature','WIP','IT Request Submitted','Complete','On Hold','Canceled'];
-    const steps = SUB_STEPS[reqType] || [];
-    const step = steps.find(s => s.id === stepId);
-    if (step && step.spSync) return spStatuses;
-    
-    // AGS Approved Role
     if (stepId === 'ags-approved-role') return ['Not Started','Send for Approval','Approved'];
-    // Portal Creation steps
     if (stepId === 'create-da' || stepId === 'create-portal') return ['Not Started','In Progress','Complete','Fail'];
     if (reqType === 'Portal Creation') return ['Not Started','In Progress','Complete','Fail'];
-    // New DA steps
     if (reqType === 'New DA') {
         if (stepId === 'acknowledge') return ['Not Started','Complete'];
         return ['Not Started','In Progress','Complete'];
     }
-    // COD / DA Edit
     if (stepId === 'cod-route' || stepId === 'da-edit-route') return ['Waiting for BD','COD','DA Edit'];
     if (stepId === 'cod-send-signature') return ['Not Started','Send for Signature','Complete'];
     if (stepId === 'da-edit-info-request' || stepId === 'cod-info-request') return ['Not Started','In Progress','Done'];
     if (stepId === 'da-edit-approval-loop') return ['Not Started','In Progress','Complete'];
     if (stepId === 'da-edit-for-signature') return ['Not Started','In Progress','Complete'];
-    // Default
     return ['Not Started','In Progress','Complete','Done'];
 }
 
