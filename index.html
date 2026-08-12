@@ -489,6 +489,8 @@ async function fetchAndRender() {
 
 // Normalize request type names to standard categories
 function normalizeType(type) {
+    if (!type || typeof type !== 'string') return null;
+    if (type === '[object Object]' || type === 'undefined' || type === 'null') return null;
     const t = type.toLowerCase();
     if (t.includes('portal creation') || t === 'portal creation') return 'Portal Creation';
     if (t.includes('new da') || t === 'new da') return 'New DA';
@@ -978,7 +980,7 @@ function renderGroupCard(id, reqs) {
     const customer = reqs[0].customer || '\u2014';
     const date = reqs[0].created ? new Date(reqs[0].created).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}) : '';
     const overall = getGroupOverall(id, reqs);
-    const sourceStatus = reqs[0].status || '';
+    const sourceStatus = String(reqs[0].status || '');
     const knownReqs = reqs.filter(r => r.requestType !== 'Unknown');
     const badges = knownReqs.map(r => `<span class="badge badge-${getBadgeClass(r.requestType)}">${r.requestType}</span>`).join('');
     const statusBadge = sourceStatus ? `<span class="badge badge-nda" style="font-style:italic;">${sourceStatus}</span>` : '';
@@ -1095,7 +1097,7 @@ function renderTypeSection(id, req) {
     const saved = trackingData[key] || {};
     
     // If the source status from SharePoint is Complete, auto-complete all sub-steps
-    const sourceComplete = (req.status || '').toLowerCase() === 'complete' || (req.status || '').toLowerCase() === 'canceled';
+    const sourceComplete = String(req.status || '').toLowerCase() === 'complete' || String(req.status || '').toLowerCase() === 'canceled';
     
     const sectionOverall = sourceComplete ? 'complete' : getSectionOverall(key, steps);
     const titleClass = 'title-' + getBadgeClass(req.requestType);
@@ -1313,7 +1315,7 @@ function getSectionOverall(key, steps) {
 
 function getGroupOverall(id, reqs) {
     // First check: if the SOURCE status from SharePoint says Complete/Canceled, use that
-    const sourceStatus = (reqs[0].status || '').toLowerCase();
+    const sourceStatus = String(reqs[0].status || '').toLowerCase();
     if (sourceStatus === 'complete' || sourceStatus === 'canceled') return 'complete';
     if (sourceStatus === 'wip' || sourceStatus === 'in approval loop' || sourceStatus === 'out for signature' || sourceStatus === 'it request submitted') return 'in-progress';
     
@@ -1506,7 +1508,7 @@ function getAgeBadge(days) {
 function getProgressPercent(id, reqs) {
     if (!reqs || reqs.length === 0) return 0;
     // If source status is Complete, it's 100%
-    const sourceStatus = (reqs[0].status || '').toLowerCase();
+    const sourceStatus = String(reqs[0].status || '').toLowerCase();
     if (sourceStatus === 'complete' || sourceStatus === 'canceled') return 100;
     
     // Check COD/DA Edit combo
