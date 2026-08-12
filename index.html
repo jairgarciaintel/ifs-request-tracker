@@ -414,13 +414,18 @@ async function fetchAndRender() {
                         else if (typeof reqType === 'object' && reqType.results) reqType = reqType.results.join(';#');
                         else reqType = String(reqType);
                         
+                        // Handle status: can be string or object
+                        let status = item.Status || '';
+                        if (typeof status === 'object') status = status.Value || status.Label || JSON.stringify(status);
+                        else status = String(status || '');
+                        
                         return {
                             id: item.ID || item.Id,
                             requestType: reqType,
                             customer: item.Title || item.Company || '',
                             requestor: item.Author ? (item.Author.DisplayName || item.Author.Title || '') : (item.Created_x0020_By || ''),
                             created: item.Created || '',
-                            status: item.Status || '',
+                            status: status,
                             projectName: item.Project_x002f_PortalName || ''
                         };
                     });
