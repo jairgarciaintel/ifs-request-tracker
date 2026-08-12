@@ -456,10 +456,18 @@ async function fetchAndRender() {
         allRequests = [];
         rawRequests.forEach(r => {
             let rawType = r.requestType || 'Unknown';
-            // Ensure it's a string
-            if (Array.isArray(rawType)) rawType = rawType.join(';#');
-            else if (typeof rawType === 'object') rawType = JSON.stringify(rawType);
-            else rawType = String(rawType);
+            // Ensure it's a string — handle arrays of objects from Power Automate
+            if (Array.isArray(rawType)) {
+                rawType = rawType.map(t => {
+                    if (typeof t === 'object' && t !== null) return t.Value || t.Label || t.value || '';
+                    return String(t);
+                }).filter(t => t).join(';#');
+            } else if (typeof rawType === 'object' && rawType !== null) {
+                if (rawType.results) rawType = rawType.results.map(t => typeof t === 'object' ? (t.Value || t.Label || '') : String(t)).join(';#');
+                else rawType = rawType.Value || rawType.Label || String(rawType);
+            } else {
+                rawType = String(rawType);
+            }
             
             let types;
             // Handle JSON array format: ["DA edit","COD"]
