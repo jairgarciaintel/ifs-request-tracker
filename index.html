@@ -220,6 +220,11 @@ body{
 .route-chosen{opacity:0.7;font-size:11px;}
 .route-chosen .substep-label{font-size:11px;}
 .cod-da-header{border-bottom:2px solid rgba(139,92,246,0.15);margin-bottom:4px;padding-bottom:10px;}
+/* === SP STATUS DROPDOWN === */
+.sp-status-row{display:flex;align-items:center;gap:10px;padding:10px 20px;border-bottom:1px solid rgba(78,200,240,0.08);}
+.sp-status-label{font-size:12px;color:rgba(255,255,255,0.5);font-weight:600;}
+.sp-status-select{background:rgba(4,28,50,0.9);color:var(--cyan);border:1px solid rgba(78,200,240,0.3);padding:6px 12px;border-radius:6px;font-size:12px;font-family:'Satoshi',sans-serif;cursor:pointer;font-weight:600;}
+.sp-status-select:focus{outline:none;border-color:var(--cyan);}
 @media(max-width:768px){
   .header,.toolbar{flex-direction:column;gap:10px;padding:12px 16px;}
   .filters{flex-wrap:wrap;}.request-list{padding:12px 16px;}
@@ -532,6 +537,19 @@ async function updateSharePoint(requestId, newStatus) {
     } catch(e) {
         console.warn('Power Automate call:', e.message);
     }
+}
+
+// Direct SharePoint status change from dropdown
+async function changeSpStatus(id, newStatus, selectEl) {
+    event.stopPropagation();
+    if (!newStatus) return;
+    selectEl.disabled = true;
+    await updateSharePoint(id, newStatus);
+    selectEl.disabled = false;
+    // Update local data so the badge reflects the change
+    allRequests.forEach(r => { if (String(r.id) === String(id)) r.status = newStatus; });
+    // Log it
+    logHistory(id, '', 'SharePoint Status', 'Status', newStatus);
 }
 
 // Log change to history
@@ -911,6 +929,21 @@ function renderGroupCard(id, reqs) {
       </div>
       <div class="progress-track"><div class="progress-fill ${pfClass}" style="width:${progress}%"></div><span class="progress-pct">${progress}%</span></div>
       <div class="group-body">
+        <div class="sp-status-row">
+          <span class="sp-status-label">SharePoint Status:</span>
+          <select class="sp-status-select" onclick="event.stopPropagation()" onchange="changeSpStatus('${id}',this.value,this)">
+            <option value=""${!sourceStatus?' selected':''}>-- Not Set --</option>
+            <option value="Info Requested"${sourceStatus==='Info Requested'?' selected':''}>Info Requested</option>
+            <option value="Acknowledged"${sourceStatus==='Acknowledged'?' selected':''}>Acknowledged</option>
+            <option value="In Approval Loop"${sourceStatus==='In Approval Loop'?' selected':''}>In Approval Loop</option>
+            <option value="Out for Signature"${sourceStatus==='Out for Signature'?' selected':''}>Out for Signature</option>
+            <option value="WIP"${sourceStatus==='WIP'?' selected':''}>WIP</option>
+            <option value="IT Request Submitted"${sourceStatus==='IT Request Submitted'?' selected':''}>IT Request Submitted</option>
+            <option value="Complete"${sourceStatus==='Complete'?' selected':''}>Complete</option>
+            <option value="On Hold"${sourceStatus==='On Hold'?' selected':''}>On Hold</option>
+            <option value="Canceled"${sourceStatus==='Canceled'?' selected':''}>Canceled</option>
+          </select>
+        </div>
         ${codDaHeader}
         ${sections}
         <div class="notes-section">
@@ -1079,62 +1112,6 @@ function updateStep(key, stepId, value, el) {
         const pPct = card.querySelector('.progress-pct');
         if (pBar) { pBar.style.width = progress + '%'; pBar.className = 'progress-fill ' + (g==='complete'?'pf-done':g==='failed'?'pf-fail':progress>0?'pf-wip':'pf-new'); }
         if (pPct) pPct.textContent = progress + '%';
-        
-        // Sync to SharePoint via Power Automate
-        // Map the most relevant step status to SharePoint status
-        const reqs = allRequests.filter(r => String(r.id) === id);
-        if (reqs.length > 0 && g !== 'not-started') {
-            let spStatus = null;
-            
-            // Determine the best SharePoint status from the steps
-            const allStepVals = [];
-            reqs.forEach(r => {
-                const rkey = id + '-' + r.requestType;
-                const rsaved = trackingData[rkey] || {};
-                const rsteps = SUB_STEPS[r.requestType] || [];
-                rsteps.forEach(s => { if(rsaved[s.id] && rsaved[s.id] !== 'Not Started') allStepVals.push(rsaved[s.id]); });
-            });
-            
-            // Priority order (highest wins)
-            if (g === 'complete') {
-                spStatus = 'Complete';
-            } else if (g === 'failed') {
-                spStatus = 'On Hold';
-            } else if (allStepVals.includes('Send for Signature')) {
-                spStatus = 'Out for Signature';
-            } else if (allStepVals.includes('Send for Approval') || allStepVals.includes('Approved')) {
-                spStatus = 'Out for Signature';
-            } else {
-                // Check specific step IDs for more precise status
-                let inApproval = false;
-                reqs.forEach(r => {
-                    const rkey = id + '-' + r.requestType;
-                    const rsaved = trackingData[rkey] || {};
-                    if (rsaved['in-approval-loop'] === 'In Progress' || rsaved['da-edit-approval-loop'] === 'In Progress') inApproval = true;
-                });
-                if (inApproval) {
-                    spStatus = 'In Approval Loop';
-                } else if (allStepVals.includes('In Progress')) {
-                    spStatus = 'WIP';
-                } else if (allStepVals.includes('Done') || allStepVals.includes('Complete')) {
-                    spStatus = 'WIP';
-                }
-            }
-            
-            // Also check COD/DA Edit combo route
-            const comboKey = id + '-cod-da-route';
-            const comboSaved = trackingData[comboKey] || {};
-            if (comboSaved['info-request'] === 'In Progress' && !spStatus) {
-                spStatus = 'Info Requested';
-            }
-            
-            if (spStatus) {
-                const currentSpStatus = (reqs[0].status || '');
-                if (currentSpStatus !== spStatus) {
-                    updateSharePoint(id, spStatus);
-                }
-            }
-        }
     }
 }
 
