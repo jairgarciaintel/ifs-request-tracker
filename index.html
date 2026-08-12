@@ -407,15 +407,23 @@ async function fetchAndRender() {
                 if (paRes.ok) {
                     const paData = await paRes.json();
                     // Power Automate returns SharePoint items directly
-                    rawRequests = (paData.value || paData).map(item => ({
-                        id: item.ID || item.Id,
-                        requestType: item.Request_x0020_Type || item.RequestType || item.OData__x0052_equestType || 'Unknown',
-                        customer: item.Title || item.Company || '',
-                        requestor: item.Author ? item.Author.DisplayName : (item.Created_x0020_By || ''),
-                        created: item.Created || '',
-                        status: item.Status || item.iGO_x0020_Admin_x0020_Only_x0020 || '',
-                        projectName: item.Project_x002f_PortalName || ''
-                    }));
+                    rawRequests = (paData.value || paData).map(item => {
+                        // Handle requestType: can be string, array, or object
+                        let reqType = item.RequestType || item.Request_x0020_Type || item.OData__x0052_equestType || 'Unknown';
+                        if (Array.isArray(reqType)) reqType = reqType.join(';#');
+                        else if (typeof reqType === 'object' && reqType.results) reqType = reqType.results.join(';#');
+                        else reqType = String(reqType);
+                        
+                        return {
+                            id: item.ID || item.Id,
+                            requestType: reqType,
+                            customer: item.Title || item.Company || '',
+                            requestor: item.Author ? (item.Author.DisplayName || item.Author.Title || '') : (item.Created_x0020_By || ''),
+                            created: item.Created || '',
+                            status: item.Status || '',
+                            projectName: item.Project_x002f_PortalName || ''
+                        };
+                    });
                     console.log('Loaded ' + rawRequests.length + ' from SharePoint via Power Automate');
                 }
             } catch(e) {
@@ -435,6 +443,11 @@ async function fetchAndRender() {
         allRequests = [];
         rawRequests.forEach(r => {
             let rawType = r.requestType || 'Unknown';
+            // Ensure it's a string
+            if (Array.isArray(rawType)) rawType = rawType.join(';#');
+            else if (typeof rawType === 'object') rawType = JSON.stringify(rawType);
+            else rawType = String(rawType);
+            
             let types;
             // Handle JSON array format: ["DA edit","COD"]
             if (rawType.startsWith('[')) {
