@@ -535,12 +535,39 @@ function normalizeType(type) {
 // TRACKING: Firebase Realtime Database — instant sync + notifications
 // ============================================================
 const FIREBASE_DB = 'https://fs-request-tracker-default-rtdb.firebaseio.com';
+const ALLOWED_USERS = ['jair', 'jenn'];
 let currentUser = localStorage.getItem('fs-username') || '';
 
 function ensureUsername() {
+    // Check if blocked
+    const blockUntil = localStorage.getItem('fs-blocked-until');
+    if (blockUntil && Date.now() < parseInt(blockUntil)) {
+        document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#041c32;color:#ff6b6b;font-family:sans-serif;font-size:1.5rem;text-align:center;padding:2rem;">Access blocked. Too many failed attempts.<br>Try again in 24 hours.</div>';
+        throw new Error('Blocked');
+    }
+    
     if (!currentUser) {
-        currentUser = prompt('Your name (one time only - e.g., Jair or Jenn):') || 'Anonymous';
+        let attempts = parseInt(localStorage.getItem('fs-login-attempts') || '0');
+        const name = prompt('Enter your name to access (authorized users only):');
+        
+        if (!name || !ALLOWED_USERS.includes(name.toLowerCase().trim())) {
+            attempts++;
+            localStorage.setItem('fs-login-attempts', String(attempts));
+            
+            if (attempts >= 3) {
+                localStorage.setItem('fs-blocked-until', String(Date.now() + 86400000));
+                document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#041c32;color:#ff6b6b;font-family:sans-serif;font-size:1.5rem;text-align:center;padding:2rem;">Access blocked. Too many failed attempts.<br>Try again in 24 hours.</div>';
+                throw new Error('Blocked after 3 attempts');
+            }
+            
+            alert('Access denied. Attempt ' + attempts + ' of 3.');
+            document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#041c32;color:#ff6b6b;font-family:sans-serif;font-size:1.5rem;">Access denied. Unauthorized user.</div>';
+            throw new Error('Unauthorized');
+        }
+        
+        currentUser = name.trim().charAt(0).toUpperCase() + name.trim().slice(1).toLowerCase();
         localStorage.setItem('fs-username', currentUser);
+        localStorage.setItem('fs-login-attempts', '0');
     }
     return currentUser;
 }

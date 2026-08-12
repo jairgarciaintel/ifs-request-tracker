@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FS Request Tracker — User Guide</title>
+<link href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@700,400&f[]=satoshi@400,700&display=swap" rel="stylesheet">
+<style>
+html,body{height:100%;overflow-x:hidden;margin:0;padding:0;}
+html{scroll-snap-type:y mandatory;scroll-behavior:smooth;}
+.slide{width:100vw;height:100vh;height:100dvh;overflow:hidden;scroll-snap-align:start;display:flex;flex-direction:column;position:relative;}
+.slide-content{flex:1;display:flex;flex-direction:column;justify-content:center;padding:clamp(1.5rem,4vw,4rem);max-height:100%;overflow:hidden;}
+:root{
+  --navy:#041c32;--navy-mid:#0d3158;--blue:#0071c5;--cyan:#4ec8f0;
+  --green:#6bcb77;--amber:#f0a030;--red:#cc0000;--white:#ffffff;
+  --light:rgba(255,255,255,0.7);--subtle:rgba(255,255,255,0.15);
+}
+*{box-sizing:border-box;}
+body{font-family:'Satoshi',sans-serif;background:var(--navy);color:var(--white);}
+h1{font-family:'Cabinet Grotesk',sans-serif;font-size:clamp(2rem,5vw,4rem);font-weight:700;margin:0;}
+h2{font-family:'Cabinet Grotesk',sans-serif;font-size:clamp(1.4rem,3.5vw,2.5rem);font-weight:700;color:var(--cyan);margin:0 0 1rem;}
+h3{font-family:'Cabinet Grotesk',sans-serif;font-size:clamp(1.1rem,2.5vw,1.8rem);font-weight:700;margin:0 0 0.5rem;}
+p,.body-text{font-size:clamp(0.9rem,1.6vw,1.2rem);color:var(--light);line-height:1.6;margin:0.5rem 0;}
+.accent{color:var(--cyan);}
+.meta{font-size:clamp(0.7rem,1vw,0.9rem);color:rgba(255,255,255,0.4);}
+.circle{position:absolute;border-radius:50%;border:1.5px solid;pointer-events:none;animation:drift 20s ease-in-out infinite;}
+.c1{width:350px;height:350px;top:-80px;right:-60px;border-color:rgba(78,200,240,0.1);}
+.c2{width:200px;height:200px;bottom:-40px;left:-40px;border-color:rgba(0,113,197,0.1);}
+@keyframes drift{0%,100%{transform:translate(0,0);}50%{transform:translate(-20px,30px);}}
+.intel-logo{position:absolute;top:clamp(12px,2vw,24px);left:clamp(16px,3vw,40px);z-index:50;height:clamp(24px,3vw,36px);}
+.confidential{position:absolute;top:clamp(12px,2vw,24px);right:clamp(16px,3vw,40px);font-size:11px;color:rgba(255,255,255,0.3);z-index:50;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:2rem;align-items:center;}
+.screenshot{width:100%;border-radius:10px;border:1px solid rgba(78,200,240,0.2);box-shadow:0 8px 32px rgba(0,0,0,0.4);}
+.step-list{list-style:none;padding:0;margin:1rem 0;}
+.step-list li{padding:0.6rem 0 0.6rem 1.2rem;border-left:3px solid var(--cyan);margin-bottom:0.5rem;font-size:clamp(0.85rem,1.4vw,1.1rem);color:var(--light);}
+.step-list li strong{color:var(--white);}
+.pill{display:inline-block;padding:4px 12px;border-radius:16px;font-size:0.8rem;font-weight:700;margin:0 4px;}
+.pill-cyan{background:rgba(78,200,240,0.15);color:var(--cyan);border:1px solid rgba(78,200,240,0.3);}
+.pill-green{background:rgba(107,203,119,0.12);color:var(--green);border:1px solid rgba(107,203,119,0.3);}
+.pill-amber{background:rgba(240,160,48,0.12);color:var(--amber);border:1px solid rgba(240,160,48,0.3);}
+.nav-dots{position:fixed;right:20px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:8px;z-index:100;}
+.nav-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.2);cursor:pointer;transition:all 0.3s;}
+.nav-dot.active{background:var(--cyan);box-shadow:0 0 8px var(--cyan);}
+.slide-counter{position:fixed;bottom:16px;right:24px;font-size:12px;color:rgba(255,255,255,0.3);z-index:100;}
+@media(max-width:900px){.two-col{grid-template-columns:1fr;}}
+@media print{.slide{height:auto;page-break-after:always;}.nav-dots,.slide-counter{display:none;}}
+</style>
+</head>
+<body>
+
+<!-- SLIDE 1: Title -->
+<section class="slide" style="background:linear-gradient(160deg,var(--navy) 0%,var(--navy-mid) 50%,#0a2540 100%);">
+  <div class="circle c1"></div><div class="circle c2"></div>
+  <img src="../Logo.png" alt="Intel Foundry" class="intel-logo"/>
+  <span class="confidential">Intel Confidential</span>
+  <div class="slide-content" style="align-items:center;text-align:center;">
+    <p class="meta">INTEL FOUNDRY SERVICES · DA OPS · AUGUST 2026</p>
+    <h1 style="margin-top:0.5rem;">FS <span class="accent">Request Tracker</span></h1>
+    <p style="font-size:clamp(1rem,2vw,1.5rem);color:var(--cyan);margin-top:0.5rem;">User Guide</p>
+    <p style="margin-top:1.5rem;color:var(--light);">Jenn Glavan & Jair Garcia</p>
+  </div>
+</section>
+
+<!-- SLIDE 2: What is this? -->
+<section class="slide" style="background:linear-gradient(170deg,#0a2540,var(--navy));">
+  <div class="circle c1" style="top:auto;bottom:-10%;left:-8%;"></div>
+  <img src="../Logo.png" alt="Intel Foundry" class="intel-logo"/>
+  <span class="confidential">Intel Confidential</span>
+  <div class="slide-content">
+    <h2>What is the FS Request Tracker?</h2>
+    <div class="two-col">
+      <div>
+        <p>A private dashboard that <strong>connects directly to our SharePoint list</strong> and lets us track the internal status of every DA Ops request in real time.</p>
+        <ul class="step-list">
+          <li><strong>Live data</strong> — pulls from SharePoint automatically every 10 minutes</li>
+          <li><strong>Shared tracking</strong> — both Jenn and Jair see the same statuses instantly</li>
+          <li><strong>Writes back to SharePoint</strong> — change the status here, it updates there</li>
+          <li><strong>No installation needed</strong> — just open the URL in your browser</li>
+        </ul>
+      </div>
+      <div><img src="img1.png" class="screenshot" alt="Overview"/></div>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 3: How to Access -->
+<section class="slide" style="background:radial-gradient(ellipse at 30% 80%,rgba(0,113,197,0.1),transparent 60%),var(--navy);">
+  <div class="circle c2" style="top:-5%;left:auto;right:-5%;"></div>
+  <img src="../Logo.png" alt="Intel Foundry" class="intel-logo"/>
+  <span class="confidential">Intel Confidential</span>
+  <div class="slide-content" style="max-width:700px;margin:0 auto;">
+    <h2>How to Access</h2>
+    <h3>Step 1: Open the URL</h3>
+    <p style="background:rgba(78,200,240,0.08);padding:12px 16px;border-radius:8px;font-family:monospace;font-size:0.9rem;border:1px solid rgba(78,200,240,0.2);">https://jairgarciaintel.github.io/ifs-request-tracker/</p>
+    <h3 style="margin-top:1.5rem;">Step 2: Enter your name</h3>
+    <p>The first time you open it, a prompt asks for your name. Type <strong style="color:var(--cyan);">Jenn</strong> or <strong style="color:var(--cyan);">Jair</strong> (case insensitive). It remembers you forever on that browser.</p>
+    <h3 style="margin-top:1.5rem;">That's it.</h3>
+    <p>No passwords, no installation, no plugins. Just the URL and your name.</p>
+    <div style="margin-top:1.5rem;background:rgba(204,0,0,0.08);border:1px solid rgba(204,0,0,0.3);border-radius:8px;padding:14px 18px;">
+      <h3 style="color:#ff6b6b;margin-bottom:0.5rem;">Security</h3>
+      <ul class="step-list" style="margin:0;">
+        <li>Only <strong>Jenn</strong> and <strong>Jair</strong> are authorized — any other name is rejected</li>
+        <li>3 failed attempts = <strong>access blocked for 24 hours</strong> on that browser</li>
+        <li>If blocked, wait 24 hours or use a different browser</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 4: Reading a Card -->
+<section class="slide" style="background:linear-gradient(160deg,var(--navy),#0a2540);">
+  <div class="circle c1" style="left:-10%;right:auto;"></div>
+  <img src="../Logo.png" alt="Intel Foundry" class="intel-logo"/>
+  <span class="confidential">Intel Confidential</span>
+  <div class="slide-content">
+    <h2>Reading a Request Card</h2>
+    <div class="two-col">
+      <div><img src="img9.png" class="screenshot" alt="Card"/></div>
+      <div>
+        <ul class="step-list">
+          <li><strong>#ID</strong> — Request number from SharePoint</li>
+          <li><strong>Customer</strong> — Company name</li>
+          <li><strong>Colored badges</strong> — Service types (Portal Creation, New DA, COD, etc.)</li>
+          <li><strong>Status badge</strong> — Current SharePoint status (italic, right side)</li>
+          <li><strong>Age badge</strong> — Days since created <span class="pill pill-green">3d</span> <span class="pill pill-amber">15d</span> <span class="pill" style="background:rgba(204,0,0,0.1);color:#ff6b6b;border:1px solid rgba(204,0,0,0.3);">45d</span></li>
+          <li><strong>Progress bar</strong> — Green line below = % of steps completed</li>
+          <li><strong>Click to expand</strong> — opens all the internal steps</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 5: Expanding & Editing -->
+<section class="slide" style="background:linear-gradient(170deg,#0a2540,var(--navy));">
+  <div class="circle c2" style="top:20%;left:auto;right:-5%;"></div>
+  <img src="../Logo.png" alt="Intel Foundry" class="intel-logo"/>
+  <span class="confidential">Intel Confidential</span>
+  <div class="slide-content">
+    <h2>Expanding a Request & Editing Steps</h2>
+    <div class="two-col">
+      <div>
+        <p>Click on any card to open it. Inside you see:</p>
+        <ul class="step-list">
+          <li><strong>SharePoint Status</strong> — dropdown at the top. Change it and it updates SharePoint directly.</li>
+          <li><strong>Internal sub-steps</strong> — the detailed steps only we track (Configure AGS, Create Portal, etc.)</li>
+          <li><strong>Your name</strong> appears next to any step you change</li>
+          <li><strong>Progress bar updates</strong> instantly as you complete steps</li>
+        </ul>
+        <p style="margin-top:1rem;color:var(--cyan);font-weight:600;">Changes save automatically. No save button needed.</p>
+      </div>
+      <div><img src="img3.png" class="screenshot" style="max-height:35vh;width:auto;object-fit:contain;" alt="Editing"/><img src="img2.png" class="screenshot" alt="SharePoint Status" style="margin-top:0.5rem;max-height:35vh;width:auto;object-fit:contain;"/></div>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 6: SharePoint Sync -->
+<section class="slide" style="background:radial-gradient(ellipse at 70% 20%,rgba(78,200,240,0.08),transparent 50%),var(--navy);">
+  <div class="circle c1" style="bottom:-10%;top:auto;"></div>
+  <img src="../Logo.png" alt="Intel Foundry" class="intel-logo"/>
+  <span class="confidential">Intel Confidential</span>
+  <div class="slide-content">
+    <h2>SharePoint Connection</h2>
+    <div class="two-col">
+      <div><img src="img2.png" class="screenshot" alt="SharePoint Sync"/></div>
+      <div>
+        <h3>Two-way sync:</h3>
+        <ul class="step-list">
+          <li><strong>SharePoint → Page</strong>: New requests appear automatically every 10 min</li>
+          <li><strong>Page → SharePoint</strong>: When you change the SharePoint Status dropdown, it updates the list</li>
+        </ul>
+        <h3 style="margin-top:1rem;">Valid SharePoint statuses:</h3>
+        <p><span class="pill pill-cyan">Info Requested</span> <span class="pill pill-cyan">Acknowledged</span> <span class="pill pill-amber">In Approval Loop</span> <span class="pill pill-amber">Out for Signature</span> <span class="pill pill-amber">WIP</span> <span class="pill pill-green">Complete</span></p>
+        <p style="margin-top:1rem;font-size:0.9rem;color:var(--light);">Internal steps (Configure AGS, etc.) do NOT update SharePoint — only the SharePoint Status dropdown does.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 7: Filters & Search -->
+<section class="slide" style="background:linear-gradient(160deg,var(--navy),#0a2540);">
+  <div class="circle c2" style="top:-8%;right:-6%;left:auto;"></div>
+  <img src="../Logo.png" alt="Intel Foundry" class="intel-logo"/>
+  <span class="confidential">Intel Confidential</span>
+  <div class="slide-content">
+    <h2>Filters, Search & Sorting</h2>
+    <div class="two-col">
+      <div>
+        <ul class="step-list">
+          <li><strong>Time filter</strong> — All 2026 / This Month / Last Month / 2-3 months ago</li>
+          <li><strong>Type filter</strong> — Portal Creation, New DA, Codename, COD, etc.</li>
+          <li><strong>Status filter</strong> — Not Started, In Progress, Complete, Failed</li>
+          <li><strong>Search box</strong> — type any customer name or ID number</li>
+          <li><strong>Sort</strong> — Newest First / Oldest First / Oldest Unresolved</li>
+        </ul>
+        <h3 style="margin-top:1rem;">Stat Pills (clickable!)</h3>
+        <p>Click the colored numbers to filter. Click multiple to combine (e.g., WIP + New). Click "total" to reset.</p>
+      </div>
+      <div><img src="img4.png" class="screenshot" alt="Filters"/><img src="img5.png" class="screenshot" alt="Stats" style="margin-top:1rem;"/></div>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 8: Notifications & Collaboration -->
+<section class="slide" style="background:linear-gradient(170deg,#0a2540,var(--navy));">
+  <div class="circle c1" style="left:-10%;right:auto;top:30%;"></div>
+  <img src="../Logo.png" alt="Intel Foundry" class="intel-logo"/>
+  <span class="confidential">Intel Confidential</span>
+  <div class="slide-content">
+    <h2>Real-Time Collaboration</h2>
+    <div class="two-col">
+      <div><img src="img6.png" class="screenshot" alt="Notifications"/></div>
+      <div>
+        <h3>Notifications</h3>
+        <p>When the other person changes a status, you see a banner:</p>
+        <div style="background:rgba(13,49,88,0.9);border:1px solid var(--cyan);border-radius:8px;padding:10px 16px;margin:0.8rem 0;font-size:0.9rem;">
+          <strong style="color:var(--cyan);">Jair</strong> changed #2683 COD → Send for Signature: <strong style="color:var(--cyan);">Send for Signature</strong>
+        </div>
+        <p>Auto-disappears after 8 seconds.</p>
+        <h3 style="margin-top:1.5rem;">Presence</h3>
+        <p>When someone has a request open, the card gets an <span style="color:var(--amber);font-weight:700;">orange border</span> with their name. This prevents working on the same request simultaneously.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 9: Notes & History -->
+<section class="slide" style="background:radial-gradient(ellipse at 30% 70%,rgba(0,113,197,0.08),transparent 50%),var(--navy);">
+  <div class="circle c2" style="top:10%;right:-4%;left:auto;"></div>
+  <img src="../Logo.png" alt="Intel Foundry" class="intel-logo"/>
+  <span class="confidential">Intel Confidential</span>
+  <div class="slide-content">
+    <h2>Notes & Change History</h2>
+    <div class="two-col">
+      <div>
+        <h3>Notes</h3>
+        <p>Each request has a free text field at the bottom. Use it for IT ticket numbers, comments, reminders, etc.</p>
+        <h3 style="margin-top:1.5rem;">Change History</h3>
+        <p>Click <span style="color:var(--cyan);">"View Change History"</span> at the bottom of any request to see:</p>
+        <ul class="step-list">
+          <li>Who made each change</li>
+          <li>What they changed</li>
+          <li>When (date + time)</li>
+        </ul>
+        <p>Last 20 changes shown per request.</p>
+      </div>
+      <div><img src="img8.png" class="screenshot" alt="Notes & History"/></div>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 10: Tips & Shortcuts -->
+<section class="slide" style="background:linear-gradient(160deg,var(--navy) 0%,var(--navy-mid) 50%,#0a2540 100%);">
+  <div class="circle c1"></div><div class="circle c2"></div>
+  <img src="../Logo.png" alt="Intel Foundry" class="intel-logo"/>
+  <span class="confidential">Intel Confidential</span>
+  <div class="slide-content">
+    <h2>Tips & Shortcuts</h2>
+    <div class="two-col">
+      <div><img src="img7.png" class="screenshot" alt="Tips"/><img src="img8.png" class="screenshot" alt="Notes" style="margin-top:1rem;"/></div>
+      <div>
+        <ul class="step-list">
+          <li><strong>Sync button</strong> — refresh data from SharePoint immediately</li>
+          <li><strong>Excel button</strong> — download everything as .xlsx</li>
+          <li><strong>JSON button</strong> — download raw data</li>
+          <li><strong>Expand/Collapse All</strong> — open or close all cards at once</li>
+          <li><strong>Light/Dark</strong> — toggle theme</li>
+          <li><strong>Ctrl+E</strong> — expand all (keyboard)</li>
+          <li><strong>Ctrl+W</strong> — collapse all (keyboard)</li>
+          <li><strong>← →</strong> — navigate pages</li>
+          <li><strong>Notes field</strong> — add comments, IT ticket numbers, or reminders to any request. Click the text area at the bottom of each card and type.</li>
+        </ul>
+        <h3 style="margin-top:1rem;">Remember:</h3>
+        <p style="color:var(--cyan);font-weight:600;">This does NOT replace SharePoint. It's our internal tracking layer on top of it. SharePoint remains the official record.</p>
+        <p style="margin-top:1rem;font-size:0.8rem;color:rgba(255,255,255,0.4);">* Access is restricted to authorized users only (Jenn and Jair). If you enter the wrong name 3 times, access is blocked for 24 hours.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Navigation dots -->
+<nav class="nav-dots" id="nav-dots"></nav>
+<div class="slide-counter" id="slide-counter"></div>
+
+<script>
+const slides = document.querySelectorAll('.slide');
+const dotsContainer = document.getElementById('nav-dots');
+const counter = document.getElementById('slide-counter');
+slides.forEach((s,i) => {
+  const dot = document.createElement('div');
+  dot.className = 'nav-dot';
+  dot.onclick = () => s.scrollIntoView({behavior:'smooth'});
+  dotsContainer.appendChild(dot);
+});
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if(e.isIntersecting){
+      const idx = [...slides].indexOf(e.target);
+      document.querySelectorAll('.nav-dot').forEach((d,i) => d.classList.toggle('active',i===idx));
+      counter.textContent = (idx+1)+' / '+slides.length;
+    }
+  });
+},{threshold:0.5});
+slides.forEach(s => observer.observe(s));
+</script>
+
+</body>
+</html>
