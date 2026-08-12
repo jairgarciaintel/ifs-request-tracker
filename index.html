@@ -541,11 +541,11 @@ async function updateSharePoint(requestId, newStatus) {
 
 // Direct SharePoint status change from dropdown
 async function changeSpStatus(id, newStatus, selectEl) {
-    event.stopPropagation();
     if (!newStatus) return;
-    selectEl.disabled = true;
+    console.log('Sending to SharePoint: #' + id + ' -> ' + newStatus);
+    if (selectEl) selectEl.disabled = true;
     await updateSharePoint(id, newStatus);
-    selectEl.disabled = false;
+    if (selectEl) selectEl.disabled = false;
     // Update local data so the badge reflects the change
     allRequests.forEach(r => { if (String(r.id) === String(id)) r.status = newStatus; });
     // Log it
@@ -931,7 +931,7 @@ function renderGroupCard(id, reqs) {
       <div class="group-body">
         <div class="sp-status-row">
           <span class="sp-status-label">SharePoint Status:</span>
-          <select class="sp-status-select" onclick="event.stopPropagation()" onchange="changeSpStatus('${id}',this.value)">
+          <select class="sp-status-select" onclick="event.stopPropagation()" onchange="changeSpStatus('${id}',this.value,this)">
             <option value=""${!sourceStatus?' selected':''}>-- Not Set --</option>
             <option value="Info Requested"${sourceStatus==='Info Requested'?' selected':''}>Info Requested</option>
             <option value="Acknowledged"${sourceStatus==='Acknowledged'?' selected':''}>Acknowledged</option>
