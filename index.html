@@ -1124,7 +1124,7 @@ function renderGroupCard(id, reqs) {
         ${codDaHeader}
         ${sections}
         <div class="notes-section">
-          <textarea class="notes-input" placeholder="Notes (IT ticket, comments...)${noteBy}" onblur="saveNote('${id}',this)">${noteText}</textarea>
+          <textarea class="notes-input" placeholder="Notes (IT ticket, comments...)${noteBy}" oninput="saveNoteDebounced('${id}',this)" onblur="saveNote('${id}',this)">${noteText}</textarea>
         </div>
         <div class="history-toggle" onclick="loadRequestHistory('${id}',this)">
           <svg width="12" height="12"><use href="#icon-progress"/></svg> View Change History
@@ -1604,6 +1604,14 @@ async function saveNote(id, el) {
     if (!trackingData._notes) trackingData._notes = {};
     trackingData._notes[id] = { text: el.value, by: currentUser, at: new Date().toISOString() };
     await saveTracking();
+    console.log('Note saved for #' + id);
+}
+
+// Debounced note save on typing
+let noteTimer = null;
+function saveNoteDebounced(id, el) {
+    clearTimeout(noteTimer);
+    noteTimer = setTimeout(() => saveNote(id, el), 1000);
 }
 
 // ============================================================
