@@ -225,6 +225,19 @@ body{
 .sp-status-label{font-size:12px;color:rgba(255,255,255,0.5);font-weight:600;}
 .sp-status-select{background:rgba(4,28,50,0.9);color:var(--cyan);border:1px solid rgba(78,200,240,0.3);padding:6px 12px;border-radius:6px;font-size:12px;font-family:'Satoshi',sans-serif;cursor:pointer;font-weight:600;}
 .sp-status-select:focus{outline:none;border-color:var(--cyan);}
+/* === REQUEST INFO BLOCK === */
+.req-info{display:grid;grid-template-columns:1fr 1fr;gap:8px 20px;padding:14px 20px;border-bottom:1px solid rgba(78,200,240,0.08);background:rgba(78,200,240,0.02);}
+.req-info-row{display:flex;flex-direction:column;gap:3px;}
+.req-info-full{grid-column:1 / -1;}
+.req-info-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--cyan);opacity:0.8;}
+.req-info-val{font-size:13px;color:var(--light);word-break:break-word;}
+.req-info-details{font-size:12px;line-height:1.5;color:rgba(255,255,255,0.65);white-space:pre-wrap;}
+.req-info-attach{display:flex;flex-wrap:wrap;gap:8px;}
+.attach-link{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--cyan);text-decoration:none;padding:4px 10px;background:rgba(78,200,240,0.08);border:1px solid rgba(78,200,240,0.2);border-radius:6px;transition:all 0.2s;}
+.attach-link:hover{background:rgba(78,200,240,0.16);border-color:var(--cyan);transform:translateY(-1px);}
+.info-empty{font-size:12px;color:rgba(255,255,255,0.3);font-style:italic;}
+body.light-mode .req-info-val{color:#1a202c;}
+body.light-mode .req-info-details{color:#4a5568;}
 @media(max-width:768px){
   .header,.toolbar{flex-direction:column;gap:10px;padding:12px 16px;}
   .filters{flex-wrap:wrap;}.request-list{padding:12px 16px;}
@@ -427,6 +440,22 @@ async function fetchAndRender() {
                         if (typeof status === 'object' && status !== null) status = status.Value || status.Label || '';
                         else status = String(status || '');
                         
+                        // Assigned BD (can be array of person objects)
+                        let assignedBD = item.AssignedBD || item.Assigned_x0020_BD || '';
+                        if (Array.isArray(assignedBD)) assignedBD = assignedBD.map(p => typeof p==='object'?(p.DisplayName||p.Email||''):String(p)).join(', ');
+                        else if (typeof assignedBD === 'object' && assignedBD !== null) assignedBD = assignedBD.DisplayName || assignedBD.Email || '';
+                        else assignedBD = String(assignedBD || '');
+                        
+                        // Details
+                        let details = item.Details || item.OData__x0044_etails || '';
+                        details = String(details || '').replace(/<[^>]*>/g, ' ').trim();
+                        
+                        // Attachments (array of {DisplayName, Uri} or boolean)
+                        let attachments = [];
+                        if (item.Attachments && Array.isArray(item.Attachments)) {
+                            attachments = item.Attachments.map(a => ({name: a.DisplayName || a.Name || 'file', url: a.Uri || a.ServerRelativeUrl || '#'}));
+                        }
+                        
                         return {
                             id: item.ID || item.Id,
                             requestType: reqType,
@@ -434,7 +463,10 @@ async function fetchAndRender() {
                             requestor: item.Author ? (item.Author.DisplayName || item.Author.Title || '') : (item.Created_x0020_By || ''),
                             created: item.Created || '',
                             status: status,
-                            projectName: item.Project_x002f_PortalName || ''
+                            projectName: item.Project_x002f_PortalName || '',
+                            assignedBD: assignedBD,
+                            details: details,
+                            attachments: attachments
                         };
                     });
                     console.log('Loaded ' + rawRequests.length + ' from SharePoint via Power Automate');
@@ -1041,6 +1073,21 @@ function renderGroupCard(id, reqs) {
     const noteText = noteData.text || '';
     const noteBy = noteData.by ? ` (${noteData.by})` : '';
 
+    // Request info block (from SharePoint): Created By, Assigned BD, Details, Attachments
+    const createdBy = reqs[0].requestor || '\u2014';
+    const assignedBD = reqs[0].assignedBD || '\u2014';
+    const details = reqs[0].details || '';
+    const attachments = Array.isArray(reqs[0].attachments) ? reqs[0].attachments : [];
+    const attachmentsHtml = attachments.length
+        ? attachments.map(a => `<a class="attach-link" href="${a.url}" target="_blank" rel="noopener" onclick="event.stopPropagation()"><svg width="12" height="12" viewBox="0 0 16 16"><path d="M9,3 L4,8 a2.5,2.5 0 0 0 3.5,3.5 L13,6 a1.5,1.5 0 0 0 -2,-2 L6,9" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>${a.name}</a>`).join('')
+        : '<span class="info-empty">No attachments</span>';
+    const infoBlock = `<div class="req-info">
+      <div class="req-info-row"><span class="req-info-label">Created By</span><span class="req-info-val">${createdBy}</span></div>
+      <div class="req-info-row"><span class="req-info-label">Assigned BD</span><span class="req-info-val">${assignedBD}</span></div>
+      <div class="req-info-row req-info-full"><span class="req-info-label">Details</span><span class="req-info-val req-info-details">${details ? details : '<span class="info-empty">No details</span>'}</span></div>
+      <div class="req-info-row req-info-full"><span class="req-info-label">Attachments</span><span class="req-info-val req-info-attach">${attachmentsHtml}</span></div>
+    </div>`;
+
     // Handle COD/DA Edit combo: shared info request + route selector ABOVE the sections
     const hasCOD = knownReqs.some(r => r.requestType === 'COD');
     const hasDAEdit = knownReqs.some(r => r.requestType === 'DA Edit');
@@ -1121,6 +1168,7 @@ function renderGroupCard(id, reqs) {
             <option value="Canceled"${sourceStatus==='Canceled'?' selected':''}>Canceled</option>
           </select>
         </div>
+        ${infoBlock}
         ${codDaHeader}
         ${sections}
         <div class="notes-section">
