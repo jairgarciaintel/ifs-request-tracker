@@ -457,10 +457,23 @@ async function fetchAndRender() {
                         let details = item.Details || item.OData__x0044_etails || '';
                         details = String(details || '').replace(/<[^>]*>/g, ' ').trim();
                         
-                        // Attachments (array of {DisplayName, Uri} or boolean)
+                        // Attachments — Power Automate can send these in several shapes:
+                        //  - item.Attachments as array of {DisplayName, Uri} (from "Get attachments")
+                        //  - item.AttachmentFiles as array of {FileName, ServerRelativeUrl}
+                        //  - a custom column named e.g. item.AttachmentsData
                         let attachments = [];
-                        if (item.Attachments && Array.isArray(item.Attachments)) {
-                            attachments = item.Attachments.map(a => ({name: a.DisplayName || a.Name || 'file', url: a.Uri || a.ServerRelativeUrl || '#'}));
+                        const attSource = (Array.isArray(item.Attachments) && item.Attachments)
+                            || (Array.isArray(item.AttachmentFiles) && item.AttachmentFiles)
+                            || (Array.isArray(item.AttachmentsData) && item.AttachmentsData)
+                            || (item.AttachmentFiles && Array.isArray(item.AttachmentFiles.results) && item.AttachmentFiles.results)
+                            || null;
+                        if (attSource) {
+                            attachments = attSource.map(a => {
+                                let url = a.Uri || a.ServerRelativeUrl || a.AbsoluteUri || a.link || a.url || '#';
+                                // Prepend SP host if it's a server-relative path
+                                if (url.startsWith('/')) url = 'https://intel.sharepoint.com' + url;
+                                return { name: a.DisplayName || a.Name || a.FileName || a.title || 'file', url: url };
+                            });
                         }
                         
                         // Requestor email (for mailto)
