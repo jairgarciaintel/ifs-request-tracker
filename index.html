@@ -18,11 +18,11 @@ body{
   font-family:'Satoshi',sans-serif;
   background:linear-gradient(160deg,var(--navy) 0%,var(--navy-mid) 50%,#0a2540 100%);
   color:var(--white);min-height:100vh;
-  zoom:1.25;
+  zoom:1.4;
 }
 /* Fallback para navegadores que no soportan zoom (Firefox) */
 @supports not (zoom:1){
-  body{transform:scale(1.25);transform-origin:top left;width:80%;}
+  body{transform:scale(1.4);transform-origin:top left;width:71.4%;}
 }
 .circle{position:fixed;border-radius:50%;border:1.5px solid;pointer-events:none;}
 @keyframes driftAll{0%{transform:translateX(0) translateY(0);}25%{transform:translateX(40px) translateY(-20px);}50%{transform:translateX(-30px) translateY(30px);}75%{transform:translateX(20px) translateY(-40px);}100%{transform:translateX(0) translateY(0);}}
@@ -241,6 +241,8 @@ body{
 .attach-link{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--cyan);text-decoration:none;padding:4px 10px;background:rgba(78,200,240,0.08);border:1px solid rgba(78,200,240,0.2);border-radius:6px;transition:all 0.2s;}
 .attach-link:hover{background:rgba(78,200,240,0.16);border-color:var(--cyan);transform:translateY(-1px);}
 .info-empty{font-size:12px;color:rgba(255,255,255,0.3);font-style:italic;}
+.req-person{display:inline-flex;align-items:center;font-size:13px;color:var(--cyan);cursor:pointer;text-decoration:none;font-weight:600;border-bottom:1px dashed rgba(78,200,240,0.4);transition:all 0.2s;}
+.req-person:hover{color:#7dd8f5;border-bottom-color:var(--cyan);}
 body.light-mode .req-info-val{color:#1a202c;}
 body.light-mode .req-info-details{color:#4a5568;}
 @media(max-width:768px){
@@ -461,11 +463,19 @@ async function fetchAndRender() {
                             attachments = item.Attachments.map(a => ({name: a.DisplayName || a.Name || 'file', url: a.Uri || a.ServerRelativeUrl || '#'}));
                         }
                         
+                        // Requestor email (for mailto)
+                        let requestorEmail = '';
+                        if (item.Author && typeof item.Author === 'object') {
+                            requestorEmail = item.Author.Email || item.Author.UserPrincipalName || item.Author.Mail || '';
+                        }
+                        requestorEmail = requestorEmail || item.Author_x0020_Email || '';
+
                         return {
                             id: item.ID || item.Id,
                             requestType: reqType,
                             customer: item.Title || item.Company || '',
                             requestor: item.Author ? (item.Author.DisplayName || item.Author.Title || '') : (item.Created_x0020_By || ''),
+                            requestorEmail: requestorEmail,
                             created: item.Created || '',
                             status: status,
                             projectName: item.Project_x002f_PortalName || '',
@@ -1055,6 +1065,57 @@ function renderRequests() {
     container.innerHTML = html;
 }
 
+// ============================================================
+// EMAIL TEMPLATES — mailto builder for requestor
+// ============================================================
+const EMAIL_LINKS = {
+    // New DA / DA Edit share the same template link
+    newDA: 'https://intel.sharepoint.com/:x:/r/sites/IFS-igo-Request/Shared%20Documents/New%20DA%20REQUEST.xlsx?d=w4f8d91c08ca34e9388883522eb3e7f40&csf=1&web=1&e=3P54SU',
+    // IFS NDA template
+    ifsNDA: 'https://intel.sharepoint.com/:x:/r/sites/IFS-igo-Request/Shared%20Documents/ifs-nda-templates.xlsx?csf=1&web=1&e=3P54SU'
+};
+
+function buildRequestEmail(id, reqs) {
+    const req0 = reqs[0] || {};
+    const email = req0.requestorEmail || '';
+    const name = (req0.requestor || 'there').split(' ')[0];
+    const customer = req0.customer || 'the customer';
+    const types = reqs.filter(r => r.requestType !== 'Unknown').map(r => r.requestType);
+
+    // Subject: REC XXXX - Company - Info request
+    const subject = `REC ${id} - ${customer} - Info request`;
+
+    // Body
+    let body = `Hello @${req0.requestor || name},\n\n`;
+    body += `Thank you for your request. In order to proceed, you are required to fill out the template as follows and attach it back to your request:\n\n`;
+
+    const has = t => types.some(x => x.toLowerCase() === t.toLowerCase());
+
+    if (has('New DA')) {
+        body += `New DA — please fill out this template:\n${EMAIL_LINKS.newDA}\n\n`;
+    }
+    if (has('DA Edit')) {
+        body += `DA Edit — please fill out this template:\n${EMAIL_LINKS.newDA}\n\n`;
+    }
+    if (has('IFS NDA')) {
+        body += `IFS NDA — please fill out this template:\n${EMAIL_LINKS.ifsNDA}\n\n`;
+    }
+    if (has('Codename')) {
+        body += `Codename Request — please fill out the following template with the customer attachment information:\n\n`;
+        body += `Company Name:\nCompany Type (Supplier / Customer):\nCompany Address:\nCity:\nState:\nCountry:\nPostal Code:\nSupplier Site (points if it is a supplier):\nCompany Email Domain:\nOwner / Submitter Name:\n\n`;
+    }
+
+    body += `Please fill the template and attach it to your request so we can proceed.\n\nThank you,\nDA Ops`;
+
+    return `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
+
+function openRequestEmail(id) {
+    const reqs = allRequests.filter(r => String(r.id) === String(id));
+    if (!reqs.length) return;
+    window.location.href = buildRequestEmail(id, reqs);
+}
+
 function renderGroupCard(id, reqs) {
     if (!reqs || reqs.length === 0) return '';
     const customer = reqs[0].customer || '\u2014';
@@ -1086,8 +1147,11 @@ function renderGroupCard(id, reqs) {
     const attachmentsHtml = attachments.length
         ? attachments.map(a => `<a class="attach-link" href="${a.url}" target="_blank" rel="noopener" onclick="event.stopPropagation()"><svg width="12" height="12" viewBox="0 0 16 16"><path d="M9,3 L4,8 a2.5,2.5 0 0 0 3.5,3.5 L13,6 a1.5,1.5 0 0 0 -2,-2 L6,9" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>${a.name}</a>`).join('')
         : '<span class="info-empty">No attachments</span>';
+    const createdByHtml = createdBy && createdBy !== '\u2014'
+        ? `<a class="req-person" title="Click to email ${createdBy}" onclick="event.stopPropagation();openRequestEmail('${id}')">${createdBy}<svg width="12" height="12" viewBox="0 0 16 16" style="margin-left:5px;"><rect x="1.5" y="3" width="13" height="10" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.2"/><polyline points="2,4 8,9 14,4" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>`
+        : `<span class="req-info-val">${createdBy}</span>`;
     const infoBlock = `<div class="req-info">
-      <div class="req-info-row"><span class="req-info-label">Created By</span><span class="req-info-val">${createdBy}</span></div>
+      <div class="req-info-row"><span class="req-info-label">Created By</span><span class="req-info-val">${createdByHtml}</span></div>
       <div class="req-info-row"><span class="req-info-label">Assigned BD</span><span class="req-info-val">${assignedBD}</span></div>
       <div class="req-info-row req-info-full"><span class="req-info-label">Details</span><span class="req-info-val req-info-details">${details ? details : '<span class="info-empty">No details</span>'}</span></div>
       <div class="req-info-row req-info-full"><span class="req-info-label">Attachments</span><span class="req-info-val req-info-attach">${attachmentsHtml}</span></div>
