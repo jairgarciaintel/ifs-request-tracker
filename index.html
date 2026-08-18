@@ -488,20 +488,19 @@ async function fetchAndRender() {
                                 return { name: a.DisplayName || a.Name || a.FileName || a.title || 'file', url: url };
                             });
                         }
-                        // Case B: The flow does NOT return the actual attachment filenames — the
-                        // {FilenameWithExtension}/{Name} fields hold the item Title, and {Link} points
-                        // to the list form, not the file. All we reliably know is {HasAttachments}.
-                        // SharePoint stores list attachments in a predictable per-item folder:
-                        //   /sites/ifs-igo-requests/Lists/New DA Request/Attachments/[ID]
-                        // So we link to that folder — it opens the attachment(s) for that request.
+                        // Case B: The flow does NOT return the actual attachment filenames.
+                        // All we reliably know is {HasAttachments} and {Link} (the request form URL).
+                        // So when the request has attachments, link to the request itself — the user
+                        // scrolls to the Attachments section and opens the file from there.
                         if (attachments.length === 0) {
                             const itemId = item.ID || item.Id;
                             const hasAtt = item['{HasAttachments}'] === true || item['{HasAttachments}'] === 'true';
-                            if (hasAtt && itemId) {
-                                attachments = [{
-                                    name: 'View attachment(s)',
-                                    url: 'https://intel.sharepoint.com/sites/ifs-igo-requests/Lists/New%20DA%20Request/Attachments/' + itemId
-                                }];
+                            let reqLink = item['{Link}'] || '';
+                            if (!reqLink && itemId) {
+                                reqLink = 'https://intel.sharepoint.com/sites/ifs-igo-requests/Lists/New%20DA%20Request/DispForm.aspx?ID=' + itemId;
+                            }
+                            if (hasAtt && reqLink) {
+                                attachments = [{ name: 'View attachment(s)', url: reqLink }];
                             }
                         }
                         
