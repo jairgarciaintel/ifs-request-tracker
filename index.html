@@ -406,6 +406,18 @@ const SUB_STEPS = {
 // STATE
 // ============================================================
 let allRequests = [];
+// Debug helper: type debugReq(2650) in the console to see the raw SharePoint item
+window.debugReq = function(id){
+    if(!window._rawPA){ console.log('No data yet. Click Sync first.'); return; }
+    const item = window._rawPA.find(x => String(x.ID||x.Id) === String(id));
+    if(!item){ console.log('Request '+id+' not found in raw data.'); return; }
+    console.log('=== RAW ITEM '+id+' ===');
+    console.log(item);
+    console.log('=== Attachments field ===', item.Attachments);
+    console.log('=== AttachmentFiles field ===', item.AttachmentFiles);
+    console.log('=== All field names ===', Object.keys(item));
+    return item;
+};
 let trackingData = {};
 let refreshTimer = null;
 let activeStatFilters = new Set(['all']); // multi-select stat filter
@@ -426,6 +438,7 @@ async function fetchAndRender() {
                 const paRes = await fetch(CONFIG.getRequestsUrl, { method: 'POST' });
                 if (paRes.ok) {
                     const paData = await paRes.json();
+                    window._rawPA = paData.value || paData; // debug: raw items from Power Automate
                     // Power Automate returns SharePoint items directly
                     rawRequests = (paData.value || paData).map(item => {
                         // Handle requestType: can be string, array of strings, array of objects, or object
