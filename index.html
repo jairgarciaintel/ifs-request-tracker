@@ -460,8 +460,8 @@ async function fetchAndRender() {
                         if (typeof status === 'object' && status !== null) status = status.Value || status.Label || '';
                         else status = String(status || '');
                         
-                        // Assigned BD (can be array of person objects)
-                        let assignedBD = item.AssignedBD || item.Assigned_x0020_BD || '';
+                        // Assigned BD (real SP field is iGOAdminOnly_x002d_AssignedTo; fallbacks: AssignedFCELead)
+                        let assignedBD = item.iGOAdminOnly_x002d_AssignedTo || item.AssignedFCELead || item.AssignedBD || item.Assigned_x0020_BD || '';
                         if (Array.isArray(assignedBD)) assignedBD = assignedBD.map(p => typeof p==='object'?(p.DisplayName||p.Email||''):String(p)).join(', ');
                         else if (typeof assignedBD === 'object' && assignedBD !== null) assignedBD = assignedBD.DisplayName || assignedBD.Email || '';
                         else assignedBD = String(assignedBD || '');
@@ -475,6 +475,7 @@ async function fetchAndRender() {
                         //  - item.AttachmentFiles as array of {FileName, ServerRelativeUrl}
                         //  - a custom column named e.g. item.AttachmentsData
                         let attachments = [];
+                        // Case A: nested array (Get attachments as sub-array)
                         const attSource = (Array.isArray(item.Attachments) && item.Attachments)
                             || (Array.isArray(item.AttachmentFiles) && item.AttachmentFiles)
                             || (Array.isArray(item.AttachmentsData) && item.AttachmentsData)
@@ -482,11 +483,23 @@ async function fetchAndRender() {
                             || null;
                         if (attSource) {
                             attachments = attSource.map(a => {
-                                let url = a.Uri || a.ServerRelativeUrl || a.AbsoluteUri || a.link || a.url || '#';
-                                // Prepend SP host if it's a server-relative path
+                                let url = a.Uri || a.ServerRelativeUrl || a.AbsoluteUri || a.link || a.Link || a.url || '#';
                                 if (url.startsWith('/')) url = 'https://intel.sharepoint.com' + url;
                                 return { name: a.DisplayName || a.Name || a.FileName || a.title || 'file', url: url };
                             });
+                        }
+                        // Case B: flattened "Get attachments" fields with braces: {Name}, {Link}, {FilenameWithExtension}, {Path}
+                        if (attachments.length === 0) {
+                            const attName = item['{FilenameWithExtension}'] || item['{Name}'] || '';
+                            let attLink = item['{Link}'] || item['{FullPath}'] || item['{Path}'] || '';
+                            const hasAtt = item['{HasAttachments}'];
+                            if (attName && attLink) {
+                                if (attLink.startsWith('/')) attLink = 'https://intel.sharepoint.com' + attLink;
+                                // Name can be an array of names, Link an array of links
+                                const names = Array.isArray(attName) ? attName : [attName];
+                                const links = Array.isArray(attLink) ? attLink : [attLink];
+                                attachments = names.map((n, i) => ({ name: n, url: links[i] || links[0] || '#' }));
+                            }
                         }
                         
                         // Requestor email (for mailto)
