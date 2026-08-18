@@ -488,17 +488,21 @@ async function fetchAndRender() {
                                 return { name: a.DisplayName || a.Name || a.FileName || a.title || 'file', url: url };
                             });
                         }
-                        // Case B: flattened "Get attachments" fields with braces: {Name}, {Link}, {FilenameWithExtension}, {Path}
+                        // Case B: flattened "Get attachments" fields with braces: {Name}, {FilenameWithExtension}
+                        // The real attachment file lives at:
+                        //   /sites/ifs-igo-requests/Lists/New DA Request/Attachments/[ID]/[filename]
+                        // The {Link} field points to the request item, NOT the file, so we build the direct URL.
                         if (attachments.length === 0) {
-                            const attName = item['{FilenameWithExtension}'] || item['{Name}'] || '';
-                            let attLink = item['{Link}'] || item['{FullPath}'] || item['{Path}'] || '';
+                            const itemId = item.ID || item.Id;
+                            let attName = item['{FilenameWithExtension}'] || item['{Name}'] || '';
                             const hasAtt = item['{HasAttachments}'];
-                            if (attName && attLink) {
-                                if (attLink.startsWith('/')) attLink = 'https://intel.sharepoint.com' + attLink;
-                                // Name can be an array of names, Link an array of links
+                            if (attName && itemId) {
                                 const names = Array.isArray(attName) ? attName : [attName];
-                                const links = Array.isArray(attLink) ? attLink : [attLink];
-                                attachments = names.map((n, i) => ({ name: n, url: links[i] || links[0] || '#' }));
+                                attachments = names.filter(n => n).map(n => ({
+                                    name: n,
+                                    url: 'https://intel.sharepoint.com/sites/ifs-igo-requests/Lists/New%20DA%20Request/Attachments/'
+                                         + itemId + '/' + encodeURIComponent(n) + '?web=1'
+                                }));
                             }
                         }
                         
@@ -1109,9 +1113,9 @@ function renderRequests() {
 // ============================================================
 const EMAIL_LINKS = {
     // New DA / DA Edit share the same template link
-    newDA: 'https://intel.sharepoint.com/:x:/r/sites/IFS-igo-Request/Shared%20Documents/NewDA%20Request.xlsx?d=w4f8d91c08ca34e9388883522eb3e7f40&csf=1&web=1&e=3P54SU',
+    newDA: 'https://intel.sharepoint.com/:x:/r/sites/ifs-igo-requests/Shared%20Documents/NewDARequest.xlsx?d=w4f8d91c08ca34e938883522eb3e7f40e&csf=1&web=1&e=3P54SU',
     // IFS NDA template
-    ifsNDA: 'https://intel.sharepoint.com/:x:/r/sites/IFS-igo-Request/Shared%20Documents/IFS-NDA_Template.xlsx?csf=1&web=1&e=3P54SU'
+    ifsNDA: 'https://intel.sharepoint.com/:x:/r/sites/ifs-igo-requests/Shared%20Documents/IFS-NDA_Template.xlsx?d=w908e2047ce4a4408a4542ae631aee5b6&csf=1&web=1&e=fvkKm5'
 };
 
 function buildRequestEmail(id, reqs) {
