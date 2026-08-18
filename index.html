@@ -488,21 +488,27 @@ async function fetchAndRender() {
                                 return { name: a.DisplayName || a.Name || a.FileName || a.title || 'file', url: url };
                             });
                         }
-                        // Case B: flattened "Get attachments" fields with braces: {Name}, {FilenameWithExtension}
-                        // The real attachment file lives at:
+                        // Case B: flattened "Get attachments" fields with braces: {Name}, {FilenameWithExtension}, {Link}
+                        // Build the direct file URL. SharePoint List attachments live at:
                         //   /sites/ifs-igo-requests/Lists/New DA Request/Attachments/[ID]/[filename]
-                        // The {Link} field points to the request item, NOT the file, so we build the direct URL.
+                        // (all lowercase site, list name keeps its display name with spaces).
                         if (attachments.length === 0) {
                             const itemId = item.ID || item.Id;
                             let attName = item['{FilenameWithExtension}'] || item['{Name}'] || '';
-                            const hasAtt = item['{HasAttachments}'];
+                            let attLink = item['{Link}'] || '';
                             if (attName && itemId) {
                                 const names = Array.isArray(attName) ? attName : [attName];
-                                attachments = names.filter(n => n).map(n => ({
-                                    name: n,
-                                    url: 'https://intel.sharepoint.com/sites/ifs-igo-requests/Lists/New%20DA%20Request/Attachments/'
-                                         + itemId + '/' + encodeURIComponent(n) + '?web=1'
-                                }));
+                                const links = Array.isArray(attLink) ? attLink : (attLink ? [attLink] : []);
+                                attachments = names.filter(n => n).map((n, i) => {
+                                    // Prefer the flow-provided {Link} (SharePoint resolves it correctly).
+                                    let url = links[i] || '';
+                                    if (!url) {
+                                        // Fallback: build the attachment path. Encode only the filename.
+                                        url = 'https://intel.sharepoint.com/sites/ifs-igo-requests/Lists/New%20DA%20Request/Attachments/'
+                                              + itemId + '/' + encodeURIComponent(n);
+                                    }
+                                    return { name: n, url: url };
+                                });
                             }
                         }
                         
