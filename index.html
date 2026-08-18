@@ -18,6 +18,11 @@ body{
   font-family:'Satoshi',sans-serif;
   background:linear-gradient(160deg,var(--navy) 0%,var(--navy-mid) 50%,#0a2540 100%);
   color:var(--white);min-height:100vh;
+  zoom:1.25;
+}
+/* Fallback para navegadores que no soportan zoom (Firefox) */
+@supports not (zoom:1){
+  body{transform:scale(1.25);transform-origin:top left;width:80%;}
 }
 .circle{position:fixed;border-radius:50%;border:1.5px solid;pointer-events:none;}
 @keyframes driftAll{0%{transform:translateX(0) translateY(0);}25%{transform:translateX(40px) translateY(-20px);}50%{transform:translateX(-30px) translateY(30px);}75%{transform:translateX(20px) translateY(-40px);}100%{transform:translateX(0) translateY(0);}}
