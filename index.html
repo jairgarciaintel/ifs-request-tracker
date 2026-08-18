@@ -1070,9 +1070,9 @@ function renderRequests() {
 // ============================================================
 const EMAIL_LINKS = {
     // New DA / DA Edit share the same template link
-    newDA: 'https://intel.sharepoint.com/:x:/r/sites/IFS-igo-Request/Shared%20Documents/New%20DA%20REQUEST.xlsx?d=w4f8d91c08ca34e9388883522eb3e7f40&csf=1&web=1&e=3P54SU',
+    newDA: 'https://intel.sharepoint.com/:x:/r/sites/IFS-igo-Request/Shared%20Documents/NewDA%20Request.xlsx?d=w4f8d91c08ca34e9388883522eb3e7f40&csf=1&web=1&e=3P54SU',
     // IFS NDA template
-    ifsNDA: 'https://intel.sharepoint.com/:x:/r/sites/IFS-igo-Request/Shared%20Documents/ifs-nda-templates.xlsx?csf=1&web=1&e=3P54SU'
+    ifsNDA: 'https://intel.sharepoint.com/:x:/r/sites/IFS-igo-Request/Shared%20Documents/IFS-NDA_Template.xlsx?csf=1&web=1&e=3P54SU'
 };
 
 function buildRequestEmail(id, reqs) {
@@ -1082,8 +1082,8 @@ function buildRequestEmail(id, reqs) {
     const customer = req0.customer || 'the customer';
     const types = reqs.filter(r => r.requestType !== 'Unknown').map(r => r.requestType);
 
-    // Subject: REC XXXX - Company - Info request
-    const subject = `REC ${id} - ${customer} - Info request`;
+    // Subject: REQ. XXXX - Company - Info request
+    const subject = `REQ. ${id} - ${customer} - Info request`;
 
     // Body
     let body = `Hello @${req0.requestor || name},\n\n`;
