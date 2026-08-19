@@ -8,6 +8,9 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.25 — 2026-08-19
+- Banners con el azul clasico de Intel #001E50: el header del portal y los comunicados por correo (Acknowledged, Info Request, Out for Signature, In Approval Loop, Complete). El fondo exterior de los correos tambien usa #001E50.
+
 ## v1.8.24 — 2026-08-19
 - El asignado (Assigned To) ahora aparece como chip en la cabecera de la tarjeta, antes de la fecha, para ver de quien es cada request sin abrirlo.
 

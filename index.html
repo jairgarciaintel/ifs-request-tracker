@@ -70,7 +70,7 @@ body{
     </div>
   </div>
   <div class="header-right">
-    <span id="app-version" class="version-badge" title="Click to see changelog" onclick="showChangelog()">v1.8.24</span>
+    <span id="app-version" class="version-badge" title="Click to see changelog" onclick="showChangelog()">v1.8.25</span>
     <label class="auto-toggle" title="Auto emails on status change">
       <span class="auto-toggle-label">Auto emails</span>
       <span class="switch"><input type="checkbox" id="auto-emails-toggle" onchange="toggleAutoEmails(this)"><span class="slider"></span></span>
@@ -201,7 +201,7 @@ body{
 </main>
 
 <style>
-.header{padding:16px 32px;display:flex;align-items:center;justify-content:space-between;background:rgba(4,28,50,0.92);border-bottom:1px solid rgba(78,200,240,0.15);backdrop-filter:blur(10px);position:sticky;top:0;z-index:100;}
+.header{padding:16px 32px;display:flex;align-items:center;justify-content:space-between;background:rgba(0,30,80,0.95);border-bottom:1px solid rgba(78,200,240,0.15);backdrop-filter:blur(10px);position:sticky;top:0;z-index:100;}
 .header-left{display:flex;align-items:center;gap:16px;}
 .logo{height:68px;width:auto;}
 .header-title h1{font-family:'Cabinet Grotesk',sans-serif;font-size:1.3rem;font-weight:700;}
@@ -488,10 +488,11 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.24';
+const APP_VERSION = 'v1.8.25';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
+    ['v1.8.25', ['Banners now use Intel classic blue #001E50: the portal header and the email communications (Acknowledged, Info Request, Out for Signature, In Approval Loop, Complete).']],
     ['v1.8.24', ['Assignee (Assigned To) now shown as a chip in the card header, before the date, so you can see who owns each request without opening it.']],
     ['v1.8.23', ['New "Assigned To" filter (iGO Admin Only - Assigned To) in the top filter bar.','Acknowledged requests now count as WIP (In Progress) instead of New.','New stat pills: Acknowledged (ack) and Canceled. Canceled is its own bucket, no longer lumped with Done.']],
     ['v1.8.22', ['New "DA Number" row on the card, separate from DA Link. The number captured in the DA Link popup now saves to its own SharePoint text column (DA_x0020_Number) and is read back on Sync.','DA Link button label is now always "Open DA Link" (number lives in its own row).']],
@@ -1851,8 +1852,8 @@ const EMAIL_LINKS = {
 function wrapEmail(innerRows, totalCircles) {
     const total = totalCircles || 40;
     const perSide = Math.round(total / 2);
-    return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;background-color:#0a2540;font-family:'Segoe UI',Arial,sans-serif;">`
-        + `<tr><td align="center" style="background-color:#0a2540;padding:36px 12px;">`
+    return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;background-color:#001E50;font-family:'Segoe UI',Arial,sans-serif;">`
+        + `<tr><td align="center" style="background-color:#001E50;padding:36px 12px;">`
         + `<table role="presentation" width="792" cellpadding="0" cellspacing="0" style="width:792px;max-width:792px;border-collapse:collapse;">`
         + `<tr>`
         + `<td width="96" valign="top" style="width:96px;vertical-align:top;">${emailCircles('left', perSide)}</td>`
@@ -1893,14 +1894,14 @@ function emailCircles(side, count) {
 
 // Bright Intel-blue banner header (badge FS + Intel Foundry Services).
 function emailHeader() {
-    return `<tr><td style="background:#0071c5;background:linear-gradient(90deg,#0071c5 0%,#00aeef 100%);padding:26px 34px;">`
+    return `<tr><td style="background-color:#001E50;background:#001E50;padding:26px 34px;">`
         + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>`
         + `<td style="vertical-align:middle;width:52px;"><span style="display:inline-block;width:52px;height:52px;line-height:52px;text-align:center;border:2px solid #ffffff;border-radius:11px;color:#ffffff;font-size:22px;font-weight:700;letter-spacing:1px;">FS</span></td>`
         + `<td style="vertical-align:middle;padding-left:16px;">`
         + `<div style="color:#ffffff;font-size:24px;font-weight:700;letter-spacing:0.3px;">Intel Foundry Services</div>`
-        + `<div style="color:#d6f1ff;font-size:14px;letter-spacing:1px;text-transform:uppercase;">FS Request Tracker &middot; DA OPS</div>`
+        + `<div style="color:#c7d6ea;font-size:14px;letter-spacing:1px;text-transform:uppercase;">FS Request Tracker &middot; DA OPS</div>`
         + `</td></tr></table></td></tr>`
-        + `<tr><td style="height:4px;background:#041c32;font-size:0;line-height:0;">&nbsp;</td></tr>`;
+        + `<tr><td style="height:4px;background:#00122f;font-size:0;line-height:0;">&nbsp;</td></tr>`;
 }
 
 // Footer: notification text, then REAL logo image, then Intel Confidential
