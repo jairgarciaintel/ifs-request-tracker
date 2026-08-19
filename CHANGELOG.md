@@ -8,6 +8,9 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.26 — 2026-08-19
+- FIX: "Assigned To" ahora lee UNICAMENTE el campo iGO Admin (iGOAdminOnly_x002d_AssignedTo). Si nadie de iGO esta asignado, no muestra nada (el chip se oculta y la tarjeta dice "Unassigned"), en vez de caer al FCE Lead u otros campos.
+
 ## v1.8.25 — 2026-08-19
 - Banners con el azul clasico de Intel #001E50: el header del portal y los comunicados por correo (Acknowledged, Info Request, Out for Signature, In Approval Loop, Complete). El fondo exterior de los correos tambien usa #001E50.
 

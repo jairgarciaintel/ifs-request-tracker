@@ -70,7 +70,7 @@ body{
     </div>
   </div>
   <div class="header-right">
-    <span id="app-version" class="version-badge" title="Click to see changelog" onclick="showChangelog()">v1.8.25</span>
+    <span id="app-version" class="version-badge" title="Click to see changelog" onclick="showChangelog()">v1.8.26</span>
     <label class="auto-toggle" title="Auto emails on status change">
       <span class="auto-toggle-label">Auto emails</span>
       <span class="switch"><input type="checkbox" id="auto-emails-toggle" onchange="toggleAutoEmails(this)"><span class="slider"></span></span>
@@ -488,10 +488,11 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.25';
+const APP_VERSION = 'v1.8.26';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
+    ['v1.8.26', ['FIX: Assigned To now reads ONLY the iGO Admin field. If nobody in iGO is assigned it shows nothing (chip hidden, card says "Unassigned") instead of falling back to the FCE Lead or other fields.']],
     ['v1.8.25', ['Banners now use Intel classic blue #001E50: the portal header and the email communications (Acknowledged, Info Request, Out for Signature, In Approval Loop, Complete).']],
     ['v1.8.24', ['Assignee (Assigned To) now shown as a chip in the card header, before the date, so you can see who owns each request without opening it.']],
     ['v1.8.23', ['New "Assigned To" filter (iGO Admin Only - Assigned To) in the top filter bar.','Acknowledged requests now count as WIP (In Progress) instead of New.','New stat pills: Acknowledged (ack) and Canceled. Canceled is its own bucket, no longer lumped with Done.']],
@@ -719,11 +720,13 @@ async function fetchAndRender() {
                         if (typeof status === 'object' && status !== null) status = status.Value || status.Label || '';
                         else status = String(status || '');
                         
-                        // Assigned BD (real SP field is iGOAdminOnly_x002d_AssignedTo; fallbacks: AssignedFCELead)
-                        let assignedBD = item.iGOAdminOnly_x002d_AssignedTo || item.AssignedFCELead || item.AssignedBD || item.Assigned_x0020_BD || '';
+                        // Assigned To — ONLY the iGO Admin field. If nobody in iGO is
+                        // assigned, leave it BLANK (no fallback to FCE Lead / other fields).
+                        let assignedBD = item.iGOAdminOnly_x002d_AssignedTo || '';
                         if (Array.isArray(assignedBD)) assignedBD = assignedBD.map(p => typeof p==='object'?(p.DisplayName||p.Email||''):String(p)).join(', ');
                         else if (typeof assignedBD === 'object' && assignedBD !== null) assignedBD = assignedBD.DisplayName || assignedBD.Email || '';
                         else assignedBD = String(assignedBD || '');
+                        assignedBD = assignedBD.trim();
                         
                         // Details
                         let details = item.Details || item.OData__x0044_etails || '';
@@ -2013,7 +2016,8 @@ function renderGroupCard(id, reqs) {
 
     // Request info block (from SharePoint): Created By, Assigned BD, Details, Attachments
     const createdBy = reqs[0].requestor || '\u2014';
-    const assignedBD = reqs[0].assignedBD || '\u2014';
+    const assignedBD = (reqs[0].assignedBD || '').trim();
+    const assignedBDHtml = assignedBD ? assignedBD : '<span class="info-empty">Unassigned</span>';
     const details = reqs[0].details || '';
     const attachments = Array.isArray(reqs[0].attachments) ? reqs[0].attachments : [];
     const attachmentsHtml = attachments.length
@@ -2042,7 +2046,7 @@ function renderGroupCard(id, reqs) {
     const daNumberHtml = daNumber ? daNumber : '<span class="info-empty">Not set yet</span>';
     const infoBlock = `<div class="req-info">
       <div class="req-info-row"><span class="req-info-label">Created By</span><span class="req-info-val">${createdByHtml}</span></div>
-      <div class="req-info-row"><span class="req-info-label">Assigned BD</span><span class="req-info-val">${assignedBD}</span></div>
+      <div class="req-info-row"><span class="req-info-label">Assigned To</span><span class="req-info-val">${assignedBDHtml}</span></div>
       <div class="req-info-row"><span class="req-info-label">Portal Name</span><span class="req-info-val">${portalNameHtml}</span></div>
       <div class="req-info-row"><span class="req-info-label">DA Link</span><span class="req-info-val">${daLinkHtml}</span></div>
       <div class="req-info-row"><span class="req-info-label">DA Number</span><span class="req-info-val">${daNumberHtml}</span></div>
