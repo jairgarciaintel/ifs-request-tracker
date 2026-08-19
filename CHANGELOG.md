@@ -8,6 +8,16 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.12 — 2026-08-19
+- FIX Outlook: restaurados los circulos del correo Acknowledged eliminando `opacity` y `filter:alpha`, que Outlook podia interpretar como completamente transparentes.
+- Los 40 circulos conservan la tabla Outlook-safe y ahora usan colores solidos premezclados para verse suaves sin desaparecer.
+- TEST_MODE permanece activo: solo Jair y CC vacio.
+
+## v1.8.11 — 2026-08-19
+- Reactivado TEST_MODE para Acknowledged e Info Request.
+- Ambos correos automaticos se envian unicamente a `jair.garcia@intel.com`.
+- CC queda vacio; durante las pruebas no recibe correo el creador ni FS DA OPS.
+
 ## v1.8.10 — 2026-08-19
 - Eliminado el simbolo `@` antes del nombre en Acknowledged, Info Request y los fallbacks mailto.
 - El saludo conserva solamente el primer nombre: `Dear Nombre` o `Hi Nombre`.
