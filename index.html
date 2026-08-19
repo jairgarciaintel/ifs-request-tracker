@@ -70,12 +70,52 @@ body{
     </div>
   </div>
   <div class="header-right">
+    <span id="app-version" class="version-badge" title="Click to see changelog" onclick="showChangelog()">v1.8.15</span>
+    <label class="auto-toggle" title="Auto emails on status change">
+      <span class="auto-toggle-label">Auto emails</span>
+      <span class="switch"><input type="checkbox" id="auto-emails-toggle" onchange="toggleAutoEmails(this)"><span class="slider"></span></span>
+    </label>
+    <label class="auto-toggle" title="Test mode: ON sends only to Jair, OFF sends to the real requestor + CC FS DA OPS">
+      <span class="auto-toggle-label">Test mode</span>
+      <span class="switch"><input type="checkbox" id="test-mode-toggle" onchange="toggleTestMode(this)"><span class="slider"></span></span>
+    </label>
     <span id="sync-status" class="sync-text">Loading...</span>
     <button class="btn btn-primary" onclick="fetchAndRender()"><svg width="14" height="14"><use href="#icon-sync"/></svg> Sync</button>
     <button class="btn btn-secondary" onclick="exportExcel()"><svg width="14" height="14"><use href="#icon-export"/></svg> Excel</button>
     <button class="btn btn-secondary" onclick="exportJSON()"><svg width="14" height="14"><use href="#icon-export"/></svg> JSON</button>
   </div>
 </header>
+
+<div id="changelog-modal" class="changelog-overlay" onclick="hideChangelog(event)">
+  <div class="changelog-box">
+    <div class="changelog-head">
+      <h3>Version History <span id="changelog-current"></span></h3>
+      <button class="changelog-close" onclick="hideChangelog()">&times;</button>
+    </div>
+    <div id="changelog-body" class="changelog-content"></div>
+  </div>
+</div>
+
+<div id="complete-modal" class="changelog-overlay" onclick="hideCompleteModal(event)">
+  <div class="changelog-box complete-box">
+    <div class="changelog-head">
+      <h3>&#127881; Portal Completed <span id="complete-modal-req" class="complete-modal-req"></span></h3>
+      <button class="changelog-close" onclick="hideCompleteModal()">&times;</button>
+    </div>
+    <div class="changelog-content">
+      <p class="complete-modal-hint">This request is being marked <strong>Complete</strong>. Enter the portal name and DA number so we can send the customer their completion notice.</p>
+      <label class="complete-field-label">Portal Name</label>
+      <input type="text" id="complete-portal-input" class="complete-field-input" placeholder="e.g. Magnet Sci-Fi">
+      <label class="complete-field-label">DA Number (Disclosure Agreement)</label>
+      <input type="text" id="complete-da-input" class="complete-field-input" placeholder="e.g. 16654">
+      <div id="complete-modal-warn" class="complete-modal-warn">Please fill in both fields.</div>
+      <div class="complete-modal-actions">
+        <button class="btn btn-secondary" onclick="hideCompleteModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="confirmCompleteModal()">OK, send notice</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <div class="toolbar">
   <div class="filters">
@@ -94,8 +134,12 @@ body{
       <option value="WebView AGS Role">WebView AGS Role</option>
       <option value="Portal Unencryption">Portal Unencryption</option>
       <option value="IFS NDA">IFS NDA</option>
+      <option value="MP-NDA">MP-NDA</option>
       <option value="DA Edit">DA Edit</option>
       <option value="COD">COD</option>
+      <option value="Secure Chamber">Secure Chamber</option>
+      <option value="DocuSign Request">DocuSign Request</option>
+      <option value="Redbook Release">Redbook Release</option>
     </select>
     <select id="filter-status" onchange="renderRequests()">
       <option value="all">All Statuses</option>
@@ -137,7 +181,49 @@ body{
 .header-title h1{font-family:'Cabinet Grotesk',sans-serif;font-size:1.3rem;font-weight:700;}
 .header-title h1 .accent{color:var(--cyan);}
 .header-title .meta{font-size:11px;color:rgba(255,255,255,0.4);margin-top:2px;}
-.header-right{display:flex;align-items:center;gap:12px;}
+.version-badge{display:inline-block;font-size:12px;font-weight:700;color:#041c32;background:var(--cyan);border:1px solid var(--cyan);padding:3px 10px;border-radius:10px;vertical-align:middle;margin-right:4px;letter-spacing:0.3px;white-space:nowrap;cursor:pointer;transition:transform 0.2s;}
+.version-badge:hover{transform:translateY(-1px);background:#7dd8f5;}
+/* Changelog modal */
+.changelog-overlay{display:none;position:fixed;inset:0;background:rgba(4,28,50,0.75);z-index:2000;backdrop-filter:blur(4px);align-items:center;justify-content:center;}
+.changelog-overlay.open{display:flex;}
+.changelog-box{background:linear-gradient(160deg,#0d3158,#041c32);border:1px solid rgba(78,200,240,0.3);border-radius:14px;width:90%;max-width:640px;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.5);}
+.changelog-head{display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid rgba(78,200,240,0.15);}
+.changelog-head h3{font-family:'Cabinet Grotesk',sans-serif;font-size:18px;color:var(--cyan);}
+.changelog-head #changelog-current{font-size:12px;color:rgba(255,255,255,0.5);font-weight:400;margin-left:8px;}
+.changelog-close{background:none;border:none;color:rgba(255,255,255,0.6);font-size:26px;cursor:pointer;line-height:1;}
+.changelog-close:hover{color:#fff;}
+.changelog-content{padding:20px 24px;overflow-y:auto;}
+.cl-version{margin-bottom:18px;}
+.cl-version h4{font-size:14px;color:var(--cyan);font-weight:700;margin-bottom:6px;font-family:'Cabinet Grotesk',sans-serif;}
+.cl-version ul{margin:0;padding-left:18px;}
+.cl-version li{font-size:13px;color:rgba(255,255,255,0.75);line-height:1.6;margin-bottom:3px;}
+body.light-mode .changelog-box{background:#fff;border-color:rgba(0,113,197,0.2);}
+body.light-mode .changelog-head h3{color:#0071c5;}
+body.light-mode .cl-version h4{color:#0071c5;}
+body.light-mode .cl-version li{color:#334155;}
+/* Complete popup (Portal Name + DA number) */
+.complete-box{max-width:460px;}
+.complete-modal-req{font-size:12px;color:rgba(255,255,255,0.5);font-weight:400;margin-left:8px;}
+.complete-modal-hint{font-size:13px;color:rgba(255,255,255,0.7);line-height:1.6;margin:0 0 16px;}
+.complete-field-label{display:block;font-size:11px;font-weight:700;color:var(--cyan);text-transform:uppercase;letter-spacing:0.4px;margin:0 0 6px;}
+.complete-field-input{width:100%;background:rgba(4,28,50,0.8);color:var(--light);border:1px solid rgba(78,200,240,0.25);border-radius:8px;padding:10px 12px;font-size:14px;font-family:'Satoshi',sans-serif;margin-bottom:16px;}
+.complete-field-input:focus{outline:none;border-color:var(--cyan);}
+.complete-modal-warn{display:none;color:#ff6b6b;font-size:12px;margin:-8px 0 14px;}
+.complete-modal-actions{display:flex;justify-content:flex-end;gap:10px;}
+body.light-mode .complete-modal-hint{color:#4a5568;}
+body.light-mode .complete-field-input{background:#fff;color:#1a202c;border-color:rgba(0,113,197,0.2);}
+body.light-mode .complete-modal-req{color:rgba(0,0,0,0.4);}
+/* iPhone-style toggle for auto emails */
+.auto-toggle{display:inline-flex;align-items:center;gap:7px;cursor:pointer;}
+.auto-toggle-label{font-size:11px;color:var(--light);font-weight:600;}
+.switch{position:relative;display:inline-block;width:40px;height:22px;}
+.switch input{opacity:0;width:0;height:0;position:absolute;}
+.switch .slider{position:absolute;inset:0;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.2);border-radius:22px;transition:0.3s;}
+.switch .slider:before{content:"";position:absolute;height:16px;width:16px;left:3px;top:2px;background:#fff;border-radius:50%;transition:0.3s;box-shadow:0 1px 3px rgba(0,0,0,0.3);}
+.switch input:checked + .slider{background:#6bcb77;border-color:#6bcb77;}
+.switch input:checked + .slider:before{transform:translateX(18px);}
+body.light-mode .auto-toggle-label{color:#4a5568;}
+.header-right{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end;}
 .sync-text{font-size:12px;color:rgba(255,255,255,0.5);}
 .btn{border:none;padding:7px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.2s;font-family:'Satoshi',sans-serif;display:inline-flex;align-items:center;gap:5px;}
 .btn-primary{background:var(--cyan);color:var(--navy);}
@@ -340,10 +426,100 @@ body.light-mode .notification-banner{background:rgba(255,255,255,0.95);border-co
 body.light-mode .notif-text{color:#1a202c;}
 body.light-mode .notes-input{background:#fff;color:#1a202c;border-color:rgba(0,113,197,0.2);}
 body.light-mode .circle{display:none;}
+/* === LIGHT MODE FIXES: text and buttons === */
+body.light-mode .group-customer{color:#1a202c;}
+body.light-mode .group-id{color:#0071c5;}
+body.light-mode .group-date{color:#64748b;}
+body.light-mode .chevron{color:#94a3b8;}
+body.light-mode .meta{color:#64748b;}
+body.light-mode .header-title h1 .accent{color:#0071c5;}
+body.light-mode .sync-text{color:#64748b;}
+body.light-mode .type-section-title{color:#0071c5;}
+body.light-mode .section-status{color:#64748b;}
+body.light-mode .stat-pill{color:#475569;background:rgba(0,113,197,0.06);}
+body.light-mode .btn-secondary{background:#fff;color:#0071c5;border-color:rgba(0,113,197,0.3);}
+body.light-mode .btn-secondary:hover{background:rgba(0,113,197,0.08);border-color:#0071c5;color:#0071c5;}
+body.light-mode .sort-order,body.light-mode #sort-order{background:#fff;color:#1a202c;border-color:rgba(0,113,197,0.2);}
+body.light-mode .substep-select.st-notstarted{color:#64748b;border-color:rgba(0,0,0,0.12);}
+body.light-mode .history-entry{color:#475569;}
+body.light-mode .history-time{color:#94a3b8;}
+body.light-mode .sp-status-label{color:#475569;}
+body.light-mode .req-info-label{color:#0071c5;}
+body.light-mode .info-empty{color:#94a3b8;}
+body.light-mode .toolbar-actions .btn{color:#0071c5;}
+body.light-mode .empty-state h3{color:#0071c5;}
 </style>
 
 <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
 <script>
+// ============================================================
+// VERSION — bump this on every deploy (matches CHANGELOG.md)
+// ============================================================
+const APP_VERSION = 'v1.8.15';
+
+// Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
+const CHANGELOG = [
+    ['v1.8.15', ['New automatic emails for Out for Signature and In Approval Loop status changes.','Complete status now opens a popup asking for Portal Name and DA number before sending a celebration email (sparkles, portal name, DA ID) to the customer.','All three new emails respect the existing Auto emails and Test mode toggles.']],
+    ['v1.8.14', ['New "Test mode" toggle next to Auto emails: ON sends Acknowledged/Info Request only to Jair (no CC), OFF sends to the real requestor with CC fs.da.ops@intel.com.']],
+    ['v1.8.13', ['Info Request email now shows 34 circles (17 per side); Acknowledged email now shows 46 circles (23 per side).']],
+    ['v1.8.12', ['OUTLOOK FIX: restored Acknowledged email circles by removing unsupported opacity/filter styles.','Circles now use muted pre-blended solid colors, keeping the softer look without disappearing.','TEST mode remains active: Jair only, no CC.']],
+    ['v1.8.11', ['TEST MODE restored for Acknowledged and Info Request.','Both automatic emails now go only to Jair with an empty CC; request creators and FS DA OPS receive nothing during testing.']],
+    ['v1.8.10', ['Removed the @ symbol before requestor names in Acknowledged, Info Request and mailto fallback greetings.','Greetings remain first-name only.']],
+    ['v1.8.9', ['PRODUCTION: Acknowledged and Info Request now send to the request creator with fs.da.ops@intel.com always in CC.','Greetings now use only the first name after Dear @, including SharePoint Last, First names.','Acknowledged → Next step stays on one line in the SLA table.','Email side circles are softer and more transparent.']],
+    ['v1.8.8', ['MPA-IC and MPA-NDA are now treated as MP-NDA/Multi-Party.','Automatic Info Request and manual Created By emails include the MP-RUNDA template for MP-NDA, MPA-NDA, MPA-IC, MRUNDA and Multi-Party labels.']],
+    ['v1.8.7', ['OUTLOOK FIX: replaced absolute-positioned email circles with a three-column presentation table.','40 circles now stay in two real side bands (20 left + 20 right) and cannot stack in the message center.','Acknowledged and Info Request remain in TEST mode: Jair only, no CC.']],
+    ['v1.8.6', ['40 circles spread down both side bands of the email, full height (not bunched at top).']],
+    ['v1.8.5', ['Full history in the modal: every version, fixes, errors resolved and deploy/git issues.']],
+    ['v1.8.4', ['Version badge is clickable: opens this Version History modal.']],
+    ['v1.8.3', ['Filter "All Types" now includes MP-NDA, Secure Chamber, DocuSign Request, Redbook Release.']],
+    ['v1.8.2', ['FIX: version badge was invisible (transparent) — now solid cyan and readable.','Header wraps so nothing gets cut off with 140% zoom.']],
+    ['v1.8.1', ['FIX: email circles were bunched in a center column — now spread around the card edges. Card narrowed to 600px.']],
+    ['v1.8.0', ['MP-RUNDA template added to the click-name email.','iPhone-style "Auto emails" ON/OFF toggle in the header.','FIX: Light Mode text stayed white/unreadable and buttons were invisible — fixed.']],
+    ['v1.7.2', ['FIX: circles disappeared (SVG data-URI / position:absolute not supported). Restored the working method on the outer blue background for both emails.']],
+    ['v1.7.1', ['Tried a PNG background for the circles (later replaced).']],
+    ['v1.7.0', ['Acknowledged and Info Request now share the same design: blue banner, circles and full "Intel Confidential" legend. Version badge moved next to the buttons.']],
+    ['v1.6.0', ['Added version control + changelog + version badge.']],
+    ['v1.5.0', ['Automatic "Info Request" email on status change, with ALL templates per request type (New DA, DA Edit, Portal Creation, IFS NDA, MP-RUNDA, Codename form). Blue banner, circles, clickable template buttons.']],
+    ['v1.4.0', ['Automatic "Acknowledged" email built by the tracker, sent via Power Automate (bodyHtml). SLA table, "Dear @Name", FS DA OPS signature, CC fs.da.ops.','FIX: Power Automate "Send email" connection Unauthorized — required reconnecting the Outlook connection.','FIX: recipient email now pulled from Author.Email / Claims.']],
+    ['v1.3.0', ['Canceled requests greyed out with diagonal stripes + small CANCELED tag (moved so it does not cover the date).','Clearer SharePoint status-change notification.']],
+    ['v1.2.0', ['Section order: New DA first, then Portal Creation.','SLA banner + per-step time estimates (later tuned to 24-48h / 2-4 days / depends on customer).']],
+    ['v1.1.0', ['Global zoom bumped to 125% then 140% for readability.','Clickable "Created By" opens an email with the right template per type.']],
+    ['v1.0.0', ['New card fields: Created By, Assigned BD, Details, Attachments.','Assigned BD read from SharePoint field iGOAdminOnly_AssignedTo.','Attachments: link opens the request in SharePoint.']],
+    ['Attachments fixes', ['Iterated several times: {Name}/{Link} flattened fields, built path (404), per-item Attachments folder (Unauthorized) — final: link opens the request page.']],
+    ['Earlier (Aug 11-13)', ['User guide with screenshots + USER-GUIDE.md.','Notes auto-save on typing (debounce) + on blur.','Login security: only Jair/Jenn, 3 attempts then 24h block.','FIX [object Object]: RequestType/Status came as arrays of objects from Power Automate — added String()/Value extraction everywhere.','Live fetch from SharePoint via Power Automate every 10 min.','Two dropdowns: SharePoint Status (syncs to SP) + internal sub-steps.']],
+    ['Deploy / git notes', ['Code Defender blocks pushes — run git config core.hooksPath /dev/null first.','TWO repos: tracker (jairgarciaintel/ifs-request-tracker, public, the page) and dev (hackerjj, private, has l4ve).','Recurring issue: wrong remote after set-url — several "Authentication failed" / "repository not found". Fixed by pointing each repo to its correct remote.','Recovered a truncated index.html from git (checkout HEAD).','Other PC: "unrelated histories" resolved with reset --hard origin/main.']]
+];
+function showChangelog(){
+    const body = document.getElementById('changelog-body');
+    document.getElementById('changelog-current').textContent = 'current: ' + APP_VERSION;
+    body.innerHTML = CHANGELOG.map(function(v){
+        return '<div class="cl-version"><h4>'+v[0]+'</h4><ul>'+v[1].map(function(x){return '<li>'+x+'</li>';}).join('')+'</ul></div>';
+    }).join('');
+    document.getElementById('changelog-modal').classList.add('open');
+}
+function hideChangelog(e){
+    if (e && e.target && e.target.id !== 'changelog-modal' && e.type === 'click') return;
+    document.getElementById('changelog-modal').classList.remove('open');
+}
+
+// Auto-emails toggle (persisted). Default ON.
+let autoEmailsEnabled = localStorage.getItem('fs-auto-emails') !== 'off';
+function toggleAutoEmails(el){
+    autoEmailsEnabled = el.checked;
+    localStorage.setItem('fs-auto-emails', autoEmailsEnabled ? 'on' : 'off');
+    updateSync(autoEmailsEnabled ? 'Auto emails ON' : 'Auto emails OFF');
+}
+
+// Test mode toggle (persisted). Default ON: only Jair receives Acknowledged/Info
+// Request emails and CC stays empty. Turn OFF to send to the real requestor with
+// CC fs.da.ops@intel.com (production behavior).
+let testModeEnabled = localStorage.getItem('fs-test-mode') !== 'off';
+function toggleTestMode(el){
+    testModeEnabled = el.checked;
+    localStorage.setItem('fs-test-mode', testModeEnabled ? 'on' : 'off');
+    updateSync(testModeEnabled ? 'Test mode ON (Jair only)' : 'Test mode OFF (real recipients)');
+}
+
 // ============================================================
 // CONFIG
 // ============================================================
@@ -646,7 +822,10 @@ function normalizeType(type) {
     if (t.includes('portal unencryption') || t.includes('unecrypted')) return 'Portal Unencryption';
     if (t.includes('secure chamber')) return 'Secure Chamber';
     if (t.includes('ifs nda')) return 'IFS NDA';
-    if (t.includes('mp-nda')) return 'MP-NDA';
+    // SharePoint may call the same Multi-Party NDA service MP-NDA, MPA-NDA,
+    // MPA-IC, MRUNDA or Multi-Party. Keep one canonical type so all variants
+    // receive the MP-RUNDA template and use the same tracking step.
+    if (t.includes('mp-nda') || t.includes('mpa-nda') || t.includes('mpa-ic') || t.includes('mrunda') || t.includes('multi-party')) return 'MP-NDA';
     if (t.includes('da edit')) return 'DA Edit';
     if (t.includes('cod') && !t.includes('code')) return 'COD';
     if (t.includes('docusign')) return 'DocuSign Request';
@@ -654,8 +833,6 @@ function normalizeType(type) {
     if (t.includes('collateral')) return 'Collateral List Change';
     if (t.includes('add product') || t.includes('new product')) return 'Add Product';
     if (t.includes('portal addition')) return 'Portal Addition';
-    if (t.includes('mrunda')) return 'MRUNDA';
-    if (t.includes('mpa-ic')) return 'MPA-IC';
     if (t.includes('ext. spo')) return 'Ext. SPO';
     if (t.includes('new folder')) return 'New Folder in SFT';
     // If it doesn't match known types, keep as-is
@@ -777,13 +954,53 @@ async function changeSpStatus(id, newStatus, selectEl) {
     allRequests.forEach(r => { if (String(r.id) === String(id)) r.status = newStatus; });
     // Log it
     logHistory(id, '', 'SharePoint Status', 'Status', newStatus);
-    // Auto-emails on status change
-    const st = String(newStatus).toLowerCase();
-    if (st === 'acknowledged') {
-        openAcknowledgedEmail(id);
-    } else if (st === 'info requested') {
-        openInfoRequestEmail(id);
+    // Auto-emails on status change (only if the toggle is ON)
+    if (autoEmailsEnabled) {
+        const st = String(newStatus).toLowerCase();
+        if (st === 'acknowledged') {
+            openAcknowledgedEmail(id);
+        } else if (st === 'info requested') {
+            openInfoRequestEmail(id);
+        } else if (st === 'out for signature') {
+            openOutForSignatureEmail(id);
+        } else if (st === 'in approval loop') {
+            openInApprovalLoopEmail(id);
+        } else if (st === 'complete') {
+            openCompleteModal(id);
+        }
     }
+}
+
+// Use only the requestor's first name after Dear @ / Hi @.
+// SharePoint commonly returns "Last, First"; email fallbacks use first.last@intel.com.
+function emailGreetingName(value) {
+    let name = String(value || '').trim();
+    if (!name) return 'there';
+    if (name.includes('@')) {
+        name = name.split('@')[0].replace(/[._-]+/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    }
+    if (name.includes(',')) name = name.split(',').slice(1).join(',').trim();
+    return name.split(/\s+/)[0].replace(/,$/, '') || 'there';
+}
+
+// Shared sender for the newer status-change emails (Out for Signature, In Approval
+// Loop, Complete). Respects the same Test mode toggle as Acknowledged/Info Request.
+async function sendTrackerEmail(id, subject, bodyHtml, name, customer, label) {
+    const reqs = allRequests.filter(r => String(r.id) === String(id));
+    const req0 = reqs[0] || {};
+    const to = testModeEnabled ? 'jair.garcia@intel.com' : (req0.requestorEmail || '');
+    const cc = testModeEnabled ? '' : 'fs.da.ops@intel.com';
+    if (!to) { console.warn('No recipient email for #' + id); return false; }
+    if (!CONFIG.sendEmailUrl) return false;
+    try {
+        const res = await fetch(CONFIG.sendEmailUrl, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ to, cc, subject, name, id: String(id), customer, bodyHtml })
+        });
+        if (res.ok) { updateSync(label + ' sent for #' + id); return true; }
+        console.warn('Send-email flow returned ' + res.status);
+    } catch (e) { console.warn(label + ' email failed:', e.message); }
+    return false;
 }
 
 // Send the "Info Request" email (all templates for the request types) via the flow
@@ -792,11 +1009,10 @@ async function openInfoRequestEmail(id) {
     if (!reqs.length) return;
     const req0 = reqs[0];
 
-    const TEST_MODE = false; // false = LIVE (to requestor, CC fs.da.ops)
-    const to = TEST_MODE ? 'jair.garcia@intel.com' : (req0.requestorEmail || '');
-    const cc = 'fs.da.ops@intel.com';
-    let name = req0.requestor || 'there';
-    if (name.includes('@')) name = name.split('@')[0].replace(/[._]/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+    // Test mode (toggle in header): ON sends only to Jair with empty CC.
+    const to = testModeEnabled ? 'jair.garcia@intel.com' : (req0.requestorEmail || '');
+    const cc = testModeEnabled ? '' : 'fs.da.ops@intel.com';
+    const name = emailGreetingName(req0.requestor || req0.requestorEmail);
     const customer = req0.customer || 'your request';
     const subject = `REQ. ${id} - ${customer} - Info Request`;
     const types = reqs.filter(r => r.requestType !== 'Unknown').map(r => r.requestType);
@@ -819,8 +1035,23 @@ async function openInfoRequestEmail(id) {
 // Build the full styled HTML for the Acknowledged email.
 // The tracker owns this HTML — change it here, push, and it updates without touching Power Automate.
 function buildAckEmailHtml(name, id, customer) {
-    const LOGO = 'https://jairgarciaintel.github.io/ifs-request-tracker/Logo.png';
-    return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0a2540;padding:24px 0;font-family:'Segoe UI',Arial,sans-serif;"><tr><td align="center"><table role="presentation" width="640" cellpadding="0" cellspacing="0" style="width:640px;max-width:640px;background-color:#ffffff;border-radius:14px;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,0.25);"><tr><td style="background:linear-gradient(135deg,#041c32 0%,#0d3158 55%,#0071c5 100%);padding:28px 32px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="vertical-align:middle;width:48px;"><span style="display:inline-block;width:48px;height:48px;line-height:48px;text-align:center;border:2px solid #4ec8f0;border-radius:10px;color:#4ec8f0;font-size:20px;font-weight:700;letter-spacing:1px;">FS</span></td><td style="vertical-align:middle;padding-left:14px;"><div style="color:#ffffff;font-size:24px;font-weight:700;letter-spacing:0.3px;">Intel Foundry Services</div><div style="color:#4ec8f0;font-size:14px;letter-spacing:1px;text-transform:uppercase;">DA Ops &middot; Request Tracker</div></td></tr></table></td></tr><tr><td style="height:5px;background:linear-gradient(90deg,#4ec8f0,#0071c5,#6bcb77);font-size:0;line-height:0;">&nbsp;</td></tr><tr><td style="padding:34px;color:#1a202c;font-size:18px;line-height:1.7;"><p style="margin:0 0 18px;font-size:18px;">Dear <strong>@${name}</strong>,</p><p style="margin:0 0 18px;font-size:18px;">This is to let you know that your request (<strong>REQ. ${id} &mdash; ${customer}</strong>) has been <strong style="color:#0071c5;">Acknowledged</strong> and is now in our queue.</p><p style="margin:0 0 24px;font-size:18px;">We are actively working on it. Please stay tuned as we move it through the process.</p><div style="font-size:16px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:#0071c5;margin-bottom:10px;">Estimated SLAs &middot; 2026 average turnaround</div><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:18px;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0;"><tr style="background-color:#041c32;color:#ffffff;"><td style="padding:12px 16px;font-weight:600;font-size:18px;">Stage</td><td style="padding:12px 16px;font-weight:600;font-size:18px;text-align:right;">Estimated Time</td></tr><tr style="background-color:#ffffff;"><td style="padding:12px 16px;border-top:1px solid #eef2f6;font-size:18px;">Acknowledged &rarr; Next step</td><td style="padding:12px 16px;border-top:1px solid #eef2f6;text-align:right;font-weight:600;font-size:18px;color:#0071c5;">24&ndash;48 hrs</td></tr><tr style="background-color:#f5f9fc;"><td style="padding:12px 16px;border-top:1px solid #eef2f6;font-size:18px;">In Approval Loop</td><td style="padding:12px 16px;border-top:1px solid #eef2f6;text-align:right;font-weight:600;font-size:18px;color:#0071c5;">2&ndash;4 days</td></tr><tr style="background-color:#ffffff;"><td style="padding:12px 16px;border-top:1px solid #eef2f6;font-size:18px;">Out for Signature</td><td style="padding:12px 16px;border-top:1px solid #eef2f6;text-align:right;font-weight:600;font-size:15px;color:#0071c5;white-space:nowrap;">Depends on Customer &middot; Avg 48&ndash;56 hrs</td></tr></table><p style="margin:16px 0 0;font-size:15px;color:#6b7684;font-style:italic;">Note: In Approval Loop and Out for Signature depend on external approvers, signers and the customer, so timing can vary.</p><p style="margin:26px 0 0;font-size:18px;">Thank you for your patience.</p><p style="margin:20px 0 0;font-size:18px;">Best regards,<br><strong style="color:#041c32;">FS DA OPS</strong> &middot; Intel Foundry Services</p></td></tr><tr><td style="background-color:#f0f4f8;padding:22px 32px;text-align:center;border-top:1px solid #e2e8f0;"><div style="color:#9aa4b0;font-size:13px;margin-bottom:12px;">This is an automated notification for the FS Request Tracker.</div><img src="${LOGO}" alt="Intel Foundry Services" width="120" style="display:inline-block;max-height:36px;width:auto;margin-bottom:12px;"><div style="color:#8a97a5;font-size:12px;line-height:1.5;">Intel Confidential &mdash; This message and any attachments are intended only for the named recipient(s) and may contain confidential information. If you are not the intended recipient, please notify the sender and delete this message.</div></td></tr></table></td></tr></table>`;
+    // Uses the SAME shared wrapper (blue bg + circles), header and footer as Info Request.
+    const inner = `<tr><td style="padding:34px;color:#1a202c;font-size:18px;line-height:1.7;">`
+        + `<p style="margin:0 0 18px;font-size:18px;">Dear <strong>${name}</strong>,</p>`
+        + `<p style="margin:0 0 18px;font-size:18px;">This is to let you know that your request (<strong>REQ. ${id} &mdash; ${customer}</strong>) has been <strong style="color:#0071c5;">Acknowledged</strong> and is now in our queue.</p>`
+        + `<p style="margin:0 0 24px;font-size:18px;">We are actively working on it. Please stay tuned as we move it through the process.</p>`
+        + `<div style="font-size:16px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:#0071c5;margin-bottom:10px;">Estimated SLAs &middot; 2026 average turnaround</div>`
+        + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:18px;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0;">`
+        + `<tr style="background-color:#041c32;color:#ffffff;"><td style="padding:12px 16px;font-weight:600;font-size:18px;">Stage</td><td style="padding:12px 16px;font-weight:600;font-size:18px;text-align:right;">Estimated Time</td></tr>`
+        + `<tr style="background-color:#ffffff;"><td width="64%" style="width:64%;padding:12px 16px;border-top:1px solid #eef2f6;font-size:18px;white-space:nowrap;">Acknowledged &rarr; Next step</td><td width="36%" style="width:36%;padding:12px 16px;border-top:1px solid #eef2f6;text-align:right;font-weight:600;font-size:18px;color:#0071c5;white-space:nowrap;">24&ndash;48 hrs</td></tr>`
+        + `<tr style="background-color:#f5f9fc;"><td style="padding:12px 16px;border-top:1px solid #eef2f6;font-size:18px;">In Approval Loop</td><td style="padding:12px 16px;border-top:1px solid #eef2f6;text-align:right;font-weight:600;font-size:18px;color:#0071c5;">2&ndash;4 days</td></tr>`
+        + `<tr style="background-color:#ffffff;"><td style="padding:12px 16px;border-top:1px solid #eef2f6;font-size:18px;">Out for Signature</td><td style="padding:12px 16px;border-top:1px solid #eef2f6;text-align:right;font-weight:600;font-size:15px;color:#0071c5;white-space:nowrap;">Depends on Customer &middot; Avg 48&ndash;56 hrs</td></tr>`
+        + `</table>`
+        + `<p style="margin:16px 0 0;font-size:15px;color:#6b7684;font-style:italic;">Note: In Approval Loop and Out for Signature depend on external approvers, signers and the customer, so timing can vary.</p>`
+        + `<p style="margin:26px 0 0;font-size:18px;">Thank you for your patience.</p>`
+        + `<p style="margin:20px 0 0;font-size:18px;">Best regards,<br><strong style="color:#041c32;">FS DA OPS</strong> &middot; Intel Foundry Services</p>`
+        + `</td></tr>`;
+    return wrapEmail(inner, 46);
 }
 
 async function openAcknowledgedEmail(id) {
@@ -828,15 +1059,10 @@ async function openAcknowledgedEmail(id) {
     if (!reqs.length) return;
     const req0 = reqs[0];
 
-    // LIVE MODE: email goes to the requestor, CC fs.da.ops. (Set TEST_MODE = true to send only to Jair.)
-    const TEST_MODE = false;
-    const to = TEST_MODE ? 'jair.garcia@intel.com' : (req0.requestorEmail || '');
-    const cc = 'fs.da.ops@intel.com';
-    // Full name (first + last). If requestor came as an email, prettify it.
-    let name = req0.requestor || 'there';
-    if (name.includes('@')) {
-        name = name.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-    }
+    // Test mode (toggle in header): ON sends only to Jair with empty CC.
+    const to = testModeEnabled ? 'jair.garcia@intel.com' : (req0.requestorEmail || '');
+    const cc = testModeEnabled ? '' : 'fs.da.ops@intel.com';
+    const name = emailGreetingName(req0.requestor || req0.requestorEmail);
     const customer = req0.customer || 'your request';
     const subject = `REQ. ${id} - ${customer} - Acknowledged`;
     const bodyHtml = buildAckEmailHtml(name, id, customer);
@@ -864,7 +1090,7 @@ async function openAcknowledgedEmail(id) {
     }
 
     // Fallback: open Outlook with a plain-text mailto if the flow is unavailable
-    let body = `Hi @${name},\n\n`;
+    let body = `Hi ${name},\n\n`;
     body += `This is to let you know that your request (REQ. ${id} - ${customer}) has been Acknowledged and is now in our queue.\n\n`;
     body += `We are actively working on it. Please stay tuned as we move it through the process.\n\n`;
     body += `Estimated SLAs (based on our 2026 average turnaround):\n`;
@@ -874,6 +1100,127 @@ async function openAcknowledgedEmail(id) {
     body += `Note: In Approval Loop and Out for Signature depend on external approvers/signers and the customer.\n\n`;
     body += `Thank you for your patience.\n\nBest regards,\nDA Ops - Intel Foundry Services`;
     window.location.href = `mailto:${encodeURIComponent(to)}?cc=${encodeURIComponent(cc)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
+
+// Build the HTML for the "Out for Signature" notification email.
+function buildOutForSignatureEmailHtml(name, id, customer) {
+    const inner = `<tr><td style="padding:34px;color:#1a202c;font-size:18px;line-height:1.7;">`
+        + `<p style="margin:0 0 18px;font-size:18px;">Dear <strong>${name}</strong>,</p>`
+        + `<p style="margin:0 0 18px;font-size:18px;">Your request (<strong>REQ. ${id} &mdash; ${customer}</strong>) is now <strong style="color:#0071c5;">Out for Signature</strong>.</p>`
+        + `<p style="margin:0 0 24px;font-size:18px;">The document has moved forward to the signing stage. Once all parties sign, we will move it to the next step.</p>`
+        + `<div style="background:#f5f9fc;border:1px solid #e2e8f0;border-radius:8px;padding:16px 18px;margin-bottom:8px;">`
+        + `<div style="font-size:15px;color:#6b7684;">Estimated time</div>`
+        + `<div style="font-size:18px;font-weight:700;color:#0071c5;">Depends on Customer &middot; Avg 48&ndash;56 hrs</div>`
+        + `</div>`
+        + `<p style="margin:16px 0 0;font-size:15px;color:#6b7684;font-style:italic;">Note: this stage depends on external signers and the customer, so timing can vary.</p>`
+        + `<p style="margin:26px 0 0;font-size:18px;">Thank you for your patience.</p>`
+        + `<p style="margin:20px 0 0;font-size:18px;">Best regards,<br><strong style="color:#041c32;">FS DA OPS</strong> &middot; Intel Foundry Services</p>`
+        + `</td></tr>`;
+    return wrapEmail(inner, 40);
+}
+
+async function openOutForSignatureEmail(id) {
+    const reqs = allRequests.filter(r => String(r.id) === String(id));
+    if (!reqs.length) return;
+    const req0 = reqs[0];
+    const name = emailGreetingName(req0.requestor || req0.requestorEmail);
+    const customer = req0.customer || 'your request';
+    const subject = `REQ. ${id} - ${customer} - Out for Signature`;
+    const bodyHtml = buildOutForSignatureEmailHtml(name, id, customer);
+    await sendTrackerEmail(id, subject, bodyHtml, name, customer, 'Out for Signature email');
+}
+
+// Build the HTML for the "In Approval Loop" notification email.
+function buildInApprovalLoopEmailHtml(name, id, customer) {
+    const inner = `<tr><td style="padding:34px;color:#1a202c;font-size:18px;line-height:1.7;">`
+        + `<p style="margin:0 0 18px;font-size:18px;">Dear <strong>${name}</strong>,</p>`
+        + `<p style="margin:0 0 18px;font-size:18px;">Your request (<strong>REQ. ${id} &mdash; ${customer}</strong>) is now <strong style="color:#0071c5;">In Approval Loop</strong>.</p>`
+        + `<p style="margin:0 0 24px;font-size:18px;">It is currently being reviewed by the required approvers. We will keep you updated as it moves forward.</p>`
+        + `<div style="background:#f5f9fc;border:1px solid #e2e8f0;border-radius:8px;padding:16px 18px;margin-bottom:8px;">`
+        + `<div style="font-size:15px;color:#6b7684;">Estimated time</div>`
+        + `<div style="font-size:18px;font-weight:700;color:#0071c5;">2&ndash;4 days</div>`
+        + `</div>`
+        + `<p style="margin:16px 0 0;font-size:15px;color:#6b7684;font-style:italic;">Note: this stage depends on internal approvers, so timing can vary.</p>`
+        + `<p style="margin:26px 0 0;font-size:18px;">Thank you for your patience.</p>`
+        + `<p style="margin:20px 0 0;font-size:18px;">Best regards,<br><strong style="color:#041c32;">FS DA OPS</strong> &middot; Intel Foundry Services</p>`
+        + `</td></tr>`;
+    return wrapEmail(inner, 40);
+}
+
+async function openInApprovalLoopEmail(id) {
+    const reqs = allRequests.filter(r => String(r.id) === String(id));
+    if (!reqs.length) return;
+    const req0 = reqs[0];
+    const name = emailGreetingName(req0.requestor || req0.requestorEmail);
+    const customer = req0.customer || 'your request';
+    const subject = `REQ. ${id} - ${customer} - In Approval Loop`;
+    const bodyHtml = buildInApprovalLoopEmailHtml(name, id, customer);
+    await sendTrackerEmail(id, subject, bodyHtml, name, customer, 'In Approval Loop email');
+}
+
+// Build the "Complete" celebration email — sparkles + portal name + DA number.
+function buildCompleteEmailHtml(name, id, customer, portalName, daNumber) {
+    const sparkleTop = `<tr><td align="center" style="padding:0;line-height:0;font-size:0;">`
+        + `<div style="font-size:34px;line-height:1;letter-spacing:14px;padding:18px 0 4px;">&#10022;&nbsp;&#10024;&nbsp;&#10022;&nbsp;&#10024;&nbsp;&#10022;</div>`
+        + `</td></tr>`;
+    const inner = sparkleTop
+        + `<tr><td style="padding:8px 34px 34px;color:#1a202c;font-size:18px;line-height:1.7;text-align:center;">`
+        + `<div style="font-size:26px;font-weight:800;color:#0071c5;letter-spacing:0.3px;margin-bottom:6px;">&#127881; Congratulations!</div>`
+        + `<div style="font-size:19px;font-weight:600;color:#041c32;margin-bottom:22px;">Your portal is already created.</div>`
+        + `<p style="margin:0 0 22px;font-size:18px;text-align:left;">Dear <strong>${name}</strong>,</p>`
+        + `<p style="margin:0 0 24px;font-size:18px;text-align:left;">Great news &mdash; your request (<strong>REQ. ${id} &mdash; ${customer}</strong>) has been <strong style="color:#0071c5;">Completed</strong>. Your portal is fully set up and ready to use.</p>`
+        + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:18px;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0;margin-bottom:8px;">`
+        + `<tr style="background-color:#041c32;color:#ffffff;"><td colspan="2" style="padding:12px 16px;font-weight:600;font-size:16px;text-align:left;">Portal Details</td></tr>`
+        + `<tr style="background-color:#ffffff;"><td style="width:40%;padding:12px 16px;border-top:1px solid #eef2f6;font-size:16px;text-align:left;color:#6b7684;">Portal Name</td><td style="padding:12px 16px;border-top:1px solid #eef2f6;font-size:17px;text-align:left;font-weight:700;color:#041c32;">${portalName}</td></tr>`
+        + `<tr style="background-color:#f5f9fc;"><td style="padding:12px 16px;border-top:1px solid #eef2f6;font-size:16px;text-align:left;color:#6b7684;">DA (Disclosure Agreement) ID</td><td style="padding:12px 16px;border-top:1px solid #eef2f6;font-size:17px;text-align:left;font-weight:700;color:#0071c5;">${daNumber}</td></tr>`
+        + `</table>`
+        + `<p style="margin:26px 0 0;font-size:18px;text-align:left;">Thank you for your patience throughout the process.</p>`
+        + `<p style="margin:20px 0 0;font-size:18px;text-align:left;">Best regards,<br><strong style="color:#041c32;">FS DA OPS</strong> &middot; Intel Foundry Services</p>`
+        + `</td></tr>`;
+    return wrapEmail(inner, 46);
+}
+
+async function openCompleteEmail(id, portalName, daNumber) {
+    const reqs = allRequests.filter(r => String(r.id) === String(id));
+    if (!reqs.length) return;
+    const req0 = reqs[0];
+    const name = emailGreetingName(req0.requestor || req0.requestorEmail);
+    const customer = req0.customer || 'your request';
+    const subject = `REQ. ${id} - ${customer} - Portal Completed`;
+    const bodyHtml = buildCompleteEmailHtml(name, id, customer, portalName, daNumber);
+    await sendTrackerEmail(id, subject, bodyHtml, name, customer, 'Complete email');
+}
+
+// Popup asking Portal Name + DA number before sending the Complete celebration email.
+let pendingCompleteId = null;
+function openCompleteModal(id) {
+    pendingCompleteId = id;
+    const reqs = allRequests.filter(r => String(r.id) === String(id));
+    const req0 = reqs[0] || {};
+    document.getElementById('complete-modal-req').textContent = 'REQ. ' + id + (req0.customer ? ' \u2014 ' + req0.customer : '');
+    document.getElementById('complete-portal-input').value = req0.projectName || '';
+    document.getElementById('complete-da-input').value = '';
+    document.getElementById('complete-modal').classList.add('open');
+    setTimeout(() => document.getElementById('complete-portal-input').focus(), 50);
+}
+function hideCompleteModal(e){
+    if (e && e.target && e.target.id !== 'complete-modal' && e.type === 'click') return;
+    document.getElementById('complete-modal').classList.remove('open');
+    pendingCompleteId = null;
+}
+async function confirmCompleteModal(){
+    const id = pendingCompleteId;
+    if (!id) return;
+    const portalName = document.getElementById('complete-portal-input').value.trim();
+    const daNumber = document.getElementById('complete-da-input').value.trim();
+    if (!portalName || !daNumber) {
+        const warn = document.getElementById('complete-modal-warn');
+        if (warn) warn.style.display = 'block';
+        return;
+    }
+    document.getElementById('complete-modal').classList.remove('open');
+    pendingCompleteId = null;
+    await openCompleteEmail(id, portalName, daNumber);
 }
 
 // Log change to history
@@ -1261,44 +1608,75 @@ const EMAIL_LINKS = {
     newDA: 'https://intel.sharepoint.com/:x:/r/sites/ifs-igo-requests/Shared%20Documents/NewDARequest.xlsx?d=w4f8d91c08ca34e938883522eb3e7f40e&csf=1&web=1&e=3P54SU',
     // IFS NDA template
     ifsNDA: 'https://intel.sharepoint.com/:x:/r/sites/ifs-igo-requests/Shared%20Documents/IFS-NDA_Template.xlsx?d=w908e2047ce4a4408a4542ae631aee5b6&csf=1&web=1&e=fvkKm5',
-    // Multi-Party RUNDA Acknowledgment (PENDIENTE: pegar link real cuando lo compartas)
-    mpRunda: 'https://intel.sharepoint.com/:w:/r/sites/ifs-igo-requests/Shared%20Documents/Multi-Party-MRUNDA-Acknowledgment.docx?csf=1&web=1'
+    // Multi-Party RUNDA Acknowledgment (MP-NDA) template
+    mpRunda: 'https://intel.sharepoint.com/:x:/r/sites/ifs-igo-requests/Shared%20Documents/Template%20for%20MP-NDAfor%20MRUNDA.xlsx?d=w0d2d4a3532cb49e986be94bf78034f25&csf=1&web=1&e=BXXvZg'
 };
 
-// Decorative static circles (email-safe: absolutely positioned divs in a relative header)
-function emailCircles() {
-    const cols = ['rgba(78,200,240,0.18)','rgba(255,255,255,0.14)','rgba(107,203,119,0.16)'];
-    const specs = [
-        [70,-20,10],[120,80,-30],[46,150,60],[90,300,-20],[60,420,40],
-        [140,520,-40],[50,60,120],[80,360,110],[38,470,10]
-    ];
-    let html = '';
-    specs.forEach((s,i) => {
-        const size=s[0], left=s[1], top=s[2];
-        html += `<div style="position:absolute;width:${size}px;height:${size}px;border-radius:50%;border:1.5px solid ${cols[i%3]};left:${left}px;top:${top}px;"></div>`;
-    });
-    return html;
+// Wrap the card in an Outlook-safe blue area with fixed side decorations.
+// Outlook-safe three-column layout: decoration stays in real side columns.
+// Do not use absolute positioning here; Outlook's Word renderer ignores it.
+function wrapEmail(innerRows, totalCircles) {
+    const total = totalCircles || 40;
+    const perSide = Math.round(total / 2);
+    return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;background-color:#0a2540;font-family:'Segoe UI',Arial,sans-serif;">`
+        + `<tr><td align="center" style="background-color:#0a2540;padding:36px 12px;">`
+        + `<table role="presentation" width="792" cellpadding="0" cellspacing="0" style="width:792px;max-width:792px;border-collapse:collapse;">`
+        + `<tr>`
+        + `<td width="96" valign="top" style="width:96px;vertical-align:top;">${emailCircles('left', perSide)}</td>`
+        + `<td width="600" valign="top" style="width:600px;vertical-align:top;">`
+        + `<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:600px;background-color:#ffffff;border-radius:14px;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,0.35);">`
+        + emailHeader()
+        + innerRows
+        + emailFooter()
+        + `</table></td>`
+        + `<td width="96" valign="top" style="width:96px;vertical-align:top;">${emailCircles('right', perSide)}</td>`
+        + `</tr></table></td></tr></table>`;
 }
 
-// Blue banner header with FS badge + Intel Foundry Services + static circles
+// Circles per side, distributed through table rows so Outlook cannot
+// collapse them into the center or let them push the message body downward.
+// `count` is how many circles to render on this side (patterns cycle via modulo).
+function emailCircles(side, count) {
+    const sizes = [22,38,16,46,28,18,42,24,34,14,44,20,30,16,40,26,18,36,24,32];
+    const heights = [34,44,30,52,38,32,48,36,42,30,50,34,40,30,48,36,32,44,36,42];
+    // Pre-blended muted colors simulate transparency without CSS opacity,
+    // which Outlook may ignore or render as fully transparent.
+    const colors = ['#3a91b4','#a4afb9','#4b9369','#087fb1'];
+    const aligns = side === 'left'
+        ? ['left','right','center','left','right']
+        : ['right','left','center','right','left'];
+    let rows = '';
+    for (let i = 0; i < count; i++) {
+        const size = sizes[i % sizes.length];
+        const height = heights[i % heights.length];
+        const align = aligns[i % aligns.length];
+        const color = colors[(i + (side === 'right' ? 2 : 0)) % colors.length];
+        rows += `<tr><td height="${height}" align="${align}" valign="middle" style="height:${height}px;padding:3px 8px;text-align:${align};vertical-align:middle;">`
+            + `<span style="display:inline-block;width:${size}px;height:${size}px;line-height:${size}px;border:2px solid ${color};border-radius:50%;font-size:0;mso-line-height-rule:exactly;">&nbsp;</span>`
+            + `</td></tr>`;
+    }
+    return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;">${rows}</table>`;
+}
+
+// Bright Intel-blue banner header (badge FS + Intel Foundry Services).
 function emailHeader() {
-    return `<tr><td style="position:relative;background:linear-gradient(135deg,#041c32 0%,#0d3158 50%,#0071c5 100%);padding:30px 34px;overflow:hidden;">`
-        + `<div style="position:absolute;inset:0;overflow:hidden;">${emailCircles()}</div>`
-        + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="position:relative;"><tr>`
-        + `<td style="vertical-align:middle;width:52px;"><span style="display:inline-block;width:52px;height:52px;line-height:52px;text-align:center;border:2px solid #4ec8f0;border-radius:11px;color:#4ec8f0;font-size:22px;font-weight:700;letter-spacing:1px;">FS</span></td>`
+    return `<tr><td style="background:#0071c5;background:linear-gradient(90deg,#0071c5 0%,#00aeef 100%);padding:26px 34px;">`
+        + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>`
+        + `<td style="vertical-align:middle;width:52px;"><span style="display:inline-block;width:52px;height:52px;line-height:52px;text-align:center;border:2px solid #ffffff;border-radius:11px;color:#ffffff;font-size:22px;font-weight:700;letter-spacing:1px;">FS</span></td>`
         + `<td style="vertical-align:middle;padding-left:16px;">`
-        + `<div style="color:#ffffff;font-size:24px;font-weight:700;letter-spacing:0.3px;">FS &middot; Intel Foundry Services</div>`
-        + `<div style="color:#4ec8f0;font-size:14px;letter-spacing:1px;text-transform:uppercase;">FS Request Tracker &middot; DA OPS</div>`
+        + `<div style="color:#ffffff;font-size:24px;font-weight:700;letter-spacing:0.3px;">Intel Foundry Services</div>`
+        + `<div style="color:#d6f1ff;font-size:14px;letter-spacing:1px;text-transform:uppercase;">FS Request Tracker &middot; DA OPS</div>`
         + `</td></tr></table></td></tr>`
-        + `<tr><td style="height:5px;background:linear-gradient(90deg,#4ec8f0,#0071c5,#6bcb77);font-size:0;line-height:0;">&nbsp;</td></tr>`;
+        + `<tr><td style="height:4px;background:#041c32;font-size:0;line-height:0;">&nbsp;</td></tr>`;
 }
 
-// Footer: notification text, then "Intel Foundry Services", then Intel Confidential
+// Footer: notification text, then REAL logo image, then Intel Confidential
 function emailFooter() {
-    return `<tr><td style="background-color:#f0f4f8;padding:20px 34px;text-align:center;border-top:1px solid #e2e8f0;">`
-        + `<div style="color:#9aa4b0;font-size:13px;margin-bottom:8px;">This is an automated notification from the FS Request Tracker.</div>`
-        + `<div style="color:#0071c5;font-size:16px;font-weight:700;">intel<span style="color:#5a6570;font-weight:600;"> Foundry Services</span></div>`
-        + `<div style="color:#8a97a5;font-size:12px;margin-top:6px;">Intel Confidential &mdash; This message and any attachments are intended only for the named recipient(s).</div>`
+    const LOGO = 'https://jairgarciaintel.github.io/ifs-request-tracker/Logo.png';
+    return `<tr><td style="background-color:#f0f4f8;padding:22px 34px;text-align:center;border-top:1px solid #e2e8f0;">`
+        + `<div style="color:#9aa4b0;font-size:13px;margin-bottom:12px;">This is an automated notification from the FS Request Tracker.</div>`
+        + `<img src="${LOGO}" alt="Intel Foundry Services" width="120" style="display:inline-block;max-height:36px;width:auto;margin-bottom:12px;">`
+        + `<div style="color:#8a97a5;font-size:12px;line-height:1.5;">Intel Confidential &mdash; This message and any attachments are intended only for the named recipient(s) and may contain confidential information. If you are not the intended recipient, please notify the sender and delete this message.</div>`
         + `</td></tr>`;
 }
 
@@ -1311,7 +1689,7 @@ function buildInfoRequestEmailHtml(name, id, customer, types) {
     if (has('DA Edit')) items += `<li style="margin-bottom:14px;"><strong>DA Edit</strong> — please fill out this template.<br>${btn('Open DA Edit template', EMAIL_LINKS.newDA)}</li>`;
     if (has('Portal Creation')) items += `<li style="margin-bottom:14px;"><strong>Portal Creation</strong> — please fill out the New DA request template.<br>${btn('Open template', EMAIL_LINKS.newDA)}</li>`;
     if (has('IFS NDA')) items += `<li style="margin-bottom:14px;"><strong>IFS NDA</strong> — please fill out this template.<br>${btn('Open IFS NDA template', EMAIL_LINKS.ifsNDA)}</li>`;
-    if (has('MP-NDA') || has('Multi-Party')) items += `<li style="margin-bottom:14px;"><strong>Multi-Party RUNDA Acknowledgment</strong> — please fill out this template.<br>${btn('Open MP-RUNDA template', EMAIL_LINKS.mpRunda)}</li>`;
+    if (has('MP-NDA') || has('MPA-NDA') || has('MPA-IC') || has('MRUNDA') || has('Multi-Party')) items += `<li style="margin-bottom:14px;"><strong>Multi-Party RUNDA Acknowledgment</strong> — please fill out this template.<br>${btn('Open MP-RUNDA template', EMAIL_LINKS.mpRunda)}</li>`;
     if (has('Codename')) {
         items += `<li style="margin-bottom:14px;"><strong>Codename Request</strong> — please fill out the following with the customer information:`
             + `<div style="background:#f5f9fc;border:1px solid #e2e8f0;border-radius:8px;padding:14px 16px;margin-top:8px;font-size:14px;color:#1a202c;line-height:1.8;">`
@@ -1319,25 +1697,20 @@ function buildInfoRequestEmailHtml(name, id, customer, types) {
     }
     if (!items) items = `<li>Please provide the required information so we can proceed with your request.</li>`;
 
-    let body = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0a2540;padding:24px 0;font-family:'Segoe UI',Arial,sans-serif;"><tr><td align="center">`
-        + `<table role="presentation" width="640" cellpadding="0" cellspacing="0" style="width:640px;max-width:640px;background-color:#ffffff;border-radius:14px;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,0.25);">`
-        + emailHeader()
-        + `<tr><td style="padding:34px;color:#1a202c;font-size:17px;line-height:1.7;">`
-        + `<p style="margin:0 0 18px;">Dear <strong>@${name}</strong>,</p>`
+    const inner = `<tr><td style="padding:34px;color:#1a202c;font-size:17px;line-height:1.7;">`
+        + `<p style="margin:0 0 18px;">Dear <strong>${name}</strong>,</p>`
         + `<p style="margin:0 0 18px;">Thank you for your request (<strong>REQ. ${id} &mdash; ${customer}</strong>). In order to proceed, we need you to complete the following template(s) and attach them back to your request:</p>`
         + `<ul style="margin:0 0 18px;padding-left:20px;font-size:16px;">${items}</ul>`
         + `<p style="margin:18px 0 0;">Once completed, please attach the file(s) to your request so we can move forward.</p>`
         + `<p style="margin:22px 0 0;">Best regards,<br><strong style="color:#041c32;">FS DA OPS</strong> &middot; Intel Foundry Services</p>`
-        + `</td></tr>`
-        + emailFooter()
-        + `</table></td></tr></table>`;
-    return body;
+        + `</td></tr>`;
+    return wrapEmail(inner, 34);
 }
 
 function buildRequestEmail(id, reqs) {
     const req0 = reqs[0] || {};
     const email = req0.requestorEmail || '';
-    const name = (req0.requestor || 'there').split(' ')[0];
+    const name = emailGreetingName(req0.requestor || req0.requestorEmail);
     const customer = req0.customer || 'the customer';
     const types = reqs.filter(r => r.requestType !== 'Unknown').map(r => r.requestType);
 
@@ -1347,8 +1720,8 @@ function buildRequestEmail(id, reqs) {
     // Subject: REQ. XXXX - Company - Info request
     const subject = `REQ. ${id} - ${customer} - Info request`;
 
-    // Body — @FirstName so Outlook can turn it into a mention when you press space after it
-    let body = `Hi @${name},\n\n`;
+    // Plain-text mailto body uses the requestor's first name.
+    let body = `Hi ${name},\n\n`;
     body += `Thank you for your request. In order to proceed, you are required to fill out the template as follows and attach it back to your request:\n\n`;
 
     const has = t => types.some(x => x.toLowerCase() === t.toLowerCase());
@@ -1361,6 +1734,9 @@ function buildRequestEmail(id, reqs) {
     }
     if (has('IFS NDA')) {
         body += `IFS NDA — please fill out this template.\nLink: ${EMAIL_LINKS.ifsNDA}\n\n`;
+    }
+    if (has('MP-NDA') || has('MPA-NDA') || has('MPA-IC') || has('MRUNDA') || has('Multi-Party')) {
+        body += `Multi-Party RUNDA Acknowledgment — please fill out this template.\nLink: ${EMAIL_LINKS.mpRunda}\n\n`;
     }
     if (has('Codename')) {
         body += `Codename Request — please fill out the following template with the customer attachment information:\n\n`;
@@ -2033,7 +2409,15 @@ if (localStorage.getItem('fs-theme') === 'light') document.body.classList.add('l
 // ============================================================
 // INIT
 // ============================================================
-document.addEventListener('DOMContentLoaded', fetchAndRender);
+document.addEventListener('DOMContentLoaded', function(){
+    var vb = document.getElementById('app-version');
+    if (vb) { vb.textContent = APP_VERSION; vb.title = 'FS Request Tracker ' + APP_VERSION; }
+    var tg = document.getElementById('auto-emails-toggle');
+    if (tg) tg.checked = autoEmailsEnabled;
+    var tm = document.getElementById('test-mode-toggle');
+    if (tm) tm.checked = testModeEnabled;
+    fetchAndRender();
+});
 </script>
 </body>
 </html>
