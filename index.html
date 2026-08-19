@@ -1265,40 +1265,41 @@ const EMAIL_LINKS = {
     mpRunda: 'https://intel.sharepoint.com/:x:/r/sites/ifs-igo-requests/Shared%20Documents/Template%20for%20MP-NDAfor%20MRUNDA.xlsx?d=w0d2d4a3532cb49e986be94bf78034f25&csf=1&web=1&e=BXXvZg'
 };
 
-// Decorative static circles (email-safe: absolutely positioned divs in a relative header)
+// Decorative static circles spread across the OUTER blue background (behind the white card)
 function emailCircles() {
-    const cols = ['rgba(78,200,240,0.18)','rgba(255,255,255,0.14)','rgba(107,203,119,0.16)'];
+    const cols = ['rgba(78,200,240,0.16)','rgba(255,255,255,0.10)','rgba(107,203,119,0.13)','rgba(0,113,197,0.16)'];
+    // [size, left%, top%]
     const specs = [
-        [70,-20,10],[120,80,-30],[46,150,60],[90,300,-20],[60,420,40],
-        [140,520,-40],[50,60,120],[80,360,110],[38,470,10]
+        [120,-3,2],[70,20,10],[150,80,4],[50,50,3],[90,92,22],
+        [60,4,40],[130,88,55],[45,30,60],[80,10,80],[110,70,86],
+        [55,45,92],[70,95,78],[40,60,45],[95,2,64]
     ];
     let html = '';
     specs.forEach((s,i) => {
-        const size=s[0], left=s[1], top=s[2];
-        html += `<div style="position:absolute;width:${size}px;height:${size}px;border-radius:50%;border:1.5px solid ${cols[i%3]};left:${left}px;top:${top}px;"></div>`;
+        html += `<div style="position:absolute;width:${s[0]}px;height:${s[0]}px;border-radius:50%;border:1.5px solid ${cols[i%4]};left:${s[1]}%;top:${s[2]}%;"></div>`;
     });
     return html;
 }
 
-// Blue banner header with FS badge + Intel Foundry Services + static circles
+// Blue banner header (badge FS + Intel Foundry Services). No circles here (they go on the outer bg).
 function emailHeader() {
-    return `<tr><td style="position:relative;background:linear-gradient(135deg,#041c32 0%,#0d3158 50%,#0071c5 100%);padding:30px 34px;overflow:hidden;">`
-        + `<div style="position:absolute;inset:0;overflow:hidden;">${emailCircles()}</div>`
-        + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="position:relative;"><tr>`
+    return `<tr><td style="background:linear-gradient(135deg,#041c32 0%,#0d3158 50%,#0071c5 100%);padding:30px 34px;">`
+        + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>`
         + `<td style="vertical-align:middle;width:52px;"><span style="display:inline-block;width:52px;height:52px;line-height:52px;text-align:center;border:2px solid #4ec8f0;border-radius:11px;color:#4ec8f0;font-size:22px;font-weight:700;letter-spacing:1px;">FS</span></td>`
         + `<td style="vertical-align:middle;padding-left:16px;">`
-        + `<div style="color:#ffffff;font-size:24px;font-weight:700;letter-spacing:0.3px;">FS &middot; Intel Foundry Services</div>`
+        + `<div style="color:#ffffff;font-size:24px;font-weight:700;letter-spacing:0.3px;">Intel Foundry Services</div>`
         + `<div style="color:#4ec8f0;font-size:14px;letter-spacing:1px;text-transform:uppercase;">FS Request Tracker &middot; DA OPS</div>`
         + `</td></tr></table></td></tr>`
         + `<tr><td style="height:5px;background:linear-gradient(90deg,#4ec8f0,#0071c5,#6bcb77);font-size:0;line-height:0;">&nbsp;</td></tr>`;
 }
 
-// Footer: notification text, then "Intel Foundry Services", then Intel Confidential
+// Footer: notification text, then REAL logo image, then Intel Confidential
 function emailFooter() {
-    return `<tr><td style="background-color:#f0f4f8;padding:20px 34px;text-align:center;border-top:1px solid #e2e8f0;">`
-        + `<div style="color:#9aa4b0;font-size:13px;margin-bottom:8px;">This is an automated notification from the FS Request Tracker.</div>`
-        + `<div style="color:#0071c5;font-size:16px;font-weight:700;">intel<span style="color:#5a6570;font-weight:600;"> Foundry Services</span></div>`
-        + `<div style="color:#8a97a5;font-size:12px;margin-top:6px;">Intel Confidential &mdash; This message and any attachments are intended only for the named recipient(s).</div>`
+    const LOGO = 'https://jairgarciaintel.github.io/ifs-request-tracker/Logo.png';
+    return `<tr><td style="background-color:#f0f4f8;padding:22px 34px;text-align:center;border-top:1px solid #e2e8f0;">`
+        + `<div style="color:#9aa4b0;font-size:13px;margin-bottom:12px;">This is an automated notification from the FS Request Tracker.</div>`
+        + `<img src="${LOGO}" alt="Intel Foundry Services" width="120" style="display:inline-block;max-height:36px;width:auto;margin-bottom:12px;">`
+        + `<div style="color:#8a97a5;font-size:12px;line-height:1.5;">Intel Confidential &mdash; This message and any attachments are intended only for the named recipient(s).</div>`
         + `</td></tr>`;
 }
 
@@ -1319,8 +1320,11 @@ function buildInfoRequestEmailHtml(name, id, customer, types) {
     }
     if (!items) items = `<li>Please provide the required information so we can proceed with your request.</li>`;
 
-    let body = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0a2540;padding:24px 0;font-family:'Segoe UI',Arial,sans-serif;"><tr><td align="center">`
-        + `<table role="presentation" width="640" cellpadding="0" cellspacing="0" style="width:640px;max-width:640px;background-color:#ffffff;border-radius:14px;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,0.25);">`
+    // Outer wrapper: blue background with circles spread around; white card on top.
+    let body = `<div style="background-color:#0a2540;padding:34px 20px;font-family:'Segoe UI',Arial,sans-serif;position:relative;overflow:hidden;">`
+        + `<div style="position:absolute;inset:0;overflow:hidden;pointer-events:none;">${emailCircles()}</div>`
+        + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="position:relative;"><tr><td align="center">`
+        + `<table role="presentation" width="640" cellpadding="0" cellspacing="0" style="width:640px;max-width:640px;background-color:#ffffff;border-radius:14px;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,0.35);">`
         + emailHeader()
         + `<tr><td style="padding:34px;color:#1a202c;font-size:17px;line-height:1.7;">`
         + `<p style="margin:0 0 18px;">Dear <strong>@${name}</strong>,</p>`
@@ -1330,7 +1334,7 @@ function buildInfoRequestEmailHtml(name, id, customer, types) {
         + `<p style="margin:22px 0 0;">Best regards,<br><strong style="color:#041c32;">FS DA OPS</strong> &middot; Intel Foundry Services</p>`
         + `</td></tr>`
         + emailFooter()
-        + `</table></td></tr></table>`;
+        + `</table></td></tr></table></div>`;
     return body;
 }
 
