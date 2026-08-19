@@ -1123,23 +1123,26 @@ function buildRequestEmail(id, reqs) {
     const customer = req0.customer || 'the customer';
     const types = reqs.filter(r => r.requestType !== 'Unknown').map(r => r.requestType);
 
+    // Always CC Jenn
+    const cc = 'jenn.glavan@intel.com';
+
     // Subject: REQ. XXXX - Company - Info request
     const subject = `REQ. ${id} - ${customer} - Info request`;
 
-    // Body
-    let body = `Hello @${req0.requestor || name},\n\n`;
+    // Body — @FirstName so Outlook can turn it into a mention when you press space after it
+    let body = `Hi @${name},\n\n`;
     body += `Thank you for your request. In order to proceed, you are required to fill out the template as follows and attach it back to your request:\n\n`;
 
     const has = t => types.some(x => x.toLowerCase() === t.toLowerCase());
 
     if (has('New DA')) {
-        body += `New DA — please fill out this template:\n${EMAIL_LINKS.newDA}\n\n`;
+        body += `New DA — please fill out this template.\nLink: ${EMAIL_LINKS.newDA}\n\n`;
     }
     if (has('DA Edit')) {
-        body += `DA Edit — please fill out this template:\n${EMAIL_LINKS.newDA}\n\n`;
+        body += `DA Edit — please fill out this template.\nLink: ${EMAIL_LINKS.newDA}\n\n`;
     }
     if (has('IFS NDA')) {
-        body += `IFS NDA — please fill out this template:\n${EMAIL_LINKS.ifsNDA}\n\n`;
+        body += `IFS NDA — please fill out this template.\nLink: ${EMAIL_LINKS.ifsNDA}\n\n`;
     }
     if (has('Codename')) {
         body += `Codename Request — please fill out the following template with the customer attachment information:\n\n`;
@@ -1148,7 +1151,7 @@ function buildRequestEmail(id, reqs) {
 
     body += `Please fill the template and attach it to your request so we can proceed.\n\nThank you,\nDA Ops`;
 
-    return `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    return `mailto:${encodeURIComponent(email)}?cc=${encodeURIComponent(cc)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
 function openRequestEmail(id) {
