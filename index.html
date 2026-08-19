@@ -70,7 +70,7 @@ body{
     </div>
   </div>
   <div class="header-right">
-    <span id="app-version" class="version-badge" title="Click to see changelog" onclick="showChangelog()">v1.8.21</span>
+    <span id="app-version" class="version-badge" title="Click to see changelog" onclick="showChangelog()">v1.8.22</span>
     <label class="auto-toggle" title="Auto emails on status change">
       <span class="auto-toggle-label">Auto emails</span>
       <span class="switch"><input type="checkbox" id="auto-emails-toggle" onchange="toggleAutoEmails(this)"><span class="slider"></span></span>
@@ -477,10 +477,11 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.21';
+const APP_VERSION = 'v1.8.22';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
+    ['v1.8.22', ['New "DA Number" row on the card, separate from DA Link. The number captured in the DA Link popup now saves to its own SharePoint text column (DA_x0020_Number) and is read back on Sync.','DA Link button label is now always "Open DA Link" (number lives in its own row).']],
     ['v1.8.21', ['DA Link now saves to SharePoint correctly (the DALink column is a plain URL field, so we send only the URL). The DA number is kept in the tracker to auto-fill the Complete email.','Removed leftover Instructions_follow notes from the repo and gitignored them (they contained a signed flow URL).']],
     ['v1.8.20', ['DA Link now shown on the card, next to Portal Name. Saved instantly from the DA Link popup (In Approval Loop) even before SharePoint confirms the write, and also reads it back from SharePoint once the data flow returns it.']],
     ['v1.8.19', ['FIX: updateFieldsUrl was missing the flow\u2019s security signature (401, zero runs). Trigger security was switched to "Anyone" in Power Automate and the fully-signed URL is now wired in \u2014 DA Link and Project Portal Name should save to SharePoint correctly now.']],
@@ -760,6 +761,9 @@ async function fetchAndRender() {
                         } else if (typeof daLinkRaw === 'string') {
                             daLinkUrl = daLinkRaw;
                         }
+                        // DA Number: dedicated text column (internal name DA_x0020_Number).
+                        const daNumber = String(item.DA_x0020_Number || item.DANumber || '').trim();
+                        if (daNumber) daLinkText = daNumber;
 
                         // Requestor email (for mailto). Try Email, then extract from Claims.
                         let requestorEmail = '';
@@ -989,15 +993,19 @@ async function updateSharePoint(requestId, newStatus) {
     }
 }
 
-// Update non-status SharePoint fields (DA Link, Project/Portal Name) via a dedicated
-// Power Automate flow (CONFIG.updateFieldsUrl). Fields are sent only when provided.
-// daLinkUrl / daLinkText map to the SharePoint "DA Link" hyperlink column
-// (Url + Description). projectPortalName maps to "Project Portal Name".
-async function updateSharePointFields(requestId, { daLinkUrl, daLinkText, projectPortalName } = {}) {
+// Update non-status SharePoint fields via a dedicated Power Automate flow
+// (CONFIG.updateFieldsUrl). Fields are sent only when provided.
+//  - daLinkUrl  -> "DA Link" column (plain URL, internal name DALink)
+//  - daNumber   -> "DA Number" text column (internal name DA_x0020_Number)
+//  - projectPortalName -> "Project Portal Name" (internal name Project_x002f_PortalName)
+async function updateSharePointFields(requestId, { daLinkUrl, daLinkText, daNumber, projectPortalName } = {}) {
     if (!CONFIG.updateFieldsUrl) { console.warn('CONFIG.updateFieldsUrl not set — skipping SharePoint field update.'); return false; }
     const payload = { id: parseInt(requestId) };
     if (daLinkUrl) payload.daLinkUrl = daLinkUrl;
     if (daLinkText) payload.daLinkText = daLinkText;
+    // The DA number goes to its own text column. Accept it via daNumber or daLinkText.
+    const num = daNumber || daLinkText;
+    if (num) payload.daNumber = num;
     if (projectPortalName) payload.projectPortalName = projectPortalName;
     try {
         const res = await fetch(CONFIG.updateFieldsUrl, {
@@ -1961,15 +1969,17 @@ function renderGroupCard(id, reqs) {
     // (covers the case where the "Get all requests" flow doesn't return this column yet).
     const localDaLink = (trackingData._daLink && trackingData._daLink[id]) || {};
     const daLinkUrl = reqs[0].daLinkUrl || localDaLink.url || '';
-    const daLinkText = reqs[0].daLinkText || localDaLink.text || '';
+    const daNumber = reqs[0].daLinkText || localDaLink.text || '';
     const daLinkHtml = daLinkUrl
-        ? `<a class="attach-link" href="${daLinkUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()"><svg width="12" height="12" viewBox="0 0 16 16"><path d="M9,3 L4,8 a2.5,2.5 0 0 0 3.5,3.5 L13,6 a1.5,1.5 0 0 0 -2,-2 L6,9" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>${daLinkText ? ('DA ' + daLinkText) : 'Open DA Link'}</a>`
+        ? `<a class="attach-link" href="${daLinkUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()"><svg width="12" height="12" viewBox="0 0 16 16"><path d="M9,3 L4,8 a2.5,2.5 0 0 0 3.5,3.5 L13,6 a1.5,1.5 0 0 0 -2,-2 L6,9" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>Open DA Link</a>`
         : '<span class="info-empty">Not set yet</span>';
+    const daNumberHtml = daNumber ? daNumber : '<span class="info-empty">Not set yet</span>';
     const infoBlock = `<div class="req-info">
       <div class="req-info-row"><span class="req-info-label">Created By</span><span class="req-info-val">${createdByHtml}</span></div>
       <div class="req-info-row"><span class="req-info-label">Assigned BD</span><span class="req-info-val">${assignedBD}</span></div>
       <div class="req-info-row"><span class="req-info-label">Portal Name</span><span class="req-info-val">${portalNameHtml}</span></div>
       <div class="req-info-row"><span class="req-info-label">DA Link</span><span class="req-info-val">${daLinkHtml}</span></div>
+      <div class="req-info-row"><span class="req-info-label">DA Number</span><span class="req-info-val">${daNumberHtml}</span></div>
       <div class="req-info-row req-info-full"><span class="req-info-label">Details</span><span class="req-info-val req-info-details">${details ? details : '<span class="info-empty">No details</span>'}</span></div>
       <div class="req-info-row req-info-full"><span class="req-info-label">Attachments</span><span class="req-info-val req-info-attach">${attachmentsHtml}</span></div>
     </div>`;
