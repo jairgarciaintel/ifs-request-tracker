@@ -777,9 +777,41 @@ async function changeSpStatus(id, newStatus, selectEl) {
     allRequests.forEach(r => { if (String(r.id) === String(id)) r.status = newStatus; });
     // Log it
     logHistory(id, '', 'SharePoint Status', 'Status', newStatus);
-    // When set to Acknowledged, open an email to the requestor (CC Jair + Jenn)
-    if (String(newStatus).toLowerCase() === 'acknowledged') {
+    // Auto-emails on status change
+    const st = String(newStatus).toLowerCase();
+    if (st === 'acknowledged') {
         openAcknowledgedEmail(id);
+    } else if (st === 'info requested') {
+        openInfoRequestEmail(id);
+    }
+}
+
+// Send the "Info Request" email (all templates for the request types) via the flow
+async function openInfoRequestEmail(id) {
+    const reqs = allRequests.filter(r => String(r.id) === String(id));
+    if (!reqs.length) return;
+    const req0 = reqs[0];
+
+    const TEST_MODE = false; // false = LIVE (to requestor, CC fs.da.ops)
+    const to = TEST_MODE ? 'jair.garcia@intel.com' : (req0.requestorEmail || '');
+    const cc = 'fs.da.ops@intel.com';
+    let name = req0.requestor || 'there';
+    if (name.includes('@')) name = name.split('@')[0].replace(/[._]/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+    const customer = req0.customer || 'your request';
+    const subject = `REQ. ${id} - ${customer} - Info Request`;
+    const types = reqs.filter(r => r.requestType !== 'Unknown').map(r => r.requestType);
+    const bodyHtml = buildInfoRequestEmailHtml(name, id, customer, types);
+
+    if (!to) { console.warn('No recipient email for #' + id); return; }
+    if (CONFIG.sendEmailUrl) {
+        try {
+            const res = await fetch(CONFIG.sendEmailUrl, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ to, cc, subject, name, id: String(id), customer, bodyHtml })
+            });
+            if (res.ok) { updateSync('Info Request email sent for #' + id); return; }
+            console.warn('Send-email flow returned ' + res.status);
+        } catch (e) { console.warn('Info Request email failed:', e.message); }
     }
 }
 
@@ -1225,11 +1257,82 @@ function renderRequests() {
 // EMAIL TEMPLATES — mailto builder for requestor
 // ============================================================
 const EMAIL_LINKS = {
-    // New DA / DA Edit share the same template link
+    // New DA / DA Edit / Portal Creation share the same template link
     newDA: 'https://intel.sharepoint.com/:x:/r/sites/ifs-igo-requests/Shared%20Documents/NewDARequest.xlsx?d=w4f8d91c08ca34e938883522eb3e7f40e&csf=1&web=1&e=3P54SU',
     // IFS NDA template
-    ifsNDA: 'https://intel.sharepoint.com/:x:/r/sites/ifs-igo-requests/Shared%20Documents/IFS-NDA_Template.xlsx?d=w908e2047ce4a4408a4542ae631aee5b6&csf=1&web=1&e=fvkKm5'
+    ifsNDA: 'https://intel.sharepoint.com/:x:/r/sites/ifs-igo-requests/Shared%20Documents/IFS-NDA_Template.xlsx?d=w908e2047ce4a4408a4542ae631aee5b6&csf=1&web=1&e=fvkKm5',
+    // Multi-Party RUNDA Acknowledgment (PENDIENTE: pegar link real cuando lo compartas)
+    mpRunda: 'https://intel.sharepoint.com/:w:/r/sites/ifs-igo-requests/Shared%20Documents/Multi-Party-MRUNDA-Acknowledgment.docx?csf=1&web=1'
 };
+
+// Decorative static circles (email-safe: absolutely positioned divs in a relative header)
+function emailCircles() {
+    const cols = ['rgba(78,200,240,0.18)','rgba(255,255,255,0.14)','rgba(107,203,119,0.16)'];
+    const specs = [
+        [70,-20,10],[120,80,-30],[46,150,60],[90,300,-20],[60,420,40],
+        [140,520,-40],[50,60,120],[80,360,110],[38,470,10]
+    ];
+    let html = '';
+    specs.forEach((s,i) => {
+        const size=s[0], left=s[1], top=s[2];
+        html += `<div style="position:absolute;width:${size}px;height:${size}px;border-radius:50%;border:1.5px solid ${cols[i%3]};left:${left}px;top:${top}px;"></div>`;
+    });
+    return html;
+}
+
+// Blue banner header with FS badge + Intel Foundry Services + static circles
+function emailHeader() {
+    return `<tr><td style="position:relative;background:linear-gradient(135deg,#041c32 0%,#0d3158 50%,#0071c5 100%);padding:30px 34px;overflow:hidden;">`
+        + `<div style="position:absolute;inset:0;overflow:hidden;">${emailCircles()}</div>`
+        + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="position:relative;"><tr>`
+        + `<td style="vertical-align:middle;width:52px;"><span style="display:inline-block;width:52px;height:52px;line-height:52px;text-align:center;border:2px solid #4ec8f0;border-radius:11px;color:#4ec8f0;font-size:22px;font-weight:700;letter-spacing:1px;">FS</span></td>`
+        + `<td style="vertical-align:middle;padding-left:16px;">`
+        + `<div style="color:#ffffff;font-size:24px;font-weight:700;letter-spacing:0.3px;">FS &middot; Intel Foundry Services</div>`
+        + `<div style="color:#4ec8f0;font-size:14px;letter-spacing:1px;text-transform:uppercase;">FS Request Tracker &middot; DA OPS</div>`
+        + `</td></tr></table></td></tr>`
+        + `<tr><td style="height:5px;background:linear-gradient(90deg,#4ec8f0,#0071c5,#6bcb77);font-size:0;line-height:0;">&nbsp;</td></tr>`;
+}
+
+// Footer: notification text, then "Intel Foundry Services", then Intel Confidential
+function emailFooter() {
+    return `<tr><td style="background-color:#f0f4f8;padding:20px 34px;text-align:center;border-top:1px solid #e2e8f0;">`
+        + `<div style="color:#9aa4b0;font-size:13px;margin-bottom:8px;">This is an automated notification from the FS Request Tracker.</div>`
+        + `<div style="color:#0071c5;font-size:16px;font-weight:700;">intel<span style="color:#5a6570;font-weight:600;"> Foundry Services</span></div>`
+        + `<div style="color:#8a97a5;font-size:12px;margin-top:6px;">Intel Confidential &mdash; This message and any attachments are intended only for the named recipient(s).</div>`
+        + `</td></tr>`;
+}
+
+// Build the styled HTML for the Info Request email (all templates for the request types)
+function buildInfoRequestEmailHtml(name, id, customer, types) {
+    const has = t => types.some(x => x.toLowerCase() === t.toLowerCase());
+    const btn = (label, url) => `<a href="${url}" style="display:inline-block;background:#0071c5;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:8px 18px;border-radius:6px;margin-top:4px;">${label} &raquo;</a>`;
+    let items = '';
+    if (has('New DA')) items += `<li style="margin-bottom:14px;"><strong>New DA</strong> — please fill out this template.<br>${btn('Open New DA template', EMAIL_LINKS.newDA)}</li>`;
+    if (has('DA Edit')) items += `<li style="margin-bottom:14px;"><strong>DA Edit</strong> — please fill out this template.<br>${btn('Open DA Edit template', EMAIL_LINKS.newDA)}</li>`;
+    if (has('Portal Creation')) items += `<li style="margin-bottom:14px;"><strong>Portal Creation</strong> — please fill out the New DA request template.<br>${btn('Open template', EMAIL_LINKS.newDA)}</li>`;
+    if (has('IFS NDA')) items += `<li style="margin-bottom:14px;"><strong>IFS NDA</strong> — please fill out this template.<br>${btn('Open IFS NDA template', EMAIL_LINKS.ifsNDA)}</li>`;
+    if (has('MP-NDA') || has('Multi-Party')) items += `<li style="margin-bottom:14px;"><strong>Multi-Party RUNDA Acknowledgment</strong> — please fill out this template.<br>${btn('Open MP-RUNDA template', EMAIL_LINKS.mpRunda)}</li>`;
+    if (has('Codename')) {
+        items += `<li style="margin-bottom:14px;"><strong>Codename Request</strong> — please fill out the following with the customer information:`
+            + `<div style="background:#f5f9fc;border:1px solid #e2e8f0;border-radius:8px;padding:14px 16px;margin-top:8px;font-size:14px;color:#1a202c;line-height:1.8;">`
+            + `Company Name:<br>Company Type (Supplier / Customer):<br>Company Address:<br>City:<br>State:<br>Country:<br>Postal Code:<br>Supplier Site (points if it is a supplier):<br>Company Email Domain:<br>Owner / Submitter Name:</div></li>`;
+    }
+    if (!items) items = `<li>Please provide the required information so we can proceed with your request.</li>`;
+
+    let body = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0a2540;padding:24px 0;font-family:'Segoe UI',Arial,sans-serif;"><tr><td align="center">`
+        + `<table role="presentation" width="640" cellpadding="0" cellspacing="0" style="width:640px;max-width:640px;background-color:#ffffff;border-radius:14px;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,0.25);">`
+        + emailHeader()
+        + `<tr><td style="padding:34px;color:#1a202c;font-size:17px;line-height:1.7;">`
+        + `<p style="margin:0 0 18px;">Dear <strong>@${name}</strong>,</p>`
+        + `<p style="margin:0 0 18px;">Thank you for your request (<strong>REQ. ${id} &mdash; ${customer}</strong>). In order to proceed, we need you to complete the following template(s) and attach them back to your request:</p>`
+        + `<ul style="margin:0 0 18px;padding-left:20px;font-size:16px;">${items}</ul>`
+        + `<p style="margin:18px 0 0;">Once completed, please attach the file(s) to your request so we can move forward.</p>`
+        + `<p style="margin:22px 0 0;">Best regards,<br><strong style="color:#041c32;">FS DA OPS</strong> &middot; Intel Foundry Services</p>`
+        + `</td></tr>`
+        + emailFooter()
+        + `</table></td></tr></table>`;
+    return body;
+}
 
 function buildRequestEmail(id, reqs) {
     const req0 = reqs[0] || {};
