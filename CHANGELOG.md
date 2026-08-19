@@ -8,6 +8,9 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.27 — 2026-08-19
+- La fecha de la tarjeta ahora es blanca en vez de gris tenue, para que se lea bien.
+
 ## v1.8.26 — 2026-08-19
 - FIX: "Assigned To" ahora lee UNICAMENTE el campo iGO Admin (iGOAdminOnly_x002d_AssignedTo). Si nadie de iGO esta asignado, no muestra nada (el chip se oculta y la tarjeta dice "Unassigned"), en vez de caer al FCE Lead u otros campos.
 

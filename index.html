@@ -70,7 +70,7 @@ body{
     </div>
   </div>
   <div class="header-right">
-    <span id="app-version" class="version-badge" title="Click to see changelog" onclick="showChangelog()">v1.8.26</span>
+    <span id="app-version" class="version-badge" title="Click to see changelog" onclick="showChangelog()">v1.8.27</span>
     <label class="auto-toggle" title="Auto emails on status change">
       <span class="auto-toggle-label">Auto emails</span>
       <span class="switch"><input type="checkbox" id="auto-emails-toggle" onchange="toggleAutoEmails(this)"><span class="slider"></span></span>
@@ -326,7 +326,7 @@ body.light-mode .auto-toggle-label{color:#4a5568;}
 .badge-webview{background:rgba(240,160,48,0.1);color:var(--amber);border:1px solid rgba(240,160,48,0.25);}
 .group-overall{min-width:20px;display:flex;align-items:center;}
 .group-owner{display:inline-flex;align-items:center;font-size:11px;font-weight:600;color:var(--cyan);background:rgba(78,200,240,0.1);border:1px solid rgba(78,200,240,0.22);border-radius:10px;padding:2px 9px;white-space:nowrap;max-width:170px;overflow:hidden;text-overflow:ellipsis;}
-.group-date{font-size:11px;color:rgba(255,255,255,0.25);min-width:50px;text-align:right;}
+.group-date{font-size:11px;color:#ffffff;min-width:50px;text-align:right;}
 .chevron{font-size:16px;color:rgba(255,255,255,0.25);transition:transform 0.3s;margin-left:6px;}
 .group-card.open .chevron{transform:rotate(90deg);color:var(--cyan);}
 
@@ -488,10 +488,11 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.26';
+const APP_VERSION = 'v1.8.27';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
+    ['v1.8.27', ['Card date is now white instead of faint grey, so it is easy to read.']],
     ['v1.8.26', ['FIX: Assigned To now reads ONLY the iGO Admin field. If nobody in iGO is assigned it shows nothing (chip hidden, card says "Unassigned") instead of falling back to the FCE Lead or other fields.']],
     ['v1.8.25', ['Banners now use Intel classic blue #001E50: the portal header and the email communications (Acknowledged, Info Request, Out for Signature, In Approval Loop, Complete).']],
     ['v1.8.24', ['Assignee (Assigned To) now shown as a chip in the card header, before the date, so you can see who owns each request without opening it.']],
