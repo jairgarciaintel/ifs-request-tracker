@@ -8,6 +8,9 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.24 — 2026-08-19
+- El asignado (Assigned To) ahora aparece como chip en la cabecera de la tarjeta, antes de la fecha, para ver de quien es cada request sin abrirlo.
+
 ## v1.8.23 — 2026-08-19
 - Nuevo filtro "Assigned To" (campo iGO Admin Only - Assigned To) en la barra de filtros de arriba. Se llena solo con los asignados que existan; incluye opcion "Unassigned".
 - Los requests con status Acknowledged ahora cuentan como WIP (In Progress), ya no como New.
