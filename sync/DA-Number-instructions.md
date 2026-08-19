@@ -95,3 +95,20 @@ completo.
 - Confirmar que el internal name de la columna nueva es exactamente DA_x0020_Number.
   Si "Update item" no encuentra el campo, revisar en List settings > columna DA Number
   > la URL trae Field=... con el internal name real.
+
+
+========================================================================
+PASO 2 — Send an HTTP request to SharePoint (copiar/pegar exacto)
+========================================================================
+
+Site Address:
+https://intel.sharepoint.com/sites/ifs-igo-requests
+
+Method:
+GET
+
+Uri:
+_api/web/lists/getbytitle('New DA Request')/items?$select=Id,DALink&$top=5000
+
+Headers (key / value):
+Accept    application/json;odata=nometadata
