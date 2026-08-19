@@ -8,6 +8,9 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.13 — 2026-08-19
+- Ajustado el numero de circulos por correo: Info Request ahora usa 34 circulos (17 por lado) y Acknowledged usa 46 circulos (23 por lado).
+
 ## v1.8.12 — 2026-08-19
 - FIX Outlook: restaurados los circulos del correo Acknowledged eliminando `opacity` y `filter:alpha`, que Outlook podia interpretar como completamente transparentes.
 - Los 40 circulos conservan la tabla Outlook-safe y ahora usan colores solidos premezclados para verse suaves sin desaparecer.

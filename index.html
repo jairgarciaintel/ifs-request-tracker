@@ -70,7 +70,7 @@ body{
     </div>
   </div>
   <div class="header-right">
-    <span id="app-version" class="version-badge" title="Click to see changelog" onclick="showChangelog()">v1.8.12</span>
+    <span id="app-version" class="version-badge" title="Click to see changelog" onclick="showChangelog()">v1.8.13</span>
     <label class="auto-toggle" title="Auto emails on status change">
       <span class="auto-toggle-label">Auto emails</span>
       <span class="switch"><input type="checkbox" id="auto-emails-toggle" onchange="toggleAutoEmails(this)"><span class="slider"></span></span>
@@ -418,10 +418,11 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.12';
+const APP_VERSION = 'v1.8.13';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
+    ['v1.8.13', ['Info Request email now shows 34 circles (17 per side); Acknowledged email now shows 46 circles (23 per side).']],
     ['v1.8.12', ['OUTLOOK FIX: restored Acknowledged email circles by removing unsupported opacity/filter styles.','Circles now use muted pre-blended solid colors, keeping the softer look without disappearing.','TEST mode remains active: Jair only, no CC.']],
     ['v1.8.11', ['TEST MODE restored for Acknowledged and Info Request.','Both automatic emails now go only to Jair with an empty CC; request creators and FS DA OPS receive nothing during testing.']],
     ['v1.8.10', ['Removed the @ symbol before requestor names in Acknowledged, Info Request and mailto fallback greetings.','Greetings remain first-name only.']],
@@ -976,7 +977,7 @@ function buildAckEmailHtml(name, id, customer) {
         + `<p style="margin:26px 0 0;font-size:18px;">Thank you for your patience.</p>`
         + `<p style="margin:20px 0 0;font-size:18px;">Best regards,<br><strong style="color:#041c32;">FS DA OPS</strong> &middot; Intel Foundry Services</p>`
         + `</td></tr>`;
-    return wrapEmail(inner);
+    return wrapEmail(inner, 46);
 }
 
 async function openAcknowledgedEmail(id) {
@@ -1420,25 +1421,28 @@ const EMAIL_LINKS = {
 // Wrap the card in an Outlook-safe blue area with fixed side decorations.
 // Outlook-safe three-column layout: decoration stays in real side columns.
 // Do not use absolute positioning here; Outlook's Word renderer ignores it.
-function wrapEmail(innerRows) {
+function wrapEmail(innerRows, totalCircles) {
+    const total = totalCircles || 40;
+    const perSide = Math.round(total / 2);
     return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;background-color:#0a2540;font-family:'Segoe UI',Arial,sans-serif;">`
         + `<tr><td align="center" style="background-color:#0a2540;padding:36px 12px;">`
         + `<table role="presentation" width="792" cellpadding="0" cellspacing="0" style="width:792px;max-width:792px;border-collapse:collapse;">`
         + `<tr>`
-        + `<td width="96" valign="top" style="width:96px;vertical-align:top;">${emailCircles('left')}</td>`
+        + `<td width="96" valign="top" style="width:96px;vertical-align:top;">${emailCircles('left', perSide)}</td>`
         + `<td width="600" valign="top" style="width:600px;vertical-align:top;">`
         + `<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:600px;background-color:#ffffff;border-radius:14px;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,0.35);">`
         + emailHeader()
         + innerRows
         + emailFooter()
         + `</table></td>`
-        + `<td width="96" valign="top" style="width:96px;vertical-align:top;">${emailCircles('right')}</td>`
+        + `<td width="96" valign="top" style="width:96px;vertical-align:top;">${emailCircles('right', perSide)}</td>`
         + `</tr></table></td></tr></table>`;
 }
 
-// Twenty circles per side, distributed through table rows so Outlook cannot
+// Circles per side, distributed through table rows so Outlook cannot
 // collapse them into the center or let them push the message body downward.
-function emailCircles(side) {
+// `count` is how many circles to render on this side (patterns cycle via modulo).
+function emailCircles(side, count) {
     const sizes = [22,38,16,46,28,18,42,24,34,14,44,20,30,16,40,26,18,36,24,32];
     const heights = [34,44,30,52,38,32,48,36,42,30,50,34,40,30,48,36,32,44,36,42];
     // Pre-blended muted colors simulate transparency without CSS opacity,
@@ -1448,11 +1452,12 @@ function emailCircles(side) {
         ? ['left','right','center','left','right']
         : ['right','left','center','right','left'];
     let rows = '';
-    for (let i = 0; i < 20; i++) {
-        const size = sizes[i];
+    for (let i = 0; i < count; i++) {
+        const size = sizes[i % sizes.length];
+        const height = heights[i % heights.length];
         const align = aligns[i % aligns.length];
         const color = colors[(i + (side === 'right' ? 2 : 0)) % colors.length];
-        rows += `<tr><td height="${heights[i]}" align="${align}" valign="middle" style="height:${heights[i]}px;padding:3px 8px;text-align:${align};vertical-align:middle;">`
+        rows += `<tr><td height="${height}" align="${align}" valign="middle" style="height:${height}px;padding:3px 8px;text-align:${align};vertical-align:middle;">`
             + `<span style="display:inline-block;width:${size}px;height:${size}px;line-height:${size}px;border:2px solid ${color};border-radius:50%;font-size:0;mso-line-height-rule:exactly;">&nbsp;</span>`
             + `</td></tr>`;
     }
@@ -1505,7 +1510,7 @@ function buildInfoRequestEmailHtml(name, id, customer, types) {
         + `<p style="margin:18px 0 0;">Once completed, please attach the file(s) to your request so we can move forward.</p>`
         + `<p style="margin:22px 0 0;">Best regards,<br><strong style="color:#041c32;">FS DA OPS</strong> &middot; Intel Foundry Services</p>`
         + `</td></tr>`;
-    return wrapEmail(inner);
+    return wrapEmail(inner, 34);
 }
 
 function buildRequestEmail(id, reqs) {
