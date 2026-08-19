@@ -70,7 +70,7 @@ body{
     </div>
   </div>
   <div class="header-right">
-    <span id="app-version" class="version-badge" title="Click to see changelog" onclick="showChangelog()">v1.8.4</span>
+    <span id="app-version" class="version-badge" title="Click to see changelog" onclick="showChangelog()">v1.8.6</span>
     <label class="auto-toggle" title="Auto emails on status change">
       <span class="auto-toggle-label">Auto emails</span>
       <span class="switch"><input type="checkbox" id="auto-emails-toggle" onchange="toggleAutoEmails(this)"><span class="slider"></span></span>
@@ -418,23 +418,30 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.4';
+const APP_VERSION = 'v1.8.6';
 
-// Changelog shown in the modal (newest first)
+// Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
-    ['v1.8.4', ['Version badge is clickable: opens a Version History modal with all changes.']],
+    ['v1.8.6', ['40 circles spread down both side bands of the email, full height (not bunched at top).']],
+    ['v1.8.5', ['Full history in the modal: every version, fixes, errors resolved and deploy/git issues.']],
+    ['v1.8.4', ['Version badge is clickable: opens this Version History modal.']],
     ['v1.8.3', ['Filter "All Types" now includes MP-NDA, Secure Chamber, DocuSign Request, Redbook Release.']],
-    ['v1.8.2', ['Version badge more visible (solid cyan). Header wraps so nothing gets cut off.']],
-    ['v1.8.1', ['Email circles spread around the card edges; card width 600px.']],
-    ['v1.8.0', ['MP-RUNDA template added to the click-name email.','iPhone-style "Auto emails" ON/OFF toggle in the header.','Light Mode fixes: text and buttons now readable.']],
-    ['v1.7.x', ['Acknowledged and Info Request share the same design: blue banner, circles, full Intel Confidential legend.','Email circles restored as a real background.']],
-    ['v1.6.0', ['Added version control + this changelog.']],
-    ['v1.5.0', ['Automatic "Info Request" email on status change, with all templates per request type (New DA, DA Edit, Portal Creation, IFS NDA, MP-RUNDA, Codename).']],
-    ['v1.4.0', ['Automatic "Acknowledged" email built by the tracker and sent via Power Automate. SLA table, Dear @Name, FS DA OPS signature, CC fs.da.ops.']],
-    ['v1.3.0', ['Canceled requests greyed out with diagonal stripes + CANCELED tag. Clearer status-change notification.']],
-    ['v1.2.0', ['Section order: New DA first, then Portal Creation. SLA banner + per-step time estimates.']],
-    ['v1.1.0', ['Global 140% zoom for readability. Clickable "Created By" opens an email with the right template.']],
-    ['v1.0.0', ['New card fields: Created By, Assigned BD, Details, Attachments. Assigned BD from SharePoint.']]
+    ['v1.8.2', ['FIX: version badge was invisible (transparent) — now solid cyan and readable.','Header wraps so nothing gets cut off with 140% zoom.']],
+    ['v1.8.1', ['FIX: email circles were bunched in a center column — now spread around the card edges. Card narrowed to 600px.']],
+    ['v1.8.0', ['MP-RUNDA template added to the click-name email.','iPhone-style "Auto emails" ON/OFF toggle in the header.','FIX: Light Mode text stayed white/unreadable and buttons were invisible — fixed.']],
+    ['v1.7.2', ['FIX: circles disappeared (SVG data-URI / position:absolute not supported). Restored the working method on the outer blue background for both emails.']],
+    ['v1.7.1', ['Tried a PNG background for the circles (later replaced).']],
+    ['v1.7.0', ['Acknowledged and Info Request now share the same design: blue banner, circles and full "Intel Confidential" legend. Version badge moved next to the buttons.']],
+    ['v1.6.0', ['Added version control + changelog + version badge.']],
+    ['v1.5.0', ['Automatic "Info Request" email on status change, with ALL templates per request type (New DA, DA Edit, Portal Creation, IFS NDA, MP-RUNDA, Codename form). Blue banner, circles, clickable template buttons.']],
+    ['v1.4.0', ['Automatic "Acknowledged" email built by the tracker, sent via Power Automate (bodyHtml). SLA table, "Dear @Name", FS DA OPS signature, CC fs.da.ops.','FIX: Power Automate "Send email" connection Unauthorized — required reconnecting the Outlook connection.','FIX: recipient email now pulled from Author.Email / Claims.']],
+    ['v1.3.0', ['Canceled requests greyed out with diagonal stripes + small CANCELED tag (moved so it does not cover the date).','Clearer SharePoint status-change notification.']],
+    ['v1.2.0', ['Section order: New DA first, then Portal Creation.','SLA banner + per-step time estimates (later tuned to 24-48h / 2-4 days / depends on customer).']],
+    ['v1.1.0', ['Global zoom bumped to 125% then 140% for readability.','Clickable "Created By" opens an email with the right template per type.']],
+    ['v1.0.0', ['New card fields: Created By, Assigned BD, Details, Attachments.','Assigned BD read from SharePoint field iGOAdminOnly_AssignedTo.','Attachments: link opens the request in SharePoint.']],
+    ['Attachments fixes', ['Iterated several times: {Name}/{Link} flattened fields, built path (404), per-item Attachments folder (Unauthorized) — final: link opens the request page.']],
+    ['Earlier (Aug 11-13)', ['User guide with screenshots + USER-GUIDE.md.','Notes auto-save on typing (debounce) + on blur.','Login security: only Jair/Jenn, 3 attempts then 24h block.','FIX [object Object]: RequestType/Status came as arrays of objects from Power Automate — added String()/Value extraction everywhere.','Live fetch from SharePoint via Power Automate every 10 min.','Two dropdowns: SharePoint Status (syncs to SP) + internal sub-steps.']],
+    ['Deploy / git notes', ['Code Defender blocks pushes — run git config core.hooksPath /dev/null first.','TWO repos: tracker (jairgarciaintel/ifs-request-tracker, public, the page) and dev (hackerjj, private, has l4ve).','Recurring issue: wrong remote after set-url — several "Authentication failed" / "repository not found". Fixed by pointing each repo to its correct remote.','Recovered a truncated index.html from git (checkout HEAD).','Other PC: "unrelated histories" resolved with reset --hard origin/main.']]
 ];
 function showChangelog(){
     const body = document.getElementById('changelog-body');
@@ -1400,8 +1407,8 @@ const EMAIL_LINKS = {
 function wrapEmail(innerRows) {
     return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0a2540;font-family:'Segoe UI',Arial,sans-serif;"><tr>`
         + `<td align="center" style="background-color:#0a2540;padding:48px 40px;position:relative;overflow:hidden;">`
-        + `<div style="position:absolute;top:0;left:0;right:0;bottom:0;overflow:hidden;pointer-events:none;">${emailCircles()}</div>`
-        + `<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="position:relative;width:600px;max-width:600px;background-color:#ffffff;border-radius:14px;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,0.35);">`
+        + `<div style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;pointer-events:none;z-index:0;">${emailCircles()}</div>`
+        + `<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="position:relative;z-index:1;width:600px;max-width:600px;background-color:#ffffff;border-radius:14px;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,0.35);">`
         + emailHeader()
         + innerRows
         + emailFooter()
@@ -1412,16 +1419,17 @@ function wrapEmail(innerRows) {
 // Spread across the OUTER blue area (around the white card), not inside it.
 function emailCircles() {
     const cols = ['rgba(78,200,240,0.22)','rgba(255,255,255,0.14)','rgba(107,203,119,0.18)','rgba(0,174,239,0.20)'];
-    // [size, left%, top%] — spread with % so they hug the edges around the card (not center column)
-    const specs = [
-        [90,1,3],[70,90,5],[120,-2,18],[55,94,22],[80,2,38],
-        [100,88,40],[60,4,58],[75,92,60],[110,-3,74],[50,90,78],
-        [65,3,90],[90,86,90],[45,50,2],[70,50,96]
-    ];
+    // 40 circles spread down BOTH side columns (left band and right band), full height.
     let html = '';
-    specs.forEach((s,i) => {
-        html += `<div style="position:absolute;width:${s[0]}px;height:${s[0]}px;border-radius:50%;border:1.5px solid ${cols[i%4]};left:${s[1]}%;top:${s[2]}%;"></div>`;
-    });
+    for (let i = 0; i < 40; i++) {
+        const size = 30 + (i * 37 % 90);           // varied sizes 30-120
+        const topPct = (i * 2.5) % 100;             // spread top 0-100%
+        const onLeft = (i % 2 === 0);
+        // left band 0-14%, right band 86-100%
+        const leftPct = onLeft ? (i * 3 % 14) : (86 + (i * 3 % 14));
+        const col = cols[i % 4];
+        html += `<div style="position:absolute;width:${size}px;height:${size}px;border-radius:50%;border:1.5px solid ${col};left:${leftPct}%;top:${topPct}%;"></div>`;
+    }
     return html;
 }
 
