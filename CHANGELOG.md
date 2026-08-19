@@ -8,6 +8,10 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.21 — 2026-08-19
+- FIX guardado DA Link: la columna DALink de SharePoint es tipo URL simple (String/uri), asi que el flow debe recibir SOLO la URL, no "url, texto". El numero de DA (Alternative Text) no cabe en esa columna; se queda en el tracker para autollenar el correo de Complete.
+- Se borraron del repo los archivos Instructions_follow / Instructions_follow1 (traian la URL firmada del flow) y se agregaron al .gitignore.
+
 ## v1.8.20 — 2026-08-19
 - Nuevo campo "DA Link" visible en la tarjeta, junto a Portal Name. Se guarda al instante desde el popup de DA Link (In Approval Loop), aunque SharePoint todavia no confirme la escritura, y tambien lo lee de vuelta de SharePoint cuando el flow de Get all requests lo trae.
 
