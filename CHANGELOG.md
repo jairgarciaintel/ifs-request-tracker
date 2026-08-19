@@ -8,6 +8,18 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.4 — 2026-08-19
+- Badge de version clickeable: abre un modal "Version History" con todas las versiones y cambios.
+
+## v1.8.3 — 2026-08-19
+- Filtro "All Types" ahora incluye MP-NDA, Secure Chamber, DocuSign Request, Redbook Release.
+
+## v1.8.2 — 2026-08-19
+- Badge de version mas visible (fondo cyan solido) y hardcodeado en el HTML. Header con wrap.
+
+## v1.8.1 — 2026-08-19
+- Circulos del correo repartidos por los bordes (posiciones en %); tarjeta 600px.
+
 ## v1.8.0 — 2026-08-19
 - Correo del nombre clickeable (mailto) ahora incluye el template MP-RUNDA para Multi-Party.
 - Boton toggle estilo iPhone en el header: "Auto emails" ON/OFF (persistente en localStorage).

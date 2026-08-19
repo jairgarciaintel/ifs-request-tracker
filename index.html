@@ -70,7 +70,7 @@ body{
     </div>
   </div>
   <div class="header-right">
-    <span id="app-version" class="version-badge" title="Version"></span>
+    <span id="app-version" class="version-badge" title="Click to see changelog" onclick="showChangelog()">v1.8.4</span>
     <label class="auto-toggle" title="Auto emails on status change">
       <span class="auto-toggle-label">Auto emails</span>
       <span class="switch"><input type="checkbox" id="auto-emails-toggle" onchange="toggleAutoEmails(this)"><span class="slider"></span></span>
@@ -81,6 +81,16 @@ body{
     <button class="btn btn-secondary" onclick="exportJSON()"><svg width="14" height="14"><use href="#icon-export"/></svg> JSON</button>
   </div>
 </header>
+
+<div id="changelog-modal" class="changelog-overlay" onclick="hideChangelog(event)">
+  <div class="changelog-box">
+    <div class="changelog-head">
+      <h3>Version History <span id="changelog-current"></span></h3>
+      <button class="changelog-close" onclick="hideChangelog()">&times;</button>
+    </div>
+    <div id="changelog-body" class="changelog-content"></div>
+  </div>
+</div>
 
 <div class="toolbar">
   <div class="filters">
@@ -99,8 +109,12 @@ body{
       <option value="WebView AGS Role">WebView AGS Role</option>
       <option value="Portal Unencryption">Portal Unencryption</option>
       <option value="IFS NDA">IFS NDA</option>
+      <option value="MP-NDA">MP-NDA</option>
       <option value="DA Edit">DA Edit</option>
       <option value="COD">COD</option>
+      <option value="Secure Chamber">Secure Chamber</option>
+      <option value="DocuSign Request">DocuSign Request</option>
+      <option value="Redbook Release">Redbook Release</option>
     </select>
     <select id="filter-status" onchange="renderRequests()">
       <option value="all">All Statuses</option>
@@ -142,7 +156,26 @@ body{
 .header-title h1{font-family:'Cabinet Grotesk',sans-serif;font-size:1.3rem;font-weight:700;}
 .header-title h1 .accent{color:var(--cyan);}
 .header-title .meta{font-size:11px;color:rgba(255,255,255,0.4);margin-top:2px;}
-.version-badge{font-size:10px;font-weight:600;color:var(--cyan);background:rgba(78,200,240,0.12);border:1px solid rgba(78,200,240,0.3);padding:1px 7px;border-radius:8px;vertical-align:middle;margin-left:6px;letter-spacing:0.3px;}
+.version-badge{display:inline-block;font-size:12px;font-weight:700;color:#041c32;background:var(--cyan);border:1px solid var(--cyan);padding:3px 10px;border-radius:10px;vertical-align:middle;margin-right:4px;letter-spacing:0.3px;white-space:nowrap;cursor:pointer;transition:transform 0.2s;}
+.version-badge:hover{transform:translateY(-1px);background:#7dd8f5;}
+/* Changelog modal */
+.changelog-overlay{display:none;position:fixed;inset:0;background:rgba(4,28,50,0.75);z-index:2000;backdrop-filter:blur(4px);align-items:center;justify-content:center;}
+.changelog-overlay.open{display:flex;}
+.changelog-box{background:linear-gradient(160deg,#0d3158,#041c32);border:1px solid rgba(78,200,240,0.3);border-radius:14px;width:90%;max-width:640px;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.5);}
+.changelog-head{display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid rgba(78,200,240,0.15);}
+.changelog-head h3{font-family:'Cabinet Grotesk',sans-serif;font-size:18px;color:var(--cyan);}
+.changelog-head #changelog-current{font-size:12px;color:rgba(255,255,255,0.5);font-weight:400;margin-left:8px;}
+.changelog-close{background:none;border:none;color:rgba(255,255,255,0.6);font-size:26px;cursor:pointer;line-height:1;}
+.changelog-close:hover{color:#fff;}
+.changelog-content{padding:20px 24px;overflow-y:auto;}
+.cl-version{margin-bottom:18px;}
+.cl-version h4{font-size:14px;color:var(--cyan);font-weight:700;margin-bottom:6px;font-family:'Cabinet Grotesk',sans-serif;}
+.cl-version ul{margin:0;padding-left:18px;}
+.cl-version li{font-size:13px;color:rgba(255,255,255,0.75);line-height:1.6;margin-bottom:3px;}
+body.light-mode .changelog-box{background:#fff;border-color:rgba(0,113,197,0.2);}
+body.light-mode .changelog-head h3{color:#0071c5;}
+body.light-mode .cl-version h4{color:#0071c5;}
+body.light-mode .cl-version li{color:#334155;}
 /* iPhone-style toggle for auto emails */
 .auto-toggle{display:inline-flex;align-items:center;gap:7px;cursor:pointer;}
 .auto-toggle-label{font-size:11px;color:var(--light);font-weight:600;}
@@ -153,7 +186,7 @@ body{
 .switch input:checked + .slider{background:#6bcb77;border-color:#6bcb77;}
 .switch input:checked + .slider:before{transform:translateX(18px);}
 body.light-mode .auto-toggle-label{color:#4a5568;}
-.header-right{display:flex;align-items:center;gap:12px;}
+.header-right{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end;}
 .sync-text{font-size:12px;color:rgba(255,255,255,0.5);}
 .btn{border:none;padding:7px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.2s;font-family:'Satoshi',sans-serif;display:inline-flex;align-items:center;gap:5px;}
 .btn-primary{background:var(--cyan);color:var(--navy);}
@@ -385,7 +418,36 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.1';
+const APP_VERSION = 'v1.8.4';
+
+// Changelog shown in the modal (newest first)
+const CHANGELOG = [
+    ['v1.8.4', ['Version badge is clickable: opens a Version History modal with all changes.']],
+    ['v1.8.3', ['Filter "All Types" now includes MP-NDA, Secure Chamber, DocuSign Request, Redbook Release.']],
+    ['v1.8.2', ['Version badge more visible (solid cyan). Header wraps so nothing gets cut off.']],
+    ['v1.8.1', ['Email circles spread around the card edges; card width 600px.']],
+    ['v1.8.0', ['MP-RUNDA template added to the click-name email.','iPhone-style "Auto emails" ON/OFF toggle in the header.','Light Mode fixes: text and buttons now readable.']],
+    ['v1.7.x', ['Acknowledged and Info Request share the same design: blue banner, circles, full Intel Confidential legend.','Email circles restored as a real background.']],
+    ['v1.6.0', ['Added version control + this changelog.']],
+    ['v1.5.0', ['Automatic "Info Request" email on status change, with all templates per request type (New DA, DA Edit, Portal Creation, IFS NDA, MP-RUNDA, Codename).']],
+    ['v1.4.0', ['Automatic "Acknowledged" email built by the tracker and sent via Power Automate. SLA table, Dear @Name, FS DA OPS signature, CC fs.da.ops.']],
+    ['v1.3.0', ['Canceled requests greyed out with diagonal stripes + CANCELED tag. Clearer status-change notification.']],
+    ['v1.2.0', ['Section order: New DA first, then Portal Creation. SLA banner + per-step time estimates.']],
+    ['v1.1.0', ['Global 140% zoom for readability. Clickable "Created By" opens an email with the right template.']],
+    ['v1.0.0', ['New card fields: Created By, Assigned BD, Details, Attachments. Assigned BD from SharePoint.']]
+];
+function showChangelog(){
+    const body = document.getElementById('changelog-body');
+    document.getElementById('changelog-current').textContent = 'current: ' + APP_VERSION;
+    body.innerHTML = CHANGELOG.map(function(v){
+        return '<div class="cl-version"><h4>'+v[0]+'</h4><ul>'+v[1].map(function(x){return '<li>'+x+'</li>';}).join('')+'</ul></div>';
+    }).join('');
+    document.getElementById('changelog-modal').classList.add('open');
+}
+function hideChangelog(e){
+    if (e && e.target && e.target.id !== 'changelog-modal' && e.type === 'click') return;
+    document.getElementById('changelog-modal').classList.remove('open');
+}
 
 // Auto-emails toggle (persisted). Default ON.
 let autoEmailsEnabled = localStorage.getItem('fs-auto-emails') !== 'off';
