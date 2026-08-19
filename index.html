@@ -175,6 +175,23 @@ body{
   border-radius:12px;overflow:hidden;transition:border-color 0.3s,box-shadow 0.3s;
 }
 .group-card:hover{border-color:rgba(78,200,240,0.25);box-shadow:0 4px 20px rgba(78,200,240,0.04);}
+/* === CANCELED REQUEST === */
+.group-card.canceled{position:relative;border-color:rgba(150,150,150,0.25);filter:grayscale(0.85);opacity:0.72;}
+.group-card.canceled::after{
+  content:'';position:absolute;inset:0;pointer-events:none;z-index:5;border-radius:12px;
+  background:repeating-linear-gradient(135deg,
+    rgba(160,160,160,0.10) 0px,
+    rgba(160,160,160,0.10) 12px,
+    rgba(120,120,120,0.16) 12px,
+    rgba(120,120,120,0.16) 24px);
+}
+.group-card.canceled:hover{border-color:rgba(150,150,150,0.4);box-shadow:none;}
+.canceled-tag{
+  position:absolute;top:14px;right:16px;z-index:6;
+  font-family:'Cabinet Grotesk',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;
+  color:#9aa0a6;background:rgba(90,90,90,0.25);border:1px solid rgba(150,150,150,0.4);
+  padding:3px 10px;border-radius:8px;text-transform:uppercase;
+}
 .group-header{
   display:flex;align-items:center;gap:14px;padding:16px 20px;
   cursor:pointer;transition:background 0.2s;
@@ -1319,7 +1336,13 @@ function renderGroupCard(id, reqs) {
 
     const sections = filteredReqs.map(r => renderTypeSection(id, r)).join('');
 
-    return `<div class="group-card" id="group-${id}">
+    // Canceled requests: grey out the whole card with a diagonal-stripe overlay
+    const isCanceled = sourceStatus.toLowerCase() === 'canceled' || sourceStatus.toLowerCase() === 'cancelled';
+    const canceledClass = isCanceled ? ' canceled' : '';
+    const canceledTag = isCanceled ? '<span class="canceled-tag">CANCELED</span>' : '';
+
+    return `<div class="group-card${canceledClass}" id="group-${id}">
+      ${canceledTag}
       <div class="group-header" onclick="toggleGroup('${id}')">
         <span class="group-id">#${id}</span>
         <span class="group-customer">${customer}</span>
