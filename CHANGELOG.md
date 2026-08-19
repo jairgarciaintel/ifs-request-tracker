@@ -8,6 +8,11 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.15 — 2026-08-19
+- Nuevos correos automaticos: Out for Signature ("Depends on Customer, Avg 48-56 hrs") y In Approval Loop ("2-4 dias").
+- Al poner el status en Complete se abre un popup pidiendo Portal Name y numero de DA. Al confirmar, se manda un correo de celebracion con chispas, "Congratulations! Your portal is already created.", el nombre del portal y el ID del DA.
+- Los tres correos nuevos respetan los toggles existentes de Auto emails y Test mode.
+
 ## v1.8.14 — 2026-08-19
 - Nuevo boton "Test mode" en el header, junto a Auto emails. Encendido (default): Acknowledged e Info Request van solo a Jair y CC vacio. Apagado: van al creador real del request con CC a `fs.da.ops@intel.com`.
 - Se elimino la constante fija `TEST_MODE = true` de ambas funciones de envio; ahora usan el toggle persistido `testModeEnabled`.
