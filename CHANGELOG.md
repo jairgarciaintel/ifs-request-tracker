@@ -8,6 +8,11 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.18 — 2026-08-19
+- Nuevo campo "Portal Name" visible en la tarjeta. Si el cliente lo puso en su request original, aparece con la etiqueta "Suggested by customer" hasta que nosotros lo confirmemos/corrijamos al poner el status Complete.
+- Conectada la URL real del flow de Power Automate para `CONFIG.updateFieldsUrl` (escribe DA Link y Project Portal Name a SharePoint). URL: workflow 7c9ac8ba...
+- OJO: la URL que se paso venia sin la firma `&sp=...&sv=1.0&sig=...` que traen los otros 3 flows. Si el guardado falla, re-copiar la URL completa desde Power Automate.
+
 ## v1.8.17 — 2026-08-19
 - Logo del header mas grande: de 28px a 68px, en Dark y Light mode.
 - Nuevo popup interno al pasar a In Approval Loop: pide DA Link (URL) y numero de DA (Alternative Text, opcional) y lo guarda directo en el campo "DA Link" de SharePoint. El cliente no se entera de esto.

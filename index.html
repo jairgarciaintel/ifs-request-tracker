@@ -70,7 +70,7 @@ body{
     </div>
   </div>
   <div class="header-right">
-    <span id="app-version" class="version-badge" title="Click to see changelog" onclick="showChangelog()">v1.8.17</span>
+    <span id="app-version" class="version-badge" title="Click to see changelog" onclick="showChangelog()">v1.8.18</span>
     <label class="auto-toggle" title="Auto emails on status change">
       <span class="auto-toggle-label">Auto emails</span>
       <span class="switch"><input type="checkbox" id="auto-emails-toggle" onchange="toggleAutoEmails(this)"><span class="slider"></span></span>
@@ -362,6 +362,7 @@ body.light-mode .auto-toggle-label{color:#4a5568;}
 .req-info-val{font-size:13px;color:var(--light);word-break:break-word;}
 .req-info-details{font-size:12px;line-height:1.5;color:rgba(255,255,255,0.65);white-space:pre-wrap;}
 .req-info-attach{display:flex;flex-wrap:wrap;gap:8px;}
+.portal-suggested-tag{font-size:10px;font-weight:600;color:var(--amber);background:rgba(240,160,48,0.12);border:1px solid rgba(240,160,48,0.3);border-radius:6px;padding:1px 7px;margin-left:6px;}
 .attach-link{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--cyan);text-decoration:none;padding:4px 10px;background:rgba(78,200,240,0.08);border:1px solid rgba(78,200,240,0.2);border-radius:6px;transition:all 0.2s;}
 .attach-link:hover{background:rgba(78,200,240,0.16);border-color:var(--cyan);transform:translateY(-1px);}
 .info-empty{font-size:12px;color:rgba(255,255,255,0.3);font-style:italic;}
@@ -476,10 +477,11 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.17';
+const APP_VERSION = 'v1.8.18';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
+    ['v1.8.18', ['Portal Name now shown on the card: if the customer suggested one on their request, it appears with a "Suggested by customer" tag until we confirm/overwrite it via the Complete popup.','Connected the real Power Automate flow for updateFieldsUrl (DA Link + Project Portal Name write-back to SharePoint).']],
     ['v1.8.17', ['Header logo made bigger (28px \u2192 68px) in both Dark and Light mode.','New internal popup when a request moves to In Approval Loop: capture the DA Link (URL + optional DA number) and save it straight to SharePoint\u2019s DA Link field. Customer is not notified.','Complete popup now auto-fills the DA number if it was captured earlier; Portal Name is written to SharePoint\u2019s Project Portal Name field every time a request is completed.']],
     ['v1.8.16', ['New official Intel Foundry logo in the header: dark version for Dark mode, light version for Light mode. Swaps automatically with the Light/Dark toggle.']],
     ['v1.8.15', ['New automatic emails for Out for Signature and In Approval Loop status changes.','Complete status now opens a popup asking for Portal Name and DA number before sending a celebration email (sparkles, portal name, DA ID) to the customer.','All three new emails respect the existing Auto emails and Test mode toggles.']],
@@ -574,8 +576,10 @@ const CONFIG = {
     sendEmailUrl: 'https://default46c98d88e3444ed484964ed7712e25.5d.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/205f9f20a80543a2996515e52c0de68d/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=ExFcVZ5cJV8egXt3fO37KrzpQHsToznGKe4FG8g-i3Q',
 
     // Power Automate: update SharePoint fields other than Status (DA Link, Project/Portal Name).
-    // Paste the flow's HTTP POST URL here once created — see .kiro/hooks/l4ve for setup steps.
-    updateFieldsUrl: ''
+    // NOTE: this URL looks shorter than the other three flow URLs below (they all end
+    // with &sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=...). If calls fail, re-copy the
+    // full URL from Power Automate — it may have been truncated when pasted.
+    updateFieldsUrl: 'https://default46c98d88e3444ed484964ed7712e25.5d.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/7c9ac8ba2e8444d7b015d4e959911ee0/triggers/manual/paths/invoke?api-version=1'
 };
 
 // ============================================================
@@ -1324,9 +1328,25 @@ async function confirmCompleteModal(){
     pendingCompleteId = null;
 
     // Save the Project Portal Name to SharePoint (internal record) — every time we
-    // complete a request, not gated by the Auto emails / Test mode toggles.
+    // complete a request, not gated by the Auto emails / Test mode toggles. Whatever
+    // the customer suggested gets overwritten/confirmed by whatever we type here.
     allRequests.forEach(r => { if (String(r.id) === String(id)) r.projectName = portalName; });
+    if (!trackingData._portalConfirmed) trackingData._portalConfirmed = {};
+    trackingData._portalConfirmed[id] = true;
+    await saveTracking();
     await updateSharePointFields(id, { projectPortalName: portalName });
+
+    // Refresh the card so the Portal Name row drops the "Suggested by customer" tag.
+    const card = document.getElementById('group-' + id);
+    if (card) {
+        const wasOpen = card.classList.contains('open');
+        const reqs = allRequests.filter(r => String(r.id) === String(id));
+        const grouped = groupByID(reqs);
+        const newCard = document.createElement('div');
+        newCard.innerHTML = renderGroupCard(id, grouped[id]);
+        card.replaceWith(newCard.firstElementChild);
+        if (wasOpen) document.getElementById('group-' + id).classList.add('open');
+    }
 
     // Only now, at Complete, do we tell the customer their portal is ready.
     if (autoEmailsEnabled) {
@@ -1899,9 +1919,18 @@ function renderGroupCard(id, reqs) {
     const createdByHtml = createdBy && createdBy !== '\u2014'
         ? `<a class="req-person" title="Click to email ${createdBy}" onclick="event.stopPropagation();openRequestEmail('${id}')">${createdBy}<svg width="12" height="12" viewBox="0 0 16 16" style="margin-left:5px;"><rect x="1.5" y="3" width="13" height="10" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.2"/><polyline points="2,4 8,9 14,4" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>`
         : `<span class="req-info-val">${createdBy}</span>`;
+    // Portal Name: comes from SharePoint's Project Portal Name field. The customer
+    // sometimes fills it in on their original request; if we later set/confirm it
+    // ourselves (Complete popup), it's flagged as confirmed and loses the "Suggested" tag.
+    const portalName = reqs[0].projectName || '';
+    const portalConfirmed = !!(trackingData._portalConfirmed && trackingData._portalConfirmed[id]);
+    const portalNameHtml = portalName
+        ? `${portalName}${portalConfirmed ? '' : ' <span class="portal-suggested-tag">Suggested by customer</span>'}`
+        : '<span class="info-empty">Not provided yet</span>';
     const infoBlock = `<div class="req-info">
       <div class="req-info-row"><span class="req-info-label">Created By</span><span class="req-info-val">${createdByHtml}</span></div>
       <div class="req-info-row"><span class="req-info-label">Assigned BD</span><span class="req-info-val">${assignedBD}</span></div>
+      <div class="req-info-row"><span class="req-info-label">Portal Name</span><span class="req-info-val">${portalNameHtml}</span></div>
       <div class="req-info-row req-info-full"><span class="req-info-label">Details</span><span class="req-info-val req-info-details">${details ? details : '<span class="info-empty">No details</span>'}</span></div>
       <div class="req-info-row req-info-full"><span class="req-info-label">Attachments</span><span class="req-info-val req-info-attach">${attachmentsHtml}</span></div>
     </div>`;
