@@ -751,6 +751,39 @@ async function changeSpStatus(id, newStatus, selectEl) {
     allRequests.forEach(r => { if (String(r.id) === String(id)) r.status = newStatus; });
     // Log it
     logHistory(id, '', 'SharePoint Status', 'Status', newStatus);
+    // When set to Acknowledged, open an email to the requestor (CC Jair + Jenn)
+    if (String(newStatus).toLowerCase() === 'acknowledged') {
+        openAcknowledgedEmail(id);
+    }
+}
+
+// Build & open the "Acknowledged" notification email to the requestor
+function openAcknowledgedEmail(id) {
+    const reqs = allRequests.filter(r => String(r.id) === String(id));
+    if (!reqs.length) return;
+    const req0 = reqs[0];
+    // TEST MODE: send only to Jair + Jenn. To go live, change `to` back to req0.requestorEmail
+    // and set cc to 'jair.garcia@intel.com;jenn.glavan@intel.com'
+    const TEST_MODE = true;
+    const to = TEST_MODE ? 'jair.garcia@intel.com;jenn.glavan@intel.com' : (req0.requestorEmail || '');
+    const cc = TEST_MODE ? '' : 'jair.garcia@intel.com;jenn.glavan@intel.com';
+    const name = (req0.requestor || 'there').split(' ')[0].split('@')[0];
+    const customer = req0.customer || 'your request';
+
+    const subject = `REQ. ${id} - ${customer} - Acknowledged`;
+    let body = `Hi @${name},\n\n`;
+    body += `This is to let you know that your request (REQ. ${id} - ${customer}) has been Acknowledged and is now in our queue.\n\n`;
+    body += `We are actively working on it. Please stay tuned as we move it through the process.\n\n`;
+    body += `Estimated SLAs (based on our 2026 average turnaround):\n`;
+    body += `--------------------------------------------------\n`;
+    body += `Acknowledged  ->  Next step .......... 48-56 hrs\n`;
+    body += `In Approval Loop ...................... ~2 days\n`;
+    body += `Out for Signature ..................... ~48 hrs\n`;
+    body += `--------------------------------------------------\n\n`;
+    body += `Note: In Approval Loop and Out for Signature depend on external approvers/signers, so timing can vary.\n\n`;
+    body += `Thank you for your patience.\n\nBest regards,\nDA Ops`;
+
+    window.location.href = `mailto:${encodeURIComponent(to)}?cc=${encodeURIComponent(cc)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
 // Log change to history
@@ -881,8 +914,15 @@ function updatePresenceUI() {
 function showNotification(n) {
     const banner = document.createElement('div');
     banner.className = 'notification-banner';
+    // SharePoint Status changes get a clearer, dedicated message
+    let msg;
+    if (n.requestType === 'SharePoint Status' || n.step === 'Status') {
+        msg = `<strong>${n.user}</strong> set #${n.requestId} SharePoint Status \u2192 <strong>${n.value}</strong>`;
+    } else {
+        msg = `<strong>${n.user}</strong> changed #${n.requestId} ${n.requestType} \u2192 ${n.step}: <strong>${n.value}</strong>`;
+    }
     banner.innerHTML = `
-        <span class="notif-text"><strong>${n.user}</strong> changed #${n.requestId} ${n.requestType} \u2192 ${n.step}: <strong>${n.value}</strong></span>
+        <span class="notif-text">${msg}</span>
         <button class="notif-close" onclick="this.parentElement.remove()">\u2715</button>
     `;
     document.body.prepend(banner);
