@@ -8,6 +8,11 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.23 — 2026-08-19
+- Nuevo filtro "Assigned To" (campo iGO Admin Only - Assigned To) en la barra de filtros de arriba. Se llena solo con los asignados que existan; incluye opcion "Unassigned".
+- Los requests con status Acknowledged ahora cuentan como WIP (In Progress), ya no como New.
+- Nuevos stat pills: Acknowledged (ack) y Canceled. Canceled es su propia categoria (ya no se mezcla con Done). Al hacer clic filtran igual que los demas pills.
+
 ## v1.8.22 — 2026-08-19
 - Nueva fila "DA Number" en la tarjeta, separada de DA Link. El numero que se captura en el popup de DA Link ahora se guarda en su propia columna de texto en SharePoint (DA_x0020_Number) y se lee de vuelta al hacer Sync.
 - El boton de DA Link ahora siempre dice "Open DA Link" (el numero vive en su propia fila).

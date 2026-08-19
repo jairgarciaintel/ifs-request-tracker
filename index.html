@@ -70,7 +70,7 @@ body{
     </div>
   </div>
   <div class="header-right">
-    <span id="app-version" class="version-badge" title="Click to see changelog" onclick="showChangelog()">v1.8.22</span>
+    <span id="app-version" class="version-badge" title="Click to see changelog" onclick="showChangelog()">v1.8.23</span>
     <label class="auto-toggle" title="Auto emails on status change">
       <span class="auto-toggle-label">Auto emails</span>
       <span class="switch"><input type="checkbox" id="auto-emails-toggle" onchange="toggleAutoEmails(this)"><span class="slider"></span></span>
@@ -169,6 +169,9 @@ body{
       <option value="complete">Complete</option>
       <option value="failed">Failed</option>
     </select>
+    <select id="filter-assignee" onchange="renderRequests()">
+      <option value="all">All Assignees</option>
+    </select>
     <input type="text" id="search-box" placeholder="Search customer or ID..." oninput="renderRequests()"/>
   </div>
   <div class="toolbar-actions">
@@ -183,6 +186,8 @@ body{
     <span id="stat-progress" class="stat-pill s-progress stat-clickable" onclick="toggleStatFilter('in-progress')">0 WIP</span>
     <span id="stat-complete" class="stat-pill s-done stat-clickable" onclick="toggleStatFilter('complete')">0 done</span>
     <span id="stat-new" class="stat-pill s-new stat-clickable" onclick="toggleStatFilter('not-started')">0 new</span>
+    <span id="stat-ack" class="stat-pill s-ack stat-clickable" onclick="toggleStatFilter('acknowledged')">0 ack</span>
+    <span id="stat-canceled" class="stat-pill s-canceled stat-clickable" onclick="toggleStatFilter('canceled')">0 canceled</span>
   </div>
   <select id="sort-order" onchange="renderRequests()" style="background:rgba(4,28,50,0.8);color:var(--light);border:1px solid rgba(78,200,240,0.2);padding:5px 10px;border-radius:6px;font-size:11px;">
     <option value="id-desc">Newest First (ID)</option>
@@ -270,6 +275,10 @@ body.light-mode .auto-toggle-label{color:#4a5568;}
 .s-done.stat-active{border-color:var(--green);box-shadow:0 0 6px rgba(107,203,119,0.3);}
 .s-new{background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.4);}
 .s-new.stat-active{border-color:rgba(255,255,255,0.4);box-shadow:0 0 6px rgba(255,255,255,0.1);}
+.s-ack{background:rgba(78,200,240,0.12);color:var(--cyan);}
+.s-ack.stat-active{border-color:var(--cyan);box-shadow:0 0 6px rgba(78,200,240,0.3);}
+.s-canceled{background:rgba(204,0,0,0.12);color:#ff6b6b;}
+.s-canceled.stat-active{border-color:#ff6b6b;box-shadow:0 0 6px rgba(204,0,0,0.3);}
 .request-list{padding:20px 32px;display:flex;flex-direction:column;gap:14px;}
 .empty-state{text-align:center;padding:80px 20px;color:rgba(255,255,255,0.4);}
 .empty-state h3{font-family:'Cabinet Grotesk',sans-serif;font-size:1.3rem;color:var(--cyan);}
@@ -477,10 +486,11 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.22';
+const APP_VERSION = 'v1.8.23';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
+    ['v1.8.23', ['New "Assigned To" filter (iGO Admin Only - Assigned To) in the top filter bar.','Acknowledged requests now count as WIP (In Progress) instead of New.','New stat pills: Acknowledged (ack) and Canceled. Canceled is its own bucket, no longer lumped with Done.']],
     ['v1.8.22', ['New "DA Number" row on the card, separate from DA Link. The number captured in the DA Link popup now saves to its own SharePoint text column (DA_x0020_Number) and is read back on Sync.','DA Link button label is now always "Open DA Link" (number lives in its own row).']],
     ['v1.8.21', ['DA Link now saves to SharePoint correctly (the DALink column is a plain URL field, so we send only the URL). The DA number is kept in the tracker to auto-fill the Complete email.','Removed leftover Instructions_follow notes from the repo and gitignored them (they contained a signed flow URL).']],
     ['v1.8.20', ['DA Link now shown on the card, next to Portal Name. Saved instantly from the DA Link popup (In Approval Loop) even before SharePoint confirms the write, and also reads it back from SharePoint once the data flow returns it.']],
@@ -850,6 +860,7 @@ async function fetchAndRender() {
         const now = new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
         updateSync(rawRequests.length + ' requests (' + allRequests.length + ' services) \u00b7 ' + now);
         ensureUsername();
+        populateAssigneeFilter();
         renderRequests();
         startAutoRefresh();
         startRealtimePolling();
@@ -1644,6 +1655,27 @@ function syncSpStatusToSubSteps() {
     if (changed) saveTracking();
 }
 
+// Populate the "Assigned To" (iGO Admin Only - Assigned To) filter dropdown with
+// the unique assignees found in the current data, preserving the current selection.
+function populateAssigneeFilter() {
+    const sel = document.getElementById('filter-assignee');
+    if (!sel) return;
+    const prev = sel.value;
+    const names = new Set();
+    let hasUnassigned = false;
+    allRequests.forEach(r => {
+        const a = (r.assignedBD || '').trim();
+        if (a) names.add(a); else hasUnassigned = true;
+    });
+    const sorted = Array.from(names).sort((a, b) => a.localeCompare(b));
+    let html = '<option value="all">All Assignees</option>';
+    sorted.forEach(n => { html += `<option value="${n.replace(/"/g,'&quot;')}">${n}</option>`; });
+    if (hasUnassigned) html += '<option value="__unassigned__">Unassigned</option>';
+    sel.innerHTML = html;
+    // Restore prior selection if it still exists
+    if (prev && (prev === 'all' || prev === '__unassigned__' || sorted.includes(prev))) sel.value = prev;
+}
+
 // ============================================================
 // STAT FILTER: Click pills to filter, multi-select supported
 // ============================================================
@@ -1670,6 +1702,10 @@ function toggleStatFilter(status) {
     document.getElementById('stat-progress').classList.toggle('stat-active', activeStatFilters.has('in-progress'));
     document.getElementById('stat-complete').classList.toggle('stat-active', activeStatFilters.has('complete'));
     document.getElementById('stat-new').classList.toggle('stat-active', activeStatFilters.has('not-started'));
+    const ackPill = document.getElementById('stat-ack');
+    if (ackPill) ackPill.classList.toggle('stat-active', activeStatFilters.has('acknowledged'));
+    const cancPill = document.getElementById('stat-canceled');
+    if (cancPill) cancPill.classList.toggle('stat-active', activeStatFilters.has('canceled'));
     
     // Also sync the dropdown filter
     document.getElementById('filter-status').value = 'all';
@@ -1707,6 +1743,18 @@ function renderRequests() {
     filtered = filterByTime(filtered);
 
     if (typeFilter !== 'all') filtered = filtered.filter(r => r.requestType === typeFilter);
+
+    // Assignee filter (iGO Admin Only - Assigned To -> r.assignedBD)
+    const assigneeEl = document.getElementById('filter-assignee');
+    const assigneeFilter = assigneeEl ? assigneeEl.value : 'all';
+    if (assigneeFilter && assigneeFilter !== 'all') {
+        if (assigneeFilter === '__unassigned__') {
+            filtered = filtered.filter(r => !(r.assignedBD || '').trim());
+        } else {
+            filtered = filtered.filter(r => (r.assignedBD || '').trim() === assigneeFilter);
+        }
+    }
+
     if (search) filtered = filtered.filter(r =>
         (r.customer||'').toLowerCase().includes(search) ||
         String(r.id).includes(search)
@@ -1717,24 +1765,38 @@ function renderRequests() {
     // Stats
     const allGrouped = groupByID(filtered);
     let totalGroups = Object.keys(allGrouped).length;
-    let wipCount = 0, doneCount = 0, newCount = 0;
+    let wipCount = 0, doneCount = 0, newCount = 0, canceledCount = 0, ackCount = 0;
     Object.entries(allGrouped).forEach(([id, reqs]) => {
         const s = getGroupOverall(id, reqs);
         if (s==='complete') doneCount++;
+        else if (s==='canceled') canceledCount++;
         else if (s==='in-progress') wipCount++;
         else newCount++;
+        // Acknowledged count (subset, based on the raw SharePoint status)
+        if (String(reqs[0].status || '').toLowerCase() === 'acknowledged') ackCount++;
     });
     document.getElementById('stat-total').textContent = totalGroups + ' total';
     document.getElementById('stat-progress').textContent = wipCount + ' WIP';
     document.getElementById('stat-complete').textContent = doneCount + ' done';
     document.getElementById('stat-new').textContent = newCount + ' new';
+    const cancEl = document.getElementById('stat-canceled');
+    if (cancEl) cancEl.textContent = canceledCount + ' canceled';
+    const ackEl = document.getElementById('stat-ack');
+    if (ackEl) ackEl.textContent = ackCount + ' ack';
 
     // Filter by overall status (from pills or dropdown)
     let ids = Object.keys(grouped);
     const statusFilter = document.getElementById('filter-status').value;
     
     if (!activeStatFilters.has('all')) {
-        ids = ids.filter(id => activeStatFilters.has(getGroupOverall(id, grouped[id])));
+        ids = ids.filter(id => {
+            const overall = getGroupOverall(id, grouped[id]);
+            if (activeStatFilters.has(overall)) return true;
+            // "acknowledged" is a sub-filter based on the raw SharePoint status
+            if (activeStatFilters.has('acknowledged')
+                && String(grouped[id][0].status || '').toLowerCase() === 'acknowledged') return true;
+            return false;
+        });
     } else if (statusFilter !== 'all') {
         ids = ids.filter(id => getGroupOverall(id, grouped[id]) === statusFilter);
     }
@@ -2322,8 +2384,11 @@ function getSectionOverall(key, steps) {
 function getGroupOverall(id, reqs) {
     // First check: if the SOURCE status from SharePoint says Complete/Canceled, use that
     const sourceStatus = String(reqs[0].status || '').toLowerCase();
-    if (sourceStatus === 'complete' || sourceStatus === 'canceled') return 'complete';
-    if (sourceStatus === 'wip' || sourceStatus === 'in approval loop' || sourceStatus === 'out for signature' || sourceStatus === 'it request submitted') return 'in-progress';
+    if (sourceStatus === 'complete') return 'complete';
+    if (sourceStatus === 'canceled') return 'canceled';
+    if (sourceStatus === 'wip' || sourceStatus === 'in approval loop' || sourceStatus === 'out for signature'
+        || sourceStatus === 'it request submitted' || sourceStatus === 'acknowledged'
+        || sourceStatus === 'info requested' || sourceStatus === 'on hold') return 'in-progress';
     
     // Otherwise, calculate from tracking sub-steps
     const sectionStatuses = reqs.map(r => {
@@ -2338,7 +2403,7 @@ function getGroupOverall(id, reqs) {
 }
 
 function statusLabel(s) {
-    return {'complete':'Done','in-progress':'In Progress','failed':'Failed','not-started':'New'}[s]||'New';
+    return {'complete':'Done','in-progress':'In Progress','failed':'Failed','not-started':'New','canceled':'Canceled'}[s]||'New';
 }
 
 function svgIcon(status) {
