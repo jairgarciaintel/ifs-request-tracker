@@ -790,9 +790,9 @@ async function openAcknowledgedEmail(id) {
     if (!reqs.length) return;
     const req0 = reqs[0];
 
-    // TEST MODE: send only to Jair + Jenn. Set TEST_MODE = false to go live (send to requestor).
+    // TEST MODE: send only to Jair (for testing). Set TEST_MODE = false to go live (send to requestor, CC Jair+Jenn).
     const TEST_MODE = true;
-    const to = TEST_MODE ? 'jair.garcia@intel.com;jenn.glavan@intel.com' : (req0.requestorEmail || '');
+    const to = TEST_MODE ? 'jair.garcia@intel.com' : (req0.requestorEmail || '');
     const cc = TEST_MODE ? '' : 'jair.garcia@intel.com;jenn.glavan@intel.com';
     const name = (req0.requestor || 'there').split(' ')[0].split('@')[0];
     const customer = req0.customer || 'your request';
