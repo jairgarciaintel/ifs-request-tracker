@@ -8,6 +8,15 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.22 — 2026-08-19
+- Nueva fila "DA Number" en la tarjeta, separada de DA Link. El numero que se captura en el popup de DA Link ahora se guarda en su propia columna de texto en SharePoint (DA_x0020_Number) y se lee de vuelta al hacer Sync.
+- El boton de DA Link ahora siempre dice "Open DA Link" (el numero vive en su propia fila).
+- PENDIENTE en Power Automate: en el flow Update Fields agregar el mapeo daNumber -> columna DA Number. Instrucciones en el l4ve.
+
+## v1.8.21 — 2026-08-19
+- FIX guardado DA Link: la columna DALink de SharePoint es tipo URL simple (String/uri), asi que el flow debe recibir SOLO la URL, no "url, texto". El numero de DA (Alternative Text) no cabe en esa columna; se queda en el tracker para autollenar el correo de Complete.
+- Se borraron del repo los archivos Instructions_follow / Instructions_follow1 (traian la URL firmada del flow) y se agregaron al .gitignore.
+
 ## v1.8.20 — 2026-08-19
 - Nuevo campo "DA Link" visible en la tarjeta, junto a Portal Name. Se guarda al instante desde el popup de DA Link (In Approval Loop), aunque SharePoint todavia no confirme la escritura, y tambien lo lee de vuelta de SharePoint cuando el flow de Get all requests lo trae.
 
