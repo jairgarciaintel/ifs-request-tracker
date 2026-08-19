@@ -70,10 +70,14 @@ body{
     </div>
   </div>
   <div class="header-right">
-    <span id="app-version" class="version-badge" title="Click to see changelog" onclick="showChangelog()">v1.8.13</span>
+    <span id="app-version" class="version-badge" title="Click to see changelog" onclick="showChangelog()">v1.8.14</span>
     <label class="auto-toggle" title="Auto emails on status change">
       <span class="auto-toggle-label">Auto emails</span>
       <span class="switch"><input type="checkbox" id="auto-emails-toggle" onchange="toggleAutoEmails(this)"><span class="slider"></span></span>
+    </label>
+    <label class="auto-toggle" title="Test mode: ON sends only to Jair, OFF sends to the real requestor + CC FS DA OPS">
+      <span class="auto-toggle-label">Test mode</span>
+      <span class="switch"><input type="checkbox" id="test-mode-toggle" onchange="toggleTestMode(this)"><span class="slider"></span></span>
     </label>
     <span id="sync-status" class="sync-text">Loading...</span>
     <button class="btn btn-primary" onclick="fetchAndRender()"><svg width="14" height="14"><use href="#icon-sync"/></svg> Sync</button>
@@ -418,10 +422,11 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.13';
+const APP_VERSION = 'v1.8.14';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
+    ['v1.8.14', ['New "Test mode" toggle next to Auto emails: ON sends Acknowledged/Info Request only to Jair (no CC), OFF sends to the real requestor with CC fs.da.ops@intel.com.']],
     ['v1.8.13', ['Info Request email now shows 34 circles (17 per side); Acknowledged email now shows 46 circles (23 per side).']],
     ['v1.8.12', ['OUTLOOK FIX: restored Acknowledged email circles by removing unsupported opacity/filter styles.','Circles now use muted pre-blended solid colors, keeping the softer look without disappearing.','TEST mode remains active: Jair only, no CC.']],
     ['v1.8.11', ['TEST MODE restored for Acknowledged and Info Request.','Both automatic emails now go only to Jair with an empty CC; request creators and FS DA OPS receive nothing during testing.']],
@@ -469,6 +474,16 @@ function toggleAutoEmails(el){
     autoEmailsEnabled = el.checked;
     localStorage.setItem('fs-auto-emails', autoEmailsEnabled ? 'on' : 'off');
     updateSync(autoEmailsEnabled ? 'Auto emails ON' : 'Auto emails OFF');
+}
+
+// Test mode toggle (persisted). Default ON: only Jair receives Acknowledged/Info
+// Request emails and CC stays empty. Turn OFF to send to the real requestor with
+// CC fs.da.ops@intel.com (production behavior).
+let testModeEnabled = localStorage.getItem('fs-test-mode') !== 'off';
+function toggleTestMode(el){
+    testModeEnabled = el.checked;
+    localStorage.setItem('fs-test-mode', testModeEnabled ? 'on' : 'off');
+    updateSync(testModeEnabled ? 'Test mode ON (Jair only)' : 'Test mode OFF (real recipients)');
 }
 
 // ============================================================
@@ -934,10 +949,9 @@ async function openInfoRequestEmail(id) {
     if (!reqs.length) return;
     const req0 = reqs[0];
 
-    // TEST MODE: send only to Jair; never CC FS DA OPS or the request creator.
-    const TEST_MODE = true;
-    const to = TEST_MODE ? 'jair.garcia@intel.com' : (req0.requestorEmail || '');
-    const cc = TEST_MODE ? '' : 'fs.da.ops@intel.com';
+    // Test mode (toggle in header): ON sends only to Jair with empty CC.
+    const to = testModeEnabled ? 'jair.garcia@intel.com' : (req0.requestorEmail || '');
+    const cc = testModeEnabled ? '' : 'fs.da.ops@intel.com';
     const name = emailGreetingName(req0.requestor || req0.requestorEmail);
     const customer = req0.customer || 'your request';
     const subject = `REQ. ${id} - ${customer} - Info Request`;
@@ -985,10 +999,9 @@ async function openAcknowledgedEmail(id) {
     if (!reqs.length) return;
     const req0 = reqs[0];
 
-    // TEST MODE: send only to Jair; never CC FS DA OPS or the request creator.
-    const TEST_MODE = true;
-    const to = TEST_MODE ? 'jair.garcia@intel.com' : (req0.requestorEmail || '');
-    const cc = TEST_MODE ? '' : 'fs.da.ops@intel.com';
+    // Test mode (toggle in header): ON sends only to Jair with empty CC.
+    const to = testModeEnabled ? 'jair.garcia@intel.com' : (req0.requestorEmail || '');
+    const cc = testModeEnabled ? '' : 'fs.da.ops@intel.com';
     const name = emailGreetingName(req0.requestor || req0.requestorEmail);
     const customer = req0.customer || 'your request';
     const subject = `REQ. ${id} - ${customer} - Acknowledged`;
@@ -2220,6 +2233,8 @@ document.addEventListener('DOMContentLoaded', function(){
     if (vb) { vb.textContent = APP_VERSION; vb.title = 'FS Request Tracker ' + APP_VERSION; }
     var tg = document.getElementById('auto-emails-toggle');
     if (tg) tg.checked = autoEmailsEnabled;
+    var tm = document.getElementById('test-mode-toggle');
+    if (tm) tm.checked = testModeEnabled;
     fetchAndRender();
 });
 </script>

@@ -8,6 +8,10 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.14 — 2026-08-19
+- Nuevo boton "Test mode" en el header, junto a Auto emails. Encendido (default): Acknowledged e Info Request van solo a Jair y CC vacio. Apagado: van al creador real del request con CC a `fs.da.ops@intel.com`.
+- Se elimino la constante fija `TEST_MODE = true` de ambas funciones de envio; ahora usan el toggle persistido `testModeEnabled`.
+
 ## v1.8.13 — 2026-08-19
 - Ajustado el numero de circulos por correo: Info Request ahora usa 34 circulos (17 por lado) y Acknowledged usa 46 circulos (23 por lado).
 
