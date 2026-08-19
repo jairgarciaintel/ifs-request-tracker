@@ -34,3 +34,6 @@ Asi solo copia cuando: es puro numero Y no esta vacio.
 ## Update item (rama TRUE) — sin cambios
 Id (fx): item()?['Id']
 DA Number (DA_x0020_Number) (fx): item()?['DALink']?['Description']
+
+
+Flow run failed. Action 'Condition' failed: Unable to process template language expressions for action 'Condition' at line '0' and column '0': 'The template language function 'replace' expects its first parameter 'string' to be a string. The provided value is of type 'Null'. Please see https://aka.ms/logicexpressions#replace for usage details.'.
