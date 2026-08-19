@@ -431,9 +431,9 @@ const SUB_STEPS = {
 const STEP_ETA = {
     'in-approval-loop': '~2 days',
     'da-edit-approval-loop': '~2 days',
-    'add-force-signature': '~48 hrs',
-    'da-edit-for-signature': '~48 hrs',
-    'cod-send-signature': '~48 hrs'
+    'add-force-signature': '48-56 hrs',
+    'da-edit-for-signature': '48-56 hrs',
+    'cod-send-signature': '48-56 hrs'
 };
 
 // ============================================================
@@ -795,7 +795,7 @@ function openAcknowledgedEmail(id) {
     body += `--------------------------------------------------\n`;
     body += `Acknowledged  ->  Next step .......... 48-56 hrs\n`;
     body += `In Approval Loop ...................... ~2 days\n`;
-    body += `Out for Signature ..................... ~48 hrs\n`;
+    body += `Out for Signature ..................... 48-56 hrs\n`;
     body += `--------------------------------------------------\n\n`;
     body += `Note: In Approval Loop and Out for Signature depend on external approvers/signers, so timing can vary.\n\n`;
     body += `Thank you for your patience.\n\nBest regards,\nDA Ops`;
@@ -1372,7 +1372,7 @@ function renderGroupCard(id, reqs) {
         ${infoBlock}
         <div class="sla-note">
           <svg width="12" height="12"><use href="#icon-progress"/></svg>
-          SLA: ~48-56 hrs to move to the next step. In Approval Loop ~2 days, Out for Signature ~48 hrs (depend on external approvers).
+          SLA: ~48-56 hrs to move to the next step. In Approval Loop ~2 days, Out for Signature 48-56 hrs (depend on external approvers).
         </div>
         ${codDaHeader}
         ${sections}
