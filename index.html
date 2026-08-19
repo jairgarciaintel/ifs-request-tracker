@@ -778,6 +778,13 @@ async function changeSpStatus(id, newStatus, selectEl) {
 }
 
 // Build & open the "Acknowledged" notification email to the requestor
+// Build the full styled HTML for the Acknowledged email.
+// The tracker owns this HTML — change it here, push, and it updates without touching Power Automate.
+function buildAckEmailHtml(name, id, customer) {
+    const LOGO = 'https://jairgarciaintel.github.io/ifs-request-tracker/Logo.png';
+    return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0a2540;padding:24px 0;font-family:'Segoe UI',Arial,sans-serif;"><tr><td align="center"><table role="presentation" width="640" cellpadding="0" cellspacing="0" style="width:640px;max-width:640px;background-color:#ffffff;border-radius:14px;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,0.25);"><tr><td style="background:linear-gradient(135deg,#041c32 0%,#0d3158 55%,#0071c5 100%);padding:28px 32px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="vertical-align:middle;width:48px;"><span style="display:inline-block;width:48px;height:48px;line-height:48px;text-align:center;border:2px solid #4ec8f0;border-radius:10px;color:#4ec8f0;font-size:20px;font-weight:700;letter-spacing:1px;">FS</span></td><td style="vertical-align:middle;padding-left:14px;"><div style="color:#ffffff;font-size:24px;font-weight:700;letter-spacing:0.3px;">Intel Foundry Services</div><div style="color:#4ec8f0;font-size:14px;letter-spacing:1px;text-transform:uppercase;">DA Ops &middot; Request Tracker</div></td></tr></table></td></tr><tr><td style="height:5px;background:linear-gradient(90deg,#4ec8f0,#0071c5,#6bcb77);font-size:0;line-height:0;">&nbsp;</td></tr><tr><td style="padding:34px;color:#1a202c;font-size:18px;line-height:1.7;"><p style="margin:0 0 18px;font-size:18px;">Hi <strong>@${name}</strong>,</p><p style="margin:0 0 18px;font-size:18px;">This is to let you know that your request (<strong>REQ. ${id} &mdash; ${customer}</strong>) has been <strong style="color:#0071c5;">Acknowledged</strong> and is now in our queue.</p><p style="margin:0 0 24px;font-size:18px;">We are actively working on it. Please stay tuned as we move it through the process.</p><div style="font-size:16px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:#0071c5;margin-bottom:10px;">Estimated SLAs &middot; 2026 average turnaround</div><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:18px;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0;"><tr style="background-color:#041c32;color:#ffffff;"><td style="padding:12px 16px;font-weight:600;font-size:18px;">Stage</td><td style="padding:12px 16px;font-weight:600;font-size:18px;text-align:right;">Estimated Time</td></tr><tr style="background-color:#ffffff;"><td style="padding:12px 16px;border-top:1px solid #eef2f6;font-size:18px;">Acknowledged &rarr; Next step</td><td style="padding:12px 16px;border-top:1px solid #eef2f6;text-align:right;font-weight:600;font-size:18px;color:#0071c5;">24&ndash;48 hrs</td></tr><tr style="background-color:#f5f9fc;"><td style="padding:12px 16px;border-top:1px solid #eef2f6;font-size:18px;">In Approval Loop</td><td style="padding:12px 16px;border-top:1px solid #eef2f6;text-align:right;font-weight:600;font-size:18px;color:#0071c5;">2&ndash;4 days</td></tr><tr style="background-color:#ffffff;"><td style="padding:12px 16px;border-top:1px solid #eef2f6;font-size:18px;">Out for Signature</td><td style="padding:12px 16px;border-top:1px solid #eef2f6;text-align:right;font-weight:600;font-size:18px;color:#0071c5;">Depends on customer &middot; avg 48&ndash;56 hrs</td></tr></table><p style="margin:16px 0 0;font-size:15px;color:#6b7684;font-style:italic;">Note: In Approval Loop and Out for Signature depend on external approvers, signers and the customer, so timing can vary.</p><p style="margin:26px 0 0;font-size:18px;">Thank you for your patience.</p><p style="margin:20px 0 0;font-size:18px;">Best regards,<br><strong style="color:#041c32;">DA Ops</strong> &middot; Intel Foundry Services</p></td></tr><tr><td style="background-color:#f0f4f8;padding:22px 32px;text-align:center;border-top:1px solid #e2e8f0;"><div style="color:#9aa4b0;font-size:13px;margin-bottom:12px;">This is an automated notification for the FS Request Tracker.</div><img src="${LOGO}" alt="Intel Foundry Services" width="120" style="display:inline-block;max-height:36px;width:auto;margin-bottom:12px;"><div style="color:#8a97a5;font-size:12px;line-height:1.5;">Intel Confidential &mdash; This message and any attachments are intended only for the named recipient(s) and may contain confidential information. If you are not the intended recipient, please notify the sender and delete this message.</div></td></tr></table></td></tr></table>`;
+}
+
 async function openAcknowledgedEmail(id) {
     const reqs = allRequests.filter(r => String(r.id) === String(id));
     if (!reqs.length) return;
@@ -790,16 +797,18 @@ async function openAcknowledgedEmail(id) {
     const name = (req0.requestor || 'there').split(' ')[0].split('@')[0];
     const customer = req0.customer || 'your request';
     const subject = `REQ. ${id} - ${customer} - Acknowledged`;
+    const bodyHtml = buildAckEmailHtml(name, id, customer);
 
     if (!to) { console.warn('No recipient email for #' + id); return; }
 
-    // Send automatically via Power Automate flow (styled HTML email, no Outlook popup)
+    // Send automatically via Power Automate flow. The tracker builds the HTML and
+    // sends it as `bodyHtml`; the flow just drops it into the email Body untouched.
     if (CONFIG.sendEmailUrl) {
         try {
             const res = await fetch(CONFIG.sendEmailUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ to, cc, subject, name, id: String(id), customer })
+                body: JSON.stringify({ to, cc, subject, name, id: String(id), customer, bodyHtml })
             });
             if (res.ok) {
                 updateSync('Acknowledged email sent for #' + id);
@@ -817,11 +826,11 @@ async function openAcknowledgedEmail(id) {
     body += `This is to let you know that your request (REQ. ${id} - ${customer}) has been Acknowledged and is now in our queue.\n\n`;
     body += `We are actively working on it. Please stay tuned as we move it through the process.\n\n`;
     body += `Estimated SLAs (based on our 2026 average turnaround):\n`;
-    body += `Acknowledged -> Next step: 48-56 hrs\n`;
-    body += `In Approval Loop: ~2 days\n`;
-    body += `Out for Signature: 48-56 hrs\n\n`;
-    body += `Note: In Approval Loop and Out for Signature depend on external approvers/signers.\n\n`;
-    body += `Thank you for your patience.\n\nBest regards,\nDA Ops`;
+    body += `Acknowledged -> Next step: 24-48 hrs\n`;
+    body += `In Approval Loop: 2-4 days\n`;
+    body += `Out for Signature: depends on customer, avg 48-56 hrs\n\n`;
+    body += `Note: In Approval Loop and Out for Signature depend on external approvers/signers and the customer.\n\n`;
+    body += `Thank you for your patience.\n\nBest regards,\nDA Ops - Intel Foundry Services`;
     window.location.href = `mailto:${encodeURIComponent(to)}?cc=${encodeURIComponent(cc)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
