@@ -790,10 +790,10 @@ async function openAcknowledgedEmail(id) {
     if (!reqs.length) return;
     const req0 = reqs[0];
 
-    // TEST MODE: send only to Jair (for testing). Set TEST_MODE = false to go live (send to requestor, CC fs.da.ops).
-    const TEST_MODE = true;
+    // LIVE MODE: email goes to the requestor, CC fs.da.ops. (Set TEST_MODE = true to send only to Jair.)
+    const TEST_MODE = false;
     const to = TEST_MODE ? 'jair.garcia@intel.com' : (req0.requestorEmail || '');
-    const cc = TEST_MODE ? 'fs.da.ops@intel.com' : 'fs.da.ops@intel.com';
+    const cc = 'fs.da.ops@intel.com';
     // Full name (first + last). If requestor came as an email, prettify it.
     let name = req0.requestor || 'there';
     if (name.includes('@')) {
