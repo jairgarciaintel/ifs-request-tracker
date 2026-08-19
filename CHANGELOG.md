@@ -8,6 +8,21 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.10 — 2026-08-19
+- Eliminado el simbolo `@` antes del nombre en Acknowledged, Info Request y los fallbacks mailto.
+- El saludo conserva solamente el primer nombre: `Dear Nombre` o `Hi Nombre`.
+
+## v1.8.9 — 2026-08-19
+- PRODUCCION: Acknowledged e Info Request se envian al creador del request y siempre llevan CC a `fs.da.ops@intel.com`.
+- El saludo usa solamente el primer nombre despues de `Dear @`; tambien interpreta correctamente nombres de SharePoint con formato `Apellido, Nombre`.
+- `Acknowledged → Next step` permanece en una sola linea dentro de la tabla SLA.
+- Los 40 circulos laterales conservan su posicion Outlook-safe y ahora son mas suaves/translucidos.
+
+## v1.8.8 — 2026-08-19
+- MPA-IC y MPA-NDA ahora se normalizan como MP-NDA/Multi-Party.
+- Los correos automaticos de Info Request incluyen el template MP-RUNDA cuando SharePoint devuelve MP-NDA, MPA-NDA, MPA-IC, MRUNDA o Multi-Party.
+- El correo manual que se abre al hacer clic en Created By usa el mismo template para cualquiera de esos nombres.
+
 ## v1.8.7 — 2026-08-19
 - FIX Outlook: reemplazado el posicionamiento absoluto de los circulos por una tabla de presentacion de tres columnas.
 - 40 circulos quedan en bandas laterales reales: 20 a la izquierda y 20 a la derecha; ya no pueden apilarse en el centro ni empujar el contenido.
