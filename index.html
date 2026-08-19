@@ -70,7 +70,7 @@ body{
     </div>
   </div>
   <div class="header-right">
-    <span id="app-version" class="version-badge" title="Click to see changelog" onclick="showChangelog()">v1.8.19</span>
+    <span id="app-version" class="version-badge" title="Click to see changelog" onclick="showChangelog()">v1.8.20</span>
     <label class="auto-toggle" title="Auto emails on status change">
       <span class="auto-toggle-label">Auto emails</span>
       <span class="switch"><input type="checkbox" id="auto-emails-toggle" onchange="toggleAutoEmails(this)"><span class="slider"></span></span>
@@ -477,10 +477,11 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.19';
+const APP_VERSION = 'v1.8.20';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
+    ['v1.8.20', ['DA Link now shown on the card, next to Portal Name. Saved instantly from the DA Link popup (In Approval Loop) even before SharePoint confirms the write, and also reads it back from SharePoint once the data flow returns it.']],
     ['v1.8.19', ['FIX: updateFieldsUrl was missing the flow\u2019s security signature (401, zero runs). Trigger security was switched to "Anyone" in Power Automate and the fully-signed URL is now wired in \u2014 DA Link and Project Portal Name should save to SharePoint correctly now.']],
     ['v1.8.18', ['Portal Name now shown on the card: if the customer suggested one on their request, it appears with a "Suggested by customer" tag until we confirm/overwrite it via the Complete popup.','Connected the real Power Automate flow for updateFieldsUrl (DA Link + Project Portal Name write-back to SharePoint).']],
     ['v1.8.17', ['Header logo made bigger (28px \u2192 68px) in both Dark and Light mode.','New internal popup when a request moves to In Approval Loop: capture the DA Link (URL + optional DA number) and save it straight to SharePoint\u2019s DA Link field. Customer is not notified.','Complete popup now auto-fills the DA number if it was captured earlier; Portal Name is written to SharePoint\u2019s Project Portal Name field every time a request is completed.']],
@@ -746,6 +747,19 @@ async function fetchAndRender() {
                             }
                         }
                         
+                        // DA Link (SharePoint hyperlink column: {Url, Description} or {Url, Desc}).
+                        // The "Get all requests" flow may or may not include this field yet —
+                        // try the common shapes/names defensively. If it's missing here, the
+                        // link we save via the DA Link popup is still shown from local tracking.
+                        let daLinkUrl = '', daLinkText = '';
+                        const daLinkRaw = item.DALink || item.DA_x0020_Link || item.DaLink || item['DA Link'] || null;
+                        if (daLinkRaw && typeof daLinkRaw === 'object') {
+                            daLinkUrl = daLinkRaw.Url || daLinkRaw.url || '';
+                            daLinkText = daLinkRaw.Description || daLinkRaw.desc || daLinkRaw.Desc || '';
+                        } else if (typeof daLinkRaw === 'string') {
+                            daLinkUrl = daLinkRaw;
+                        }
+
                         // Requestor email (for mailto). Try Email, then extract from Claims.
                         let requestorEmail = '';
                         if (item.Author && typeof item.Author === 'object') {
@@ -768,6 +782,8 @@ async function fetchAndRender() {
                             created: item.Created || '',
                             status: status,
                             projectName: item.Project_x002f_PortalName || '',
+                            daLinkUrl: daLinkUrl,
+                            daLinkText: daLinkText,
                             assignedBD: assignedBD,
                             details: details,
                             attachments: attachments
@@ -1287,8 +1303,31 @@ async function confirmDaLinkModal(){
     if (daLinkText) daNumberById[String(id)] = daLinkText;
     document.getElementById('dalink-modal').classList.remove('open');
     pendingDaLinkId = null;
+
+    // Save locally right away so it shows on the card immediately, regardless of
+    // whether the SharePoint write succeeds or the "Get all requests" flow returns it.
+    allRequests.forEach(r => { if (String(r.id) === String(id)) { r.daLinkUrl = daLinkUrl; r.daLinkText = daLinkText; } });
+    if (!trackingData._daLink) trackingData._daLink = {};
+    trackingData._daLink[id] = { url: daLinkUrl, text: daLinkText };
+    await saveTracking();
+    refreshCard(id);
+
     const ok = await updateSharePointFields(id, { daLinkUrl, daLinkText });
     updateSync(ok ? 'DA Link saved to SharePoint for #' + id : 'DA Link save failed for #' + id + ' (check CONFIG.updateFieldsUrl)');
+}
+
+// Re-render a single card in place (used after local data changes like tracking
+// fields) while preserving whether it was open or collapsed.
+function refreshCard(id) {
+    const card = document.getElementById('group-' + id);
+    if (!card) return;
+    const wasOpen = card.classList.contains('open');
+    const reqs = allRequests.filter(r => String(r.id) === String(id));
+    const grouped = groupByID(reqs);
+    const newCard = document.createElement('div');
+    newCard.innerHTML = renderGroupCard(id, grouped[id]);
+    card.replaceWith(newCard.firstElementChild);
+    if (wasOpen) document.getElementById('group-' + id).classList.add('open');
 }
 
 // Popup asking Portal Name + DA number before sending the Complete celebration email.
@@ -1335,16 +1374,7 @@ async function confirmCompleteModal(){
     await updateSharePointFields(id, { projectPortalName: portalName });
 
     // Refresh the card so the Portal Name row drops the "Suggested by customer" tag.
-    const card = document.getElementById('group-' + id);
-    if (card) {
-        const wasOpen = card.classList.contains('open');
-        const reqs = allRequests.filter(r => String(r.id) === String(id));
-        const grouped = groupByID(reqs);
-        const newCard = document.createElement('div');
-        newCard.innerHTML = renderGroupCard(id, grouped[id]);
-        card.replaceWith(newCard.firstElementChild);
-        if (wasOpen) document.getElementById('group-' + id).classList.add('open');
-    }
+    refreshCard(id);
 
     // Only now, at Complete, do we tell the customer their portal is ready.
     if (autoEmailsEnabled) {
@@ -1925,10 +1955,20 @@ function renderGroupCard(id, reqs) {
     const portalNameHtml = portalName
         ? `${portalName}${portalConfirmed ? '' : ' <span class="portal-suggested-tag">Suggested by customer</span>'}`
         : '<span class="info-empty">Not provided yet</span>';
+    // DA Link: prefer whatever came from SharePoint on this refresh; fall back to
+    // what we saved locally the last time someone confirmed it via the DA Link popup
+    // (covers the case where the "Get all requests" flow doesn't return this column yet).
+    const localDaLink = (trackingData._daLink && trackingData._daLink[id]) || {};
+    const daLinkUrl = reqs[0].daLinkUrl || localDaLink.url || '';
+    const daLinkText = reqs[0].daLinkText || localDaLink.text || '';
+    const daLinkHtml = daLinkUrl
+        ? `<a class="attach-link" href="${daLinkUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()"><svg width="12" height="12" viewBox="0 0 16 16"><path d="M9,3 L4,8 a2.5,2.5 0 0 0 3.5,3.5 L13,6 a1.5,1.5 0 0 0 -2,-2 L6,9" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>${daLinkText ? ('DA ' + daLinkText) : 'Open DA Link'}</a>`
+        : '<span class="info-empty">Not set yet</span>';
     const infoBlock = `<div class="req-info">
       <div class="req-info-row"><span class="req-info-label">Created By</span><span class="req-info-val">${createdByHtml}</span></div>
       <div class="req-info-row"><span class="req-info-label">Assigned BD</span><span class="req-info-val">${assignedBD}</span></div>
       <div class="req-info-row"><span class="req-info-label">Portal Name</span><span class="req-info-val">${portalNameHtml}</span></div>
+      <div class="req-info-row"><span class="req-info-label">DA Link</span><span class="req-info-val">${daLinkHtml}</span></div>
       <div class="req-info-row req-info-full"><span class="req-info-label">Details</span><span class="req-info-val req-info-details">${details ? details : '<span class="info-empty">No details</span>'}</span></div>
       <div class="req-info-row req-info-full"><span class="req-info-label">Attachments</span><span class="req-info-val req-info-attach">${attachmentsHtml}</span></div>
     </div>`;

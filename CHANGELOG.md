@@ -8,6 +8,9 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.20 — 2026-08-19
+- Nuevo campo "DA Link" visible en la tarjeta, junto a Portal Name. Se guarda al instante desde el popup de DA Link (In Approval Loop), aunque SharePoint todavia no confirme la escritura, y tambien lo lee de vuelta de SharePoint cuando el flow de Get all requests lo trae.
+
 ## v1.8.19 — 2026-08-19
 - FIX: la URL de `updateFieldsUrl` no tenia la firma de seguridad del flow (por eso daba 401 y cero corridas). Se cambio el trigger a "Anyone" en Power Automate y se conecto la URL completa con firma.
 - Se elimino `Instructions_follow` del repo (contenia la URL firmada y ya no debe quedar publica).
