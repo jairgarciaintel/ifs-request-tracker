@@ -63,14 +63,14 @@ body{
 
 <header class="header">
   <div class="header-left">
-    <img src="Logo.png" alt="Intel Foundry" class="logo"/>
+    <img id="header-logo" src="logo-dark.jpg" alt="Intel Foundry" class="logo"/>
     <div class="header-title">
       <h1>FS <span class="accent">Request Tracker</span></h1>
       <p class="meta">DA Ops · Private View · Jenn &amp; Jair</p>
     </div>
   </div>
   <div class="header-right">
-    <span id="app-version" class="version-badge" title="Click to see changelog" onclick="showChangelog()">v1.8.15</span>
+    <span id="app-version" class="version-badge" title="Click to see changelog" onclick="showChangelog()">v1.8.16</span>
     <label class="auto-toggle" title="Auto emails on status change">
       <span class="auto-toggle-label">Auto emails</span>
       <span class="switch"><input type="checkbox" id="auto-emails-toggle" onchange="toggleAutoEmails(this)"><span class="slider"></span></span>
@@ -455,10 +455,11 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.15';
+const APP_VERSION = 'v1.8.16';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
+    ['v1.8.16', ['New official Intel Foundry logo in the header: dark version for Dark mode, light version for Light mode. Swaps automatically with the Light/Dark toggle.']],
     ['v1.8.15', ['New automatic emails for Out for Signature and In Approval Loop status changes.','Complete status now opens a popup asking for Portal Name and DA number before sending a celebration email (sparkles, portal name, DA ID) to the customer.','All three new emails respect the existing Auto emails and Test mode toggles.']],
     ['v1.8.14', ['New "Test mode" toggle next to Auto emails: ON sends Acknowledged/Info Request only to Jair (no CC), OFF sends to the real requestor with CC fs.da.ops@intel.com.']],
     ['v1.8.13', ['Info Request email now shows 34 circles (17 per side); Acknowledged email now shows 46 circles (23 per side).']],
@@ -2398,13 +2399,19 @@ function toggleAllCards(expand) {
     });
 }
 
+function updateHeaderLogo() {
+    const img = document.getElementById('header-logo');
+    if (img) img.src = document.body.classList.contains('light-mode') ? 'logo-light.jpg' : 'logo-dark.jpg';
+}
 function toggleTheme() {
     document.body.classList.toggle('light-mode');
     localStorage.setItem('fs-theme', document.body.classList.contains('light-mode') ? 'light' : 'dark');
+    updateHeaderLogo();
 }
 
 // Apply saved theme
 if (localStorage.getItem('fs-theme') === 'light') document.body.classList.add('light-mode');
+document.addEventListener('DOMContentLoaded', updateHeaderLogo);
 
 // ============================================================
 // INIT

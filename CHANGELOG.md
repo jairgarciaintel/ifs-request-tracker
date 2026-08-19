@@ -8,6 +8,9 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.16 — 2026-08-19
+- Nuevo logo oficial de Intel Foundry en el header: version oscura (logo-dark.jpg) para Dark mode, version clara (logo-light.jpg) para Light mode. Cambia solo al usar el boton Light/Dark.
+
 ## v1.8.15 — 2026-08-19
 - Nuevos correos automaticos: Out for Signature ("Depends on Customer, Avg 48-56 hrs") y In Approval Loop ("2-4 dias").
 - Al poner el status en Complete se abre un popup pidiendo Portal Name y numero de DA. Al confirmar, se manda un correo de celebracion con chispas, "Congratulations! Your portal is already created.", el nombre del portal y el ID del DA.
