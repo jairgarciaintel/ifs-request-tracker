@@ -541,12 +541,18 @@ async function fetchAndRender() {
                             }
                         }
                         
-                        // Requestor email (for mailto)
+                        // Requestor email (for mailto). Try Email, then extract from Claims.
                         let requestorEmail = '';
                         if (item.Author && typeof item.Author === 'object') {
                             requestorEmail = item.Author.Email || item.Author.UserPrincipalName || item.Author.Mail || '';
+                            // Claims looks like "i:0#.f|membership|raman.nayyar@intel.com"
+                            if (!requestorEmail && item.Author.Claims) {
+                                const m = String(item.Author.Claims).match(/[\w.\-]+@[\w.\-]+/);
+                                if (m) requestorEmail = m[0];
+                            }
                         }
                         requestorEmail = requestorEmail || item.Author_x0020_Email || '';
+                        // Last resort: if DisplayName is "Last, First" build first.last@intel.com is NOT reliable — leave blank.
 
                         return {
                             id: item.ID || item.Id,
