@@ -70,7 +70,7 @@ body{
     </div>
   </div>
   <div class="header-right">
-    <span id="app-version" class="version-badge" title="Click to see changelog" onclick="showChangelog()">v1.8.18</span>
+    <span id="app-version" class="version-badge" title="Click to see changelog" onclick="showChangelog()">v1.8.19</span>
     <label class="auto-toggle" title="Auto emails on status change">
       <span class="auto-toggle-label">Auto emails</span>
       <span class="switch"><input type="checkbox" id="auto-emails-toggle" onchange="toggleAutoEmails(this)"><span class="slider"></span></span>
@@ -477,10 +477,11 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.18';
+const APP_VERSION = 'v1.8.19';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
+    ['v1.8.19', ['FIX: updateFieldsUrl was missing the flow\u2019s security signature (401, zero runs). Trigger security was switched to "Anyone" in Power Automate and the fully-signed URL is now wired in \u2014 DA Link and Project Portal Name should save to SharePoint correctly now.']],
     ['v1.8.18', ['Portal Name now shown on the card: if the customer suggested one on their request, it appears with a "Suggested by customer" tag until we confirm/overwrite it via the Complete popup.','Connected the real Power Automate flow for updateFieldsUrl (DA Link + Project Portal Name write-back to SharePoint).']],
     ['v1.8.17', ['Header logo made bigger (28px \u2192 68px) in both Dark and Light mode.','New internal popup when a request moves to In Approval Loop: capture the DA Link (URL + optional DA number) and save it straight to SharePoint\u2019s DA Link field. Customer is not notified.','Complete popup now auto-fills the DA number if it was captured earlier; Portal Name is written to SharePoint\u2019s Project Portal Name field every time a request is completed.']],
     ['v1.8.16', ['New official Intel Foundry logo in the header: dark version for Dark mode, light version for Light mode. Swaps automatically with the Light/Dark toggle.']],
@@ -576,10 +577,7 @@ const CONFIG = {
     sendEmailUrl: 'https://default46c98d88e3444ed484964ed7712e25.5d.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/205f9f20a80543a2996515e52c0de68d/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=ExFcVZ5cJV8egXt3fO37KrzpQHsToznGKe4FG8g-i3Q',
 
     // Power Automate: update SharePoint fields other than Status (DA Link, Project/Portal Name).
-    // NOTE: this URL looks shorter than the other three flow URLs below (they all end
-    // with &sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=...). If calls fail, re-copy the
-    // full URL from Power Automate — it may have been truncated when pasted.
-    updateFieldsUrl: 'https://default46c98d88e3444ed484964ed7712e25.5d.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/7c9ac8ba2e8444d7b015d4e959911ee0/triggers/manual/paths/invoke?api-version=1'
+    updateFieldsUrl: 'https://default46c98d88e3444ed484964ed7712e25.5d.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/7c9ac8ba2e8444d7b015d4e959911ee0/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=U3Xr-ZBNXcQLEYdpMu7i5VSBiU506SxGSB7zQlKTroo'
 };
 
 // ============================================================

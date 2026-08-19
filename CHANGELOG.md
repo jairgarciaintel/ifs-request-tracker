@@ -8,6 +8,10 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.19 — 2026-08-19
+- FIX: la URL de `updateFieldsUrl` no tenia la firma de seguridad del flow (por eso daba 401 y cero corridas). Se cambio el trigger a "Anyone" en Power Automate y se conecto la URL completa con firma.
+- Se elimino `Instructions_follow` del repo (contenia la URL firmada y ya no debe quedar publica).
+
 ## v1.8.18 — 2026-08-19
 - Nuevo campo "Portal Name" visible en la tarjeta. Si el cliente lo puso en su request original, aparece con la etiqueta "Suggested by customer" hasta que nosotros lo confirmemos/corrijamos al poner el status Complete.
 - Conectada la URL real del flow de Power Automate para `CONFIG.updateFieldsUrl` (escribe DA Link y Project Portal Name a SharePoint). URL: workflow 7c9ac8ba...
