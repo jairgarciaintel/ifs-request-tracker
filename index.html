@@ -70,6 +70,11 @@ body{
     </div>
   </div>
   <div class="header-right">
+    <span id="app-version" class="version-badge" title="Version"></span>
+    <label class="auto-toggle" title="Auto emails on status change">
+      <span class="auto-toggle-label">Auto emails</span>
+      <span class="switch"><input type="checkbox" id="auto-emails-toggle" onchange="toggleAutoEmails(this)"><span class="slider"></span></span>
+    </label>
     <span id="sync-status" class="sync-text">Loading...</span>
     <button class="btn btn-primary" onclick="fetchAndRender()"><svg width="14" height="14"><use href="#icon-sync"/></svg> Sync</button>
     <button class="btn btn-secondary" onclick="exportExcel()"><svg width="14" height="14"><use href="#icon-export"/></svg> Excel</button>
@@ -137,6 +142,17 @@ body{
 .header-title h1{font-family:'Cabinet Grotesk',sans-serif;font-size:1.3rem;font-weight:700;}
 .header-title h1 .accent{color:var(--cyan);}
 .header-title .meta{font-size:11px;color:rgba(255,255,255,0.4);margin-top:2px;}
+.version-badge{font-size:10px;font-weight:600;color:var(--cyan);background:rgba(78,200,240,0.12);border:1px solid rgba(78,200,240,0.3);padding:1px 7px;border-radius:8px;vertical-align:middle;margin-left:6px;letter-spacing:0.3px;}
+/* iPhone-style toggle for auto emails */
+.auto-toggle{display:inline-flex;align-items:center;gap:7px;cursor:pointer;}
+.auto-toggle-label{font-size:11px;color:var(--light);font-weight:600;}
+.switch{position:relative;display:inline-block;width:40px;height:22px;}
+.switch input{opacity:0;width:0;height:0;position:absolute;}
+.switch .slider{position:absolute;inset:0;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.2);border-radius:22px;transition:0.3s;}
+.switch .slider:before{content:"";position:absolute;height:16px;width:16px;left:3px;top:2px;background:#fff;border-radius:50%;transition:0.3s;box-shadow:0 1px 3px rgba(0,0,0,0.3);}
+.switch input:checked + .slider{background:#6bcb77;border-color:#6bcb77;}
+.switch input:checked + .slider:before{transform:translateX(18px);}
+body.light-mode .auto-toggle-label{color:#4a5568;}
 .header-right{display:flex;align-items:center;gap:12px;}
 .sync-text{font-size:12px;color:rgba(255,255,255,0.5);}
 .btn{border:none;padding:7px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.2s;font-family:'Satoshi',sans-serif;display:inline-flex;align-items:center;gap:5px;}
@@ -340,10 +356,45 @@ body.light-mode .notification-banner{background:rgba(255,255,255,0.95);border-co
 body.light-mode .notif-text{color:#1a202c;}
 body.light-mode .notes-input{background:#fff;color:#1a202c;border-color:rgba(0,113,197,0.2);}
 body.light-mode .circle{display:none;}
+/* === LIGHT MODE FIXES: text and buttons === */
+body.light-mode .group-customer{color:#1a202c;}
+body.light-mode .group-id{color:#0071c5;}
+body.light-mode .group-date{color:#64748b;}
+body.light-mode .chevron{color:#94a3b8;}
+body.light-mode .meta{color:#64748b;}
+body.light-mode .header-title h1 .accent{color:#0071c5;}
+body.light-mode .sync-text{color:#64748b;}
+body.light-mode .type-section-title{color:#0071c5;}
+body.light-mode .section-status{color:#64748b;}
+body.light-mode .stat-pill{color:#475569;background:rgba(0,113,197,0.06);}
+body.light-mode .btn-secondary{background:#fff;color:#0071c5;border-color:rgba(0,113,197,0.3);}
+body.light-mode .btn-secondary:hover{background:rgba(0,113,197,0.08);border-color:#0071c5;color:#0071c5;}
+body.light-mode .sort-order,body.light-mode #sort-order{background:#fff;color:#1a202c;border-color:rgba(0,113,197,0.2);}
+body.light-mode .substep-select.st-notstarted{color:#64748b;border-color:rgba(0,0,0,0.12);}
+body.light-mode .history-entry{color:#475569;}
+body.light-mode .history-time{color:#94a3b8;}
+body.light-mode .sp-status-label{color:#475569;}
+body.light-mode .req-info-label{color:#0071c5;}
+body.light-mode .info-empty{color:#94a3b8;}
+body.light-mode .toolbar-actions .btn{color:#0071c5;}
+body.light-mode .empty-state h3{color:#0071c5;}
 </style>
 
 <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
 <script>
+// ============================================================
+// VERSION — bump this on every deploy (matches CHANGELOG.md)
+// ============================================================
+const APP_VERSION = 'v1.8.0';
+
+// Auto-emails toggle (persisted). Default ON.
+let autoEmailsEnabled = localStorage.getItem('fs-auto-emails') !== 'off';
+function toggleAutoEmails(el){
+    autoEmailsEnabled = el.checked;
+    localStorage.setItem('fs-auto-emails', autoEmailsEnabled ? 'on' : 'off');
+    updateSync(autoEmailsEnabled ? 'Auto emails ON' : 'Auto emails OFF');
+}
+
 // ============================================================
 // CONFIG
 // ============================================================
@@ -777,12 +828,14 @@ async function changeSpStatus(id, newStatus, selectEl) {
     allRequests.forEach(r => { if (String(r.id) === String(id)) r.status = newStatus; });
     // Log it
     logHistory(id, '', 'SharePoint Status', 'Status', newStatus);
-    // Auto-emails on status change
-    const st = String(newStatus).toLowerCase();
-    if (st === 'acknowledged') {
-        openAcknowledgedEmail(id);
-    } else if (st === 'info requested') {
-        openInfoRequestEmail(id);
+    // Auto-emails on status change (only if the toggle is ON)
+    if (autoEmailsEnabled) {
+        const st = String(newStatus).toLowerCase();
+        if (st === 'acknowledged') {
+            openAcknowledgedEmail(id);
+        } else if (st === 'info requested') {
+            openInfoRequestEmail(id);
+        }
     }
 }
 
@@ -819,8 +872,23 @@ async function openInfoRequestEmail(id) {
 // Build the full styled HTML for the Acknowledged email.
 // The tracker owns this HTML — change it here, push, and it updates without touching Power Automate.
 function buildAckEmailHtml(name, id, customer) {
-    const LOGO = 'https://jairgarciaintel.github.io/ifs-request-tracker/Logo.png';
-    return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0a2540;padding:24px 0;font-family:'Segoe UI',Arial,sans-serif;"><tr><td align="center"><table role="presentation" width="640" cellpadding="0" cellspacing="0" style="width:640px;max-width:640px;background-color:#ffffff;border-radius:14px;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,0.25);"><tr><td style="background:linear-gradient(135deg,#041c32 0%,#0d3158 55%,#0071c5 100%);padding:28px 32px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="vertical-align:middle;width:48px;"><span style="display:inline-block;width:48px;height:48px;line-height:48px;text-align:center;border:2px solid #4ec8f0;border-radius:10px;color:#4ec8f0;font-size:20px;font-weight:700;letter-spacing:1px;">FS</span></td><td style="vertical-align:middle;padding-left:14px;"><div style="color:#ffffff;font-size:24px;font-weight:700;letter-spacing:0.3px;">Intel Foundry Services</div><div style="color:#4ec8f0;font-size:14px;letter-spacing:1px;text-transform:uppercase;">DA Ops &middot; Request Tracker</div></td></tr></table></td></tr><tr><td style="height:5px;background:linear-gradient(90deg,#4ec8f0,#0071c5,#6bcb77);font-size:0;line-height:0;">&nbsp;</td></tr><tr><td style="padding:34px;color:#1a202c;font-size:18px;line-height:1.7;"><p style="margin:0 0 18px;font-size:18px;">Dear <strong>@${name}</strong>,</p><p style="margin:0 0 18px;font-size:18px;">This is to let you know that your request (<strong>REQ. ${id} &mdash; ${customer}</strong>) has been <strong style="color:#0071c5;">Acknowledged</strong> and is now in our queue.</p><p style="margin:0 0 24px;font-size:18px;">We are actively working on it. Please stay tuned as we move it through the process.</p><div style="font-size:16px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:#0071c5;margin-bottom:10px;">Estimated SLAs &middot; 2026 average turnaround</div><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:18px;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0;"><tr style="background-color:#041c32;color:#ffffff;"><td style="padding:12px 16px;font-weight:600;font-size:18px;">Stage</td><td style="padding:12px 16px;font-weight:600;font-size:18px;text-align:right;">Estimated Time</td></tr><tr style="background-color:#ffffff;"><td style="padding:12px 16px;border-top:1px solid #eef2f6;font-size:18px;">Acknowledged &rarr; Next step</td><td style="padding:12px 16px;border-top:1px solid #eef2f6;text-align:right;font-weight:600;font-size:18px;color:#0071c5;">24&ndash;48 hrs</td></tr><tr style="background-color:#f5f9fc;"><td style="padding:12px 16px;border-top:1px solid #eef2f6;font-size:18px;">In Approval Loop</td><td style="padding:12px 16px;border-top:1px solid #eef2f6;text-align:right;font-weight:600;font-size:18px;color:#0071c5;">2&ndash;4 days</td></tr><tr style="background-color:#ffffff;"><td style="padding:12px 16px;border-top:1px solid #eef2f6;font-size:18px;">Out for Signature</td><td style="padding:12px 16px;border-top:1px solid #eef2f6;text-align:right;font-weight:600;font-size:15px;color:#0071c5;white-space:nowrap;">Depends on Customer &middot; Avg 48&ndash;56 hrs</td></tr></table><p style="margin:16px 0 0;font-size:15px;color:#6b7684;font-style:italic;">Note: In Approval Loop and Out for Signature depend on external approvers, signers and the customer, so timing can vary.</p><p style="margin:26px 0 0;font-size:18px;">Thank you for your patience.</p><p style="margin:20px 0 0;font-size:18px;">Best regards,<br><strong style="color:#041c32;">FS DA OPS</strong> &middot; Intel Foundry Services</p></td></tr><tr><td style="background-color:#f0f4f8;padding:22px 32px;text-align:center;border-top:1px solid #e2e8f0;"><div style="color:#9aa4b0;font-size:13px;margin-bottom:12px;">This is an automated notification for the FS Request Tracker.</div><img src="${LOGO}" alt="Intel Foundry Services" width="120" style="display:inline-block;max-height:36px;width:auto;margin-bottom:12px;"><div style="color:#8a97a5;font-size:12px;line-height:1.5;">Intel Confidential &mdash; This message and any attachments are intended only for the named recipient(s) and may contain confidential information. If you are not the intended recipient, please notify the sender and delete this message.</div></td></tr></table></td></tr></table>`;
+    // Uses the SAME shared wrapper (blue bg + circles), header and footer as Info Request.
+    const inner = `<tr><td style="padding:34px;color:#1a202c;font-size:18px;line-height:1.7;">`
+        + `<p style="margin:0 0 18px;font-size:18px;">Dear <strong>@${name}</strong>,</p>`
+        + `<p style="margin:0 0 18px;font-size:18px;">This is to let you know that your request (<strong>REQ. ${id} &mdash; ${customer}</strong>) has been <strong style="color:#0071c5;">Acknowledged</strong> and is now in our queue.</p>`
+        + `<p style="margin:0 0 24px;font-size:18px;">We are actively working on it. Please stay tuned as we move it through the process.</p>`
+        + `<div style="font-size:16px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:#0071c5;margin-bottom:10px;">Estimated SLAs &middot; 2026 average turnaround</div>`
+        + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:18px;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0;">`
+        + `<tr style="background-color:#041c32;color:#ffffff;"><td style="padding:12px 16px;font-weight:600;font-size:18px;">Stage</td><td style="padding:12px 16px;font-weight:600;font-size:18px;text-align:right;">Estimated Time</td></tr>`
+        + `<tr style="background-color:#ffffff;"><td style="padding:12px 16px;border-top:1px solid #eef2f6;font-size:18px;">Acknowledged &rarr; Next step</td><td style="padding:12px 16px;border-top:1px solid #eef2f6;text-align:right;font-weight:600;font-size:18px;color:#0071c5;">24&ndash;48 hrs</td></tr>`
+        + `<tr style="background-color:#f5f9fc;"><td style="padding:12px 16px;border-top:1px solid #eef2f6;font-size:18px;">In Approval Loop</td><td style="padding:12px 16px;border-top:1px solid #eef2f6;text-align:right;font-weight:600;font-size:18px;color:#0071c5;">2&ndash;4 days</td></tr>`
+        + `<tr style="background-color:#ffffff;"><td style="padding:12px 16px;border-top:1px solid #eef2f6;font-size:18px;">Out for Signature</td><td style="padding:12px 16px;border-top:1px solid #eef2f6;text-align:right;font-weight:600;font-size:15px;color:#0071c5;white-space:nowrap;">Depends on Customer &middot; Avg 48&ndash;56 hrs</td></tr>`
+        + `</table>`
+        + `<p style="margin:16px 0 0;font-size:15px;color:#6b7684;font-style:italic;">Note: In Approval Loop and Out for Signature depend on external approvers, signers and the customer, so timing can vary.</p>`
+        + `<p style="margin:26px 0 0;font-size:18px;">Thank you for your patience.</p>`
+        + `<p style="margin:20px 0 0;font-size:18px;">Best regards,<br><strong style="color:#041c32;">FS DA OPS</strong> &middot; Intel Foundry Services</p>`
+        + `</td></tr>`;
+    return wrapEmail(inner);
 }
 
 async function openAcknowledgedEmail(id) {
@@ -1265,22 +1333,34 @@ const EMAIL_LINKS = {
     mpRunda: 'https://intel.sharepoint.com/:x:/r/sites/ifs-igo-requests/Shared%20Documents/Template%20for%20MP-NDAfor%20MRUNDA.xlsx?d=w0d2d4a3532cb49e986be94bf78034f25&csf=1&web=1&e=BXXvZg'
 };
 
-// Decorative circles as an SVG background image (email clients support background on cells).
-// Drawn on an 800x1000 canvas, tiled behind the outer blue area. Circles sit around the card.
-function emailCirclesBgUrl() {
-    const cols = ['rgba(78,200,240,0.22)','rgba(255,255,255,0.14)','rgba(107,203,119,0.18)','rgba(0,174,239,0.20)'];
-    // [cx, cy, r]
+// Wrap the card content in the blue outer area with absolute circles around it.
+// The outer TD is position:relative + overflow:hidden; circles sit behind, card on top.
+function wrapEmail(innerRows) {
+    return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0a2540;font-family:'Segoe UI',Arial,sans-serif;"><tr>`
+        + `<td align="center" style="background-color:#0a2540;padding:40px 20px;position:relative;overflow:hidden;">`
+        + `<div style="position:absolute;top:0;left:0;right:0;bottom:0;overflow:hidden;">${emailCircles()}</div>`
+        + `<table role="presentation" width="640" cellpadding="0" cellspacing="0" style="position:relative;width:640px;max-width:640px;background-color:#ffffff;border-radius:14px;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,0.35);">`
+        + emailHeader()
+        + innerRows
+        + emailFooter()
+        + `</table></td></tr></table>`;
+}
+
+// Decorative circles as absolute-positioned divs (this DID render in the earlier deploys).
+// Spread across the OUTER blue area (around the white card), not inside it.
+function emailCircles() {
+    const cols = ['rgba(78,200,240,0.20)','rgba(255,255,255,0.13)','rgba(107,203,119,0.16)','rgba(0,174,239,0.18)'];
+    // [size, left(px), top(px)] — spread around the 680px-wide, tall blue area
     const specs = [
-        [60,70,70],[180,40,45],[720,60,90],[400,30,32],[770,220,55],
-        [40,360,50],[760,520,80],[250,560,34],[70,780,60],[640,860,70],
-        [400,940,45],[780,760,42],[520,420,30],[30,600,58],[730,380,36]
+        [90,10,20],[130,560,10],[60,300,-10],[50,120,90],[110,600,140],
+        [70,-20,220],[95,540,320],[45,200,300],[80,20,460],[120,520,520],
+        [55,300,560],[70,610,700],[60,-10,640],[100,540,860],[50,120,820]
     ];
-    let circles = '';
+    let html = '';
     specs.forEach((s,i) => {
-        circles += `<circle cx='${s[0]}' cy='${s[1]}' r='${s[2]}' fill='none' stroke='${cols[i%4]}' stroke-width='2'/>`;
+        html += `<div style="position:absolute;width:${s[0]}px;height:${s[0]}px;border-radius:50%;border:1.5px solid ${cols[i%4]};left:${s[1]}px;top:${s[2]}px;"></div>`;
     });
-    const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='800' height='1000'>${circles}</svg>`;
-    return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+    return html;
 }
 
 // Bright Intel-blue banner header (badge FS + Intel Foundry Services).
@@ -1301,7 +1381,7 @@ function emailFooter() {
     return `<tr><td style="background-color:#f0f4f8;padding:22px 34px;text-align:center;border-top:1px solid #e2e8f0;">`
         + `<div style="color:#9aa4b0;font-size:13px;margin-bottom:12px;">This is an automated notification from the FS Request Tracker.</div>`
         + `<img src="${LOGO}" alt="Intel Foundry Services" width="120" style="display:inline-block;max-height:36px;width:auto;margin-bottom:12px;">`
-        + `<div style="color:#8a97a5;font-size:12px;line-height:1.5;">Intel Confidential &mdash; This message and any attachments are intended only for the named recipient(s).</div>`
+        + `<div style="color:#8a97a5;font-size:12px;line-height:1.5;">Intel Confidential &mdash; This message and any attachments are intended only for the named recipient(s) and may contain confidential information. If you are not the intended recipient, please notify the sender and delete this message.</div>`
         + `</td></tr>`;
 }
 
@@ -1322,22 +1402,14 @@ function buildInfoRequestEmailHtml(name, id, customer, types) {
     }
     if (!items) items = `<li>Please provide the required information so we can proceed with your request.</li>`;
 
-    // Outer blue area with the circles SVG as background; white card centered on top.
-    const bg = emailCirclesBgUrl();
-    let body = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0a2540;font-family:'Segoe UI',Arial,sans-serif;"><tr>`
-        + `<td align="center" background="${bg}" style="background-color:#0a2540;background-image:url('${bg}');background-repeat:no-repeat;background-position:center top;background-size:cover;padding:40px 20px;">`
-        + `<table role="presentation" width="640" cellpadding="0" cellspacing="0" style="width:640px;max-width:640px;background-color:#ffffff;border-radius:14px;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,0.35);">`
-        + emailHeader()
-        + `<tr><td style="padding:34px;color:#1a202c;font-size:17px;line-height:1.7;">`
+    const inner = `<tr><td style="padding:34px;color:#1a202c;font-size:17px;line-height:1.7;">`
         + `<p style="margin:0 0 18px;">Dear <strong>@${name}</strong>,</p>`
         + `<p style="margin:0 0 18px;">Thank you for your request (<strong>REQ. ${id} &mdash; ${customer}</strong>). In order to proceed, we need you to complete the following template(s) and attach them back to your request:</p>`
         + `<ul style="margin:0 0 18px;padding-left:20px;font-size:16px;">${items}</ul>`
         + `<p style="margin:18px 0 0;">Once completed, please attach the file(s) to your request so we can move forward.</p>`
         + `<p style="margin:22px 0 0;">Best regards,<br><strong style="color:#041c32;">FS DA OPS</strong> &middot; Intel Foundry Services</p>`
-        + `</td></tr>`
-        + emailFooter()
-        + `</table></td></tr></table>`;
-    return body;
+        + `</td></tr>`;
+    return wrapEmail(inner);
 }
 
 function buildRequestEmail(id, reqs) {
@@ -1367,6 +1439,9 @@ function buildRequestEmail(id, reqs) {
     }
     if (has('IFS NDA')) {
         body += `IFS NDA — please fill out this template.\nLink: ${EMAIL_LINKS.ifsNDA}\n\n`;
+    }
+    if (has('MP-NDA') || has('Multi-Party')) {
+        body += `Multi-Party RUNDA Acknowledgment — please fill out this template.\nLink: ${EMAIL_LINKS.mpRunda}\n\n`;
     }
     if (has('Codename')) {
         body += `Codename Request — please fill out the following template with the customer attachment information:\n\n`;
@@ -2039,7 +2114,13 @@ if (localStorage.getItem('fs-theme') === 'light') document.body.classList.add('l
 // ============================================================
 // INIT
 // ============================================================
-document.addEventListener('DOMContentLoaded', fetchAndRender);
+document.addEventListener('DOMContentLoaded', function(){
+    var vb = document.getElementById('app-version');
+    if (vb) { vb.textContent = APP_VERSION; vb.title = 'FS Request Tracker ' + APP_VERSION; }
+    var tg = document.getElementById('auto-emails-toggle');
+    if (tg) tg.checked = autoEmailsEnabled;
+    fetchAndRender();
+});
 </script>
 </body>
 </html>
