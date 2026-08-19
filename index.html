@@ -792,9 +792,9 @@ async function openInfoRequestEmail(id) {
     if (!reqs.length) return;
     const req0 = reqs[0];
 
-    const TEST_MODE = false; // false = LIVE (to requestor, CC fs.da.ops)
+    const TEST_MODE = true; // TEST = only to Jair. Set false to go LIVE (to requestor, CC fs.da.ops)
     const to = TEST_MODE ? 'jair.garcia@intel.com' : (req0.requestorEmail || '');
-    const cc = 'fs.da.ops@intel.com';
+    const cc = TEST_MODE ? '' : 'fs.da.ops@intel.com';
     let name = req0.requestor || 'there';
     if (name.includes('@')) name = name.split('@')[0].replace(/[._]/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
     const customer = req0.customer || 'your request';
@@ -1261,8 +1261,8 @@ const EMAIL_LINKS = {
     newDA: 'https://intel.sharepoint.com/:x:/r/sites/ifs-igo-requests/Shared%20Documents/NewDARequest.xlsx?d=w4f8d91c08ca34e938883522eb3e7f40e&csf=1&web=1&e=3P54SU',
     // IFS NDA template
     ifsNDA: 'https://intel.sharepoint.com/:x:/r/sites/ifs-igo-requests/Shared%20Documents/IFS-NDA_Template.xlsx?d=w908e2047ce4a4408a4542ae631aee5b6&csf=1&web=1&e=fvkKm5',
-    // Multi-Party RUNDA Acknowledgment (PENDIENTE: pegar link real cuando lo compartas)
-    mpRunda: 'https://intel.sharepoint.com/:w:/r/sites/ifs-igo-requests/Shared%20Documents/Multi-Party-MRUNDA-Acknowledgment.docx?csf=1&web=1'
+    // Multi-Party RUNDA Acknowledgment (MP-NDA) template
+    mpRunda: 'https://intel.sharepoint.com/:x:/r/sites/ifs-igo-requests/Shared%20Documents/Template%20for%20MP-NDAfor%20MRUNDA.xlsx?d=w0d2d4a3532cb49e986be94bf78034f25&csf=1&web=1&e=BXXvZg'
 };
 
 // Decorative static circles (email-safe: absolutely positioned divs in a relative header)
