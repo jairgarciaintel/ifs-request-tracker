@@ -369,7 +369,10 @@ const CONFIG = {
     dateFilter: '2026-07-01T00:00:00Z',
     
     // Auto-refresh every 10 minutes
-    refreshInterval: 600000
+    refreshInterval: 600000,
+
+    // Power Automate: send email flow (Acknowledged notification)
+    sendEmailUrl: 'https://default46c98d88e3444ed484964ed7712e25.5d.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/205f9f20a80543a2996515e52c0de68d/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=ExFcVZ5cJV8egXt3fO37KrzpQHsToznGKe4FG8g-i3Q'
 };
 
 // ============================================================
@@ -775,31 +778,50 @@ async function changeSpStatus(id, newStatus, selectEl) {
 }
 
 // Build & open the "Acknowledged" notification email to the requestor
-function openAcknowledgedEmail(id) {
+async function openAcknowledgedEmail(id) {
     const reqs = allRequests.filter(r => String(r.id) === String(id));
     if (!reqs.length) return;
     const req0 = reqs[0];
-    // TEST MODE: send only to Jair + Jenn. To go live, change `to` back to req0.requestorEmail
-    // and set cc to 'jair.garcia@intel.com;jenn.glavan@intel.com'
+
+    // TEST MODE: send only to Jair + Jenn. Set TEST_MODE = false to go live (send to requestor).
     const TEST_MODE = true;
     const to = TEST_MODE ? 'jair.garcia@intel.com;jenn.glavan@intel.com' : (req0.requestorEmail || '');
     const cc = TEST_MODE ? '' : 'jair.garcia@intel.com;jenn.glavan@intel.com';
     const name = (req0.requestor || 'there').split(' ')[0].split('@')[0];
     const customer = req0.customer || 'your request';
-
     const subject = `REQ. ${id} - ${customer} - Acknowledged`;
+
+    if (!to) { console.warn('No recipient email for #' + id); return; }
+
+    // Send automatically via Power Automate flow (styled HTML email, no Outlook popup)
+    if (CONFIG.sendEmailUrl) {
+        try {
+            const res = await fetch(CONFIG.sendEmailUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ to, cc, subject, name, id: String(id), customer })
+            });
+            if (res.ok) {
+                updateSync('Acknowledged email sent for #' + id);
+                console.log('Acknowledged email sent for #' + id);
+                return;
+            }
+            console.warn('Send-email flow returned ' + res.status);
+        } catch (e) {
+            console.warn('Send-email flow failed, falling back to mailto:', e.message);
+        }
+    }
+
+    // Fallback: open Outlook with a plain-text mailto if the flow is unavailable
     let body = `Hi @${name},\n\n`;
     body += `This is to let you know that your request (REQ. ${id} - ${customer}) has been Acknowledged and is now in our queue.\n\n`;
     body += `We are actively working on it. Please stay tuned as we move it through the process.\n\n`;
     body += `Estimated SLAs (based on our 2026 average turnaround):\n`;
-    body += `--------------------------------------------------\n`;
-    body += `Acknowledged  ->  Next step .......... 48-56 hrs\n`;
-    body += `In Approval Loop ...................... ~2 days\n`;
-    body += `Out for Signature ..................... 48-56 hrs\n`;
-    body += `--------------------------------------------------\n\n`;
-    body += `Note: In Approval Loop and Out for Signature depend on external approvers/signers, so timing can vary.\n\n`;
+    body += `Acknowledged -> Next step: 48-56 hrs\n`;
+    body += `In Approval Loop: ~2 days\n`;
+    body += `Out for Signature: 48-56 hrs\n\n`;
+    body += `Note: In Approval Loop and Out for Signature depend on external approvers/signers.\n\n`;
     body += `Thank you for your patience.\n\nBest regards,\nDA Ops`;
-
     window.location.href = `mailto:${encodeURIComponent(to)}?cc=${encodeURIComponent(cc)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
