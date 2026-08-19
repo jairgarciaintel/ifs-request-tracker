@@ -8,6 +8,9 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.28 — 2026-08-19
+- Todos los comunicados por correo usan ahora el azul Intel #001E50 de forma consistente: acentos de estado, numeros de SLA, cabeceras de tabla, botones de Info Request y el DA number del correo Complete quedan iguales al banner y al fondo.
+
 ## v1.8.27 — 2026-08-19
 - La fecha de la tarjeta ahora es blanca en vez de gris tenue, para que se lea bien.
 

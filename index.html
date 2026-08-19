@@ -70,7 +70,7 @@ body{
     </div>
   </div>
   <div class="header-right">
-    <span id="app-version" class="version-badge" title="Click to see changelog" onclick="showChangelog()">v1.8.27</span>
+    <span id="app-version" class="version-badge" title="Click to see changelog" onclick="showChangelog()">v1.8.28</span>
     <label class="auto-toggle" title="Auto emails on status change">
       <span class="auto-toggle-label">Auto emails</span>
       <span class="switch"><input type="checkbox" id="auto-emails-toggle" onchange="toggleAutoEmails(this)"><span class="slider"></span></span>
@@ -488,10 +488,11 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.27';
+const APP_VERSION = 'v1.8.28';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
+    ['v1.8.28', ['All email communications now use the Intel blue #001E50 consistently: status accents, SLA numbers, table headers, the Info Request buttons and the Complete DA number all match the banner and background.']],
     ['v1.8.27', ['Card date is now white instead of faint grey, so it is easy to read.']],
     ['v1.8.26', ['FIX: Assigned To now reads ONLY the iGO Admin field. If nobody in iGO is assigned it shows nothing (chip hidden, card says "Unassigned") instead of falling back to the FCE Lead or other fields.']],
     ['v1.8.25', ['Banners now use Intel classic blue #001E50: the portal header and the email communications (Acknowledged, Info Request, Out for Signature, In Approval Loop, Complete).']],
@@ -1140,14 +1141,14 @@ function buildAckEmailHtml(name, id, customer) {
     // Uses the SAME shared wrapper (blue bg + circles), header and footer as Info Request.
     const inner = `<tr><td style="padding:34px;color:#1a202c;font-size:18px;line-height:1.7;">`
         + `<p style="margin:0 0 18px;font-size:18px;">Dear <strong>${name}</strong>,</p>`
-        + `<p style="margin:0 0 18px;font-size:18px;">This is to let you know that your request (<strong>REQ. ${id} &mdash; ${customer}</strong>) has been <strong style="color:#0071c5;">Acknowledged</strong> and is now in our queue.</p>`
+        + `<p style="margin:0 0 18px;font-size:18px;">This is to let you know that your request (<strong>REQ. ${id} &mdash; ${customer}</strong>) has been <strong style="color:#001E50;">Acknowledged</strong> and is now in our queue.</p>`
         + `<p style="margin:0 0 24px;font-size:18px;">We are actively working on it. Please stay tuned as we move it through the process.</p>`
-        + `<div style="font-size:16px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:#0071c5;margin-bottom:10px;">Estimated SLAs &middot; 2026 average turnaround</div>`
+        + `<div style="font-size:16px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:#001E50;margin-bottom:10px;">Estimated SLAs &middot; 2026 average turnaround</div>`
         + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:18px;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0;">`
-        + `<tr style="background-color:#041c32;color:#ffffff;"><td style="padding:12px 16px;font-weight:600;font-size:18px;">Stage</td><td style="padding:12px 16px;font-weight:600;font-size:18px;text-align:right;">Estimated Time</td></tr>`
-        + `<tr style="background-color:#ffffff;"><td width="64%" style="width:64%;padding:12px 16px;border-top:1px solid #eef2f6;font-size:18px;white-space:nowrap;">Acknowledged &rarr; Next step</td><td width="36%" style="width:36%;padding:12px 16px;border-top:1px solid #eef2f6;text-align:right;font-weight:600;font-size:18px;color:#0071c5;white-space:nowrap;">24&ndash;48 hrs</td></tr>`
-        + `<tr style="background-color:#f5f9fc;"><td style="padding:12px 16px;border-top:1px solid #eef2f6;font-size:18px;">In Approval Loop</td><td style="padding:12px 16px;border-top:1px solid #eef2f6;text-align:right;font-weight:600;font-size:18px;color:#0071c5;">2&ndash;4 days</td></tr>`
-        + `<tr style="background-color:#ffffff;"><td style="padding:12px 16px;border-top:1px solid #eef2f6;font-size:18px;">Out for Signature</td><td style="padding:12px 16px;border-top:1px solid #eef2f6;text-align:right;font-weight:600;font-size:15px;color:#0071c5;white-space:nowrap;">Depends on Customer &middot; Avg 48&ndash;56 hrs</td></tr>`
+        + `<tr style="background-color:#001E50;color:#ffffff;"><td style="padding:12px 16px;font-weight:600;font-size:18px;">Stage</td><td style="padding:12px 16px;font-weight:600;font-size:18px;text-align:right;">Estimated Time</td></tr>`
+        + `<tr style="background-color:#ffffff;"><td width="64%" style="width:64%;padding:12px 16px;border-top:1px solid #eef2f6;font-size:18px;white-space:nowrap;">Acknowledged &rarr; Next step</td><td width="36%" style="width:36%;padding:12px 16px;border-top:1px solid #eef2f6;text-align:right;font-weight:600;font-size:18px;color:#001E50;white-space:nowrap;">24&ndash;48 hrs</td></tr>`
+        + `<tr style="background-color:#f5f9fc;"><td style="padding:12px 16px;border-top:1px solid #eef2f6;font-size:18px;">In Approval Loop</td><td style="padding:12px 16px;border-top:1px solid #eef2f6;text-align:right;font-weight:600;font-size:18px;color:#001E50;">2&ndash;4 days</td></tr>`
+        + `<tr style="background-color:#ffffff;"><td style="padding:12px 16px;border-top:1px solid #eef2f6;font-size:18px;">Out for Signature</td><td style="padding:12px 16px;border-top:1px solid #eef2f6;text-align:right;font-weight:600;font-size:15px;color:#001E50;white-space:nowrap;">Depends on Customer &middot; Avg 48&ndash;56 hrs</td></tr>`
         + `</table>`
         + `<p style="margin:16px 0 0;font-size:15px;color:#6b7684;font-style:italic;">Note: In Approval Loop and Out for Signature depend on external approvers, signers and the customer, so timing can vary.</p>`
         + `<p style="margin:26px 0 0;font-size:18px;">Thank you for your patience.</p>`
@@ -1208,11 +1209,11 @@ async function openAcknowledgedEmail(id) {
 function buildOutForSignatureEmailHtml(name, id, customer) {
     const inner = `<tr><td style="padding:34px;color:#1a202c;font-size:18px;line-height:1.7;">`
         + `<p style="margin:0 0 18px;font-size:18px;">Dear <strong>${name}</strong>,</p>`
-        + `<p style="margin:0 0 18px;font-size:18px;">Your request (<strong>REQ. ${id} &mdash; ${customer}</strong>) is now <strong style="color:#0071c5;">Out for Signature</strong>.</p>`
+        + `<p style="margin:0 0 18px;font-size:18px;">Your request (<strong>REQ. ${id} &mdash; ${customer}</strong>) is now <strong style="color:#001E50;">Out for Signature</strong>.</p>`
         + `<p style="margin:0 0 24px;font-size:18px;">The document has moved forward to the signing stage. Once all parties sign, we will move it to the next step.</p>`
         + `<div style="background:#f5f9fc;border:1px solid #e2e8f0;border-radius:8px;padding:16px 18px;margin-bottom:8px;">`
         + `<div style="font-size:15px;color:#6b7684;">Estimated time</div>`
-        + `<div style="font-size:18px;font-weight:700;color:#0071c5;">Depends on Customer &middot; Avg 48&ndash;56 hrs</div>`
+        + `<div style="font-size:18px;font-weight:700;color:#001E50;">Depends on Customer &middot; Avg 48&ndash;56 hrs</div>`
         + `</div>`
         + `<p style="margin:16px 0 0;font-size:15px;color:#6b7684;font-style:italic;">Note: this stage depends on external signers and the customer, so timing can vary.</p>`
         + `<p style="margin:26px 0 0;font-size:18px;">Thank you for your patience.</p>`
@@ -1236,11 +1237,11 @@ async function openOutForSignatureEmail(id) {
 function buildInApprovalLoopEmailHtml(name, id, customer) {
     const inner = `<tr><td style="padding:34px;color:#1a202c;font-size:18px;line-height:1.7;">`
         + `<p style="margin:0 0 18px;font-size:18px;">Dear <strong>${name}</strong>,</p>`
-        + `<p style="margin:0 0 18px;font-size:18px;">Your request (<strong>REQ. ${id} &mdash; ${customer}</strong>) is now <strong style="color:#0071c5;">In Approval Loop</strong>.</p>`
+        + `<p style="margin:0 0 18px;font-size:18px;">Your request (<strong>REQ. ${id} &mdash; ${customer}</strong>) is now <strong style="color:#001E50;">In Approval Loop</strong>.</p>`
         + `<p style="margin:0 0 24px;font-size:18px;">It is currently being reviewed by the required approvers. We will keep you updated as it moves forward.</p>`
         + `<div style="background:#f5f9fc;border:1px solid #e2e8f0;border-radius:8px;padding:16px 18px;margin-bottom:8px;">`
         + `<div style="font-size:15px;color:#6b7684;">Estimated time</div>`
-        + `<div style="font-size:18px;font-weight:700;color:#0071c5;">2&ndash;4 days</div>`
+        + `<div style="font-size:18px;font-weight:700;color:#001E50;">2&ndash;4 days</div>`
         + `</div>`
         + `<p style="margin:16px 0 0;font-size:15px;color:#6b7684;font-style:italic;">Note: this stage depends on internal approvers, so timing can vary.</p>`
         + `<p style="margin:26px 0 0;font-size:18px;">Thank you for your patience.</p>`
@@ -1267,14 +1268,14 @@ function buildCompleteEmailHtml(name, id, customer, portalName, daNumber) {
         + `</td></tr>`;
     const inner = sparkleTop
         + `<tr><td style="padding:8px 34px 34px;color:#1a202c;font-size:18px;line-height:1.7;text-align:center;">`
-        + `<div style="font-size:26px;font-weight:800;color:#0071c5;letter-spacing:0.3px;margin-bottom:6px;">&#127881; Congratulations!</div>`
+        + `<div style="font-size:26px;font-weight:800;color:#001E50;letter-spacing:0.3px;margin-bottom:6px;">&#127881; Congratulations!</div>`
         + `<div style="font-size:19px;font-weight:600;color:#041c32;margin-bottom:22px;">Your portal is already created.</div>`
         + `<p style="margin:0 0 22px;font-size:18px;text-align:left;">Dear <strong>${name}</strong>,</p>`
-        + `<p style="margin:0 0 24px;font-size:18px;text-align:left;">Great news &mdash; your request (<strong>REQ. ${id} &mdash; ${customer}</strong>) has been <strong style="color:#0071c5;">Completed</strong>. Your portal is fully set up and ready to use.</p>`
+        + `<p style="margin:0 0 24px;font-size:18px;text-align:left;">Great news &mdash; your request (<strong>REQ. ${id} &mdash; ${customer}</strong>) has been <strong style="color:#001E50;">Completed</strong>. Your portal is fully set up and ready to use.</p>`
         + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:18px;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0;margin-bottom:8px;">`
-        + `<tr style="background-color:#041c32;color:#ffffff;"><td colspan="2" style="padding:12px 16px;font-weight:600;font-size:16px;text-align:left;">Portal Details</td></tr>`
+        + `<tr style="background-color:#001E50;color:#ffffff;"><td colspan="2" style="padding:12px 16px;font-weight:600;font-size:16px;text-align:left;">Portal Details</td></tr>`
         + `<tr style="background-color:#ffffff;"><td style="width:40%;padding:12px 16px;border-top:1px solid #eef2f6;font-size:16px;text-align:left;color:#6b7684;">Portal Name</td><td style="padding:12px 16px;border-top:1px solid #eef2f6;font-size:17px;text-align:left;font-weight:700;color:#041c32;">${portalName}</td></tr>`
-        + `<tr style="background-color:#f5f9fc;"><td style="padding:12px 16px;border-top:1px solid #eef2f6;font-size:16px;text-align:left;color:#6b7684;">DA (Disclosure Agreement) ID</td><td style="padding:12px 16px;border-top:1px solid #eef2f6;font-size:17px;text-align:left;font-weight:700;color:#0071c5;">${daNumber}</td></tr>`
+        + `<tr style="background-color:#f5f9fc;"><td style="padding:12px 16px;border-top:1px solid #eef2f6;font-size:16px;text-align:left;color:#6b7684;">DA (Disclosure Agreement) ID</td><td style="padding:12px 16px;border-top:1px solid #eef2f6;font-size:17px;text-align:left;font-weight:700;color:#001E50;">${daNumber}</td></tr>`
         + `</table>`
         + `<p style="margin:26px 0 0;font-size:18px;text-align:left;">Thank you for your patience throughout the process.</p>`
         + `<p style="margin:20px 0 0;font-size:18px;text-align:left;">Best regards,<br><strong style="color:#041c32;">FS DA OPS</strong> &middot; Intel Foundry Services</p>`
@@ -1921,7 +1922,7 @@ function emailFooter() {
 // Build the styled HTML for the Info Request email (all templates for the request types)
 function buildInfoRequestEmailHtml(name, id, customer, types) {
     const has = t => types.some(x => x.toLowerCase() === t.toLowerCase());
-    const btn = (label, url) => `<a href="${url}" style="display:inline-block;background:#0071c5;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:8px 18px;border-radius:6px;margin-top:4px;">${label} &raquo;</a>`;
+    const btn = (label, url) => `<a href="${url}" style="display:inline-block;background:#001E50;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:8px 18px;border-radius:6px;margin-top:4px;">${label} &raquo;</a>`;
     let items = '';
     if (has('New DA')) items += `<li style="margin-bottom:14px;"><strong>New DA</strong> — please fill out this template.<br>${btn('Open New DA template', EMAIL_LINKS.newDA)}</li>`;
     if (has('DA Edit')) items += `<li style="margin-bottom:14px;"><strong>DA Edit</strong> — please fill out this template.<br>${btn('Open DA Edit template', EMAIL_LINKS.newDA)}</li>`;
