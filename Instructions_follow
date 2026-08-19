@@ -49,3 +49,5 @@ https://default46c98d88e3444ed484964ed7712e25.5d.environment.api.powerplatform.c
 
 https://default46c98d88e3444ed484964ed7712e25.5d.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/7c9ac8ba2e8444d7b015d4e959911ee0/triggers/manual/paths/invoke?api-version=1
 
+https://default46c98d88e3444ed484964ed7712e25.5d.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/7c9ac8ba2e8444d7b015d4e959911ee0/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=U3Xr-ZBNXcQLEYdpMu7i5VSBiU506SxGSB7zQlKTroo
+
