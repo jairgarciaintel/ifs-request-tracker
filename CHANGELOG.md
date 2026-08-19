@@ -8,6 +8,19 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.7 — 2026-08-19
+- FIX Outlook: reemplazado el posicionamiento absoluto de los circulos por una tabla de presentacion de tres columnas.
+- 40 circulos quedan en bandas laterales reales: 20 a la izquierda y 20 a la derecha; ya no pueden apilarse en el centro ni empujar el contenido.
+- El mismo wrapper se aplica a Acknowledged e Info Request.
+- Ambos correos permanecen en TEST: solo `jair.garcia@intel.com`, sin CC.
+
+## v1.8.6 — 2026-08-19
+- Se intentaron distribuir 40 circulos con coordenadas absolutas por ambos lados y a lo largo del correo.
+- El deploy fue exitoso, pero Outlook ignoro las coordenadas y siguio mostrando los circulos apilados; queda documentado como intento fallido reemplazado en v1.8.7.
+
+## v1.8.5 — 2026-08-19
+- El modal Version History ahora incluye el historial completo de versiones, fixes, errores resueltos y problemas de deploy/git.
+
 ## v1.8.4 — 2026-08-19
 - Badge de version clickeable: abre un modal "Version History" con todas las versiones y cambios.
 
