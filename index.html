@@ -70,7 +70,7 @@ body{
     </div>
   </div>
   <div class="header-right">
-    <span id="app-version" class="version-badge" title="Click to see changelog" onclick="showChangelog()">v1.8.16</span>
+    <span id="app-version" class="version-badge" title="Click to see changelog" onclick="showChangelog()">v1.8.17</span>
     <label class="auto-toggle" title="Auto emails on status change">
       <span class="auto-toggle-label">Auto emails</span>
       <span class="switch"><input type="checkbox" id="auto-emails-toggle" onchange="toggleAutoEmails(this)"><span class="slider"></span></span>
@@ -93,6 +93,27 @@ body{
       <button class="changelog-close" onclick="hideChangelog()">&times;</button>
     </div>
     <div id="changelog-body" class="changelog-content"></div>
+  </div>
+</div>
+
+<div id="dalink-modal" class="changelog-overlay" onclick="hideDaLinkModal(event)">
+  <div class="changelog-box complete-box">
+    <div class="changelog-head">
+      <h3>DA Link <span id="dalink-modal-req" class="complete-modal-req"></span></h3>
+      <button class="changelog-close" onclick="hideDaLinkModal()">&times;</button>
+    </div>
+    <div class="changelog-content">
+      <p class="complete-modal-hint">This request just moved to <strong>In Approval Loop</strong>. Paste the DA Link here and it gets saved straight to SharePoint. Internal only &mdash; the customer is not notified about this.</p>
+      <label class="complete-field-label">DA Link (URL)</label>
+      <input type="text" id="dalink-url-input" class="complete-field-input" placeholder="https://intel.sharepoint.com/...">
+      <label class="complete-field-label">DA Number (Alternative Text, optional)</label>
+      <input type="text" id="dalink-number-input" class="complete-field-input" placeholder="e.g. 16654">
+      <div id="dalink-modal-warn" class="complete-modal-warn">Please enter the DA Link URL.</div>
+      <div class="complete-modal-actions">
+        <button class="btn btn-secondary" onclick="hideDaLinkModal()">Skip</button>
+        <button class="btn btn-primary" onclick="confirmDaLinkModal()">Save to SharePoint</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -177,7 +198,7 @@ body{
 <style>
 .header{padding:16px 32px;display:flex;align-items:center;justify-content:space-between;background:rgba(4,28,50,0.92);border-bottom:1px solid rgba(78,200,240,0.15);backdrop-filter:blur(10px);position:sticky;top:0;z-index:100;}
 .header-left{display:flex;align-items:center;gap:16px;}
-.logo{height:28px;width:auto;}
+.logo{height:68px;width:auto;}
 .header-title h1{font-family:'Cabinet Grotesk',sans-serif;font-size:1.3rem;font-weight:700;}
 .header-title h1 .accent{color:var(--cyan);}
 .header-title .meta{font-size:11px;color:rgba(255,255,255,0.4);margin-top:2px;}
@@ -455,10 +476,11 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.16';
+const APP_VERSION = 'v1.8.17';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
+    ['v1.8.17', ['Header logo made bigger (28px \u2192 68px) in both Dark and Light mode.','New internal popup when a request moves to In Approval Loop: capture the DA Link (URL + optional DA number) and save it straight to SharePoint\u2019s DA Link field. Customer is not notified.','Complete popup now auto-fills the DA number if it was captured earlier; Portal Name is written to SharePoint\u2019s Project Portal Name field every time a request is completed.']],
     ['v1.8.16', ['New official Intel Foundry logo in the header: dark version for Dark mode, light version for Light mode. Swaps automatically with the Light/Dark toggle.']],
     ['v1.8.15', ['New automatic emails for Out for Signature and In Approval Loop status changes.','Complete status now opens a popup asking for Portal Name and DA number before sending a celebration email (sparkles, portal name, DA ID) to the customer.','All three new emails respect the existing Auto emails and Test mode toggles.']],
     ['v1.8.14', ['New "Test mode" toggle next to Auto emails: ON sends Acknowledged/Info Request only to Jair (no CC), OFF sends to the real requestor with CC fs.da.ops@intel.com.']],
@@ -549,7 +571,11 @@ const CONFIG = {
     refreshInterval: 600000,
 
     // Power Automate: send email flow (Acknowledged notification)
-    sendEmailUrl: 'https://default46c98d88e3444ed484964ed7712e25.5d.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/205f9f20a80543a2996515e52c0de68d/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=ExFcVZ5cJV8egXt3fO37KrzpQHsToznGKe4FG8g-i3Q'
+    sendEmailUrl: 'https://default46c98d88e3444ed484964ed7712e25.5d.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/205f9f20a80543a2996515e52c0de68d/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=ExFcVZ5cJV8egXt3fO37KrzpQHsToznGKe4FG8g-i3Q',
+
+    // Power Automate: update SharePoint fields other than Status (DA Link, Project/Portal Name).
+    // Paste the flow's HTTP POST URL here once created — see .kiro/hooks/l4ve for setup steps.
+    updateFieldsUrl: ''
 };
 
 // ============================================================
@@ -944,6 +970,30 @@ async function updateSharePoint(requestId, newStatus) {
     }
 }
 
+// Update non-status SharePoint fields (DA Link, Project/Portal Name) via a dedicated
+// Power Automate flow (CONFIG.updateFieldsUrl). Fields are sent only when provided.
+// daLinkUrl / daLinkText map to the SharePoint "DA Link" hyperlink column
+// (Url + Description). projectPortalName maps to "Project Portal Name".
+async function updateSharePointFields(requestId, { daLinkUrl, daLinkText, projectPortalName } = {}) {
+    if (!CONFIG.updateFieldsUrl) { console.warn('CONFIG.updateFieldsUrl not set — skipping SharePoint field update.'); return false; }
+    const payload = { id: parseInt(requestId) };
+    if (daLinkUrl) payload.daLinkUrl = daLinkUrl;
+    if (daLinkText) payload.daLinkText = daLinkText;
+    if (projectPortalName) payload.projectPortalName = projectPortalName;
+    try {
+        const res = await fetch(CONFIG.updateFieldsUrl, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        });
+        if (res.ok) { console.log('SharePoint fields updated: #' + requestId, payload); return true; }
+        console.warn('SharePoint field update response:', res.status);
+    } catch(e) {
+        console.warn('SharePoint field update call:', e.message);
+    }
+    return false;
+}
+
 // Direct SharePoint status change from dropdown
 async function changeSpStatus(id, newStatus, selectEl) {
     if (!newStatus) return;
@@ -955,9 +1005,15 @@ async function changeSpStatus(id, newStatus, selectEl) {
     allRequests.forEach(r => { if (String(r.id) === String(id)) r.status = newStatus; });
     // Log it
     logHistory(id, '', 'SharePoint Status', 'Status', newStatus);
-    // Auto-emails on status change (only if the toggle is ON)
+    const st = String(newStatus).toLowerCase();
+    // Internal popups: always shown, independent of the customer-email toggle.
+    if (st === 'in approval loop') {
+        openDaLinkModal(id);
+    } else if (st === 'complete') {
+        openCompleteModal(id);
+    }
+    // Auto-emails to the customer on status change (only if the toggle is ON)
     if (autoEmailsEnabled) {
-        const st = String(newStatus).toLowerCase();
         if (st === 'acknowledged') {
             openAcknowledgedEmail(id);
         } else if (st === 'info requested') {
@@ -966,9 +1022,8 @@ async function changeSpStatus(id, newStatus, selectEl) {
             openOutForSignatureEmail(id);
         } else if (st === 'in approval loop') {
             openInApprovalLoopEmail(id);
-        } else if (st === 'complete') {
-            openCompleteModal(id);
         }
+        // Complete email is sent from confirmCompleteModal(), gated there too.
     }
 }
 
@@ -1192,7 +1247,51 @@ async function openCompleteEmail(id, portalName, daNumber) {
     await sendTrackerEmail(id, subject, bodyHtml, name, customer, 'Complete email');
 }
 
+// Remembers the DA number entered in the DA Link popup (In Approval Loop) so the
+// Complete popup can auto-fill it later. Kept in memory only (per browser session).
+const daNumberById = {};
+
+// Internal-only popup shown when a request moves to "In Approval Loop". Saves the
+// DA Link (URL + optional Alternative Text/number) directly to SharePoint. The
+// customer is never told about this — it's just for our own record keeping.
+let pendingDaLinkId = null;
+function openDaLinkModal(id) {
+    pendingDaLinkId = id;
+    const reqs = allRequests.filter(r => String(r.id) === String(id));
+    const req0 = reqs[0] || {};
+    document.getElementById('dalink-modal-req').textContent = 'REQ. ' + id + (req0.customer ? ' \u2014 ' + req0.customer : '');
+    document.getElementById('dalink-url-input').value = '';
+    document.getElementById('dalink-number-input').value = '';
+    const warn = document.getElementById('dalink-modal-warn');
+    if (warn) warn.style.display = 'none';
+    document.getElementById('dalink-modal').classList.add('open');
+    setTimeout(() => document.getElementById('dalink-url-input').focus(), 50);
+}
+function hideDaLinkModal(e){
+    if (e && e.target && e.target.id !== 'dalink-modal' && e.type === 'click') return;
+    document.getElementById('dalink-modal').classList.remove('open');
+    pendingDaLinkId = null;
+}
+async function confirmDaLinkModal(){
+    const id = pendingDaLinkId;
+    if (!id) return;
+    const daLinkUrl = document.getElementById('dalink-url-input').value.trim();
+    const daLinkText = document.getElementById('dalink-number-input').value.trim();
+    if (!daLinkUrl) {
+        const warn = document.getElementById('dalink-modal-warn');
+        if (warn) warn.style.display = 'block';
+        return;
+    }
+    if (daLinkText) daNumberById[String(id)] = daLinkText;
+    document.getElementById('dalink-modal').classList.remove('open');
+    pendingDaLinkId = null;
+    const ok = await updateSharePointFields(id, { daLinkUrl, daLinkText });
+    updateSync(ok ? 'DA Link saved to SharePoint for #' + id : 'DA Link save failed for #' + id + ' (check CONFIG.updateFieldsUrl)');
+}
+
 // Popup asking Portal Name + DA number before sending the Complete celebration email.
+// DA number auto-fills from the DA Link popup if we captured one earlier; Portal
+// Name always needs to be typed here (that's what we write to SharePoint).
 let pendingCompleteId = null;
 function openCompleteModal(id) {
     pendingCompleteId = id;
@@ -1200,7 +1299,9 @@ function openCompleteModal(id) {
     const req0 = reqs[0] || {};
     document.getElementById('complete-modal-req').textContent = 'REQ. ' + id + (req0.customer ? ' \u2014 ' + req0.customer : '');
     document.getElementById('complete-portal-input').value = req0.projectName || '';
-    document.getElementById('complete-da-input').value = '';
+    document.getElementById('complete-da-input').value = daNumberById[String(id)] || '';
+    const warn = document.getElementById('complete-modal-warn');
+    if (warn) warn.style.display = 'none';
     document.getElementById('complete-modal').classList.add('open');
     setTimeout(() => document.getElementById('complete-portal-input').focus(), 50);
 }
@@ -1221,7 +1322,16 @@ async function confirmCompleteModal(){
     }
     document.getElementById('complete-modal').classList.remove('open');
     pendingCompleteId = null;
-    await openCompleteEmail(id, portalName, daNumber);
+
+    // Save the Project Portal Name to SharePoint (internal record) — every time we
+    // complete a request, not gated by the Auto emails / Test mode toggles.
+    allRequests.forEach(r => { if (String(r.id) === String(id)) r.projectName = portalName; });
+    await updateSharePointFields(id, { projectPortalName: portalName });
+
+    // Only now, at Complete, do we tell the customer their portal is ready.
+    if (autoEmailsEnabled) {
+        await openCompleteEmail(id, portalName, daNumber);
+    }
 }
 
 // Log change to history

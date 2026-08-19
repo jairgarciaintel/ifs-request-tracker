@@ -8,6 +8,12 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.17 — 2026-08-19
+- Logo del header mas grande: de 28px a 68px, en Dark y Light mode.
+- Nuevo popup interno al pasar a In Approval Loop: pide DA Link (URL) y numero de DA (Alternative Text, opcional) y lo guarda directo en el campo "DA Link" de SharePoint. El cliente no se entera de esto.
+- El popup de Complete ahora autorrellena el numero de DA si ya se capturo en el paso anterior. El Portal Name se escribe siempre en el campo "Project Portal Name" de SharePoint al completar.
+- PENDIENTE: falta crear el flow de Power Automate que reciba estos campos y pegar su URL en `CONFIG.updateFieldsUrl` (index.html). Instrucciones en `.kiro/hooks/l4ve`.
+
 ## v1.8.16 — 2026-08-19
 - Nuevo logo oficial de Intel Foundry en el header: version oscura (logo-dark.jpg) para Dark mode, version clara (logo-light.jpg) para Light mode. Cambia solo al usar el boton Light/Dark.
 
