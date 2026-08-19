@@ -53,3 +53,8 @@ https://default46c98d88e3444ed484964ed7712e25.5d.environment.api.powerplatform.c
 
 efdewfefefefef
 
+OpenApiOperationParameterTypeConversionFailed
+The 'inputs.parameters' of workflow operation 'Update_item' of type 'OpenApiConnection' is not valid. Error details: Input parameter 'item/DALink' is required to be of type 'String/uri'. The runtime value '"\"https://hsdes.intel.com/appstore/DMS/ticket/14028483184\", \"3423423\""' to be converted doesn't have the expected format 'String/uri'.
+Inputs
+
+
