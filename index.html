@@ -70,7 +70,7 @@ body{
     </div>
   </div>
   <div class="header-right">
-    <span id="app-version" class="version-badge" title="Click to see changelog" onclick="showChangelog()">v1.8.28</span>
+    <span id="app-version" class="version-badge" title="Click to see changelog" onclick="showChangelog()">v1.8.29</span>
     <label class="auto-toggle" title="Auto emails on status change">
       <span class="auto-toggle-label">Auto emails</span>
       <span class="switch"><input type="checkbox" id="auto-emails-toggle" onchange="toggleAutoEmails(this)"><span class="slider"></span></span>
@@ -120,19 +120,23 @@ body{
 <div id="complete-modal" class="changelog-overlay" onclick="hideCompleteModal(event)">
   <div class="changelog-box complete-box">
     <div class="changelog-head">
-      <h3>&#127881; Portal Completed <span id="complete-modal-req" class="complete-modal-req"></span></h3>
+      <h3><span id="complete-modal-title">&#127881; Portal Completed</span> <span id="complete-modal-req" class="complete-modal-req"></span></h3>
       <button class="changelog-close" onclick="hideCompleteModal()">&times;</button>
     </div>
     <div class="changelog-content">
       <p class="complete-modal-hint">This request is being marked <strong>Complete</strong>. Enter the portal name and DA number so we can send the customer their completion notice.</p>
-      <label class="complete-field-label">Portal Name</label>
-      <input type="text" id="complete-portal-input" class="complete-field-input" placeholder="e.g. Magnet Sci-Fi">
-      <label class="complete-field-label">DA Number (Disclosure Agreement)</label>
-      <input type="text" id="complete-da-input" class="complete-field-input" placeholder="e.g. 16654">
+      <div id="complete-portal-wrap">
+        <label class="complete-field-label">Portal Name</label>
+        <input type="text" id="complete-portal-input" class="complete-field-input" placeholder="e.g. Magnet Sci-Fi">
+      </div>
+      <div id="complete-da-wrap">
+        <label class="complete-field-label">DA Number (Disclosure Agreement)</label>
+        <input type="text" id="complete-da-input" class="complete-field-input" placeholder="e.g. 16654">
+      </div>
       <div id="complete-modal-warn" class="complete-modal-warn">Please fill in both fields.</div>
       <div class="complete-modal-actions">
         <button class="btn btn-secondary" onclick="hideCompleteModal()">Cancel</button>
-        <button class="btn btn-primary" onclick="confirmCompleteModal()">OK, send notice</button>
+        <button id="complete-ok-btn" class="btn btn-primary" onclick="confirmCompleteModal()">OK, send notice</button>
       </div>
     </div>
   </div>
@@ -172,7 +176,7 @@ body{
     <select id="filter-assignee" onchange="renderRequests()">
       <option value="all">All Assignees</option>
     </select>
-    <input type="text" id="search-box" placeholder="Search customer or ID..." oninput="renderRequests()"/>
+    <input type="text" id="search-box" placeholder="Search customer, ID, DA number, portal..." oninput="renderRequests()"/>
   </div>
   <div class="toolbar-actions">
     <button class="btn btn-secondary btn-sm" onclick="toggleAllCards(true)">Expand All</button>
@@ -488,10 +492,12 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.28';
+const APP_VERSION = 'v1.8.30';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
+    ['v1.8.30', ['Complete email now adapts to the request type: Portal/New DA shows portal details + the "go to AGS and apply to [Portal] WebView Only" step; IFS NDA says the document is signed and you can start the business relationship with the customer; MP-NDA/Multi-Party says you can start the relationship between the two customers.','COD Complete now shows a double-confirmation popup (no portal name asked) and CCs Birthe Dallmer + James Matayabas Jr. on the notice.']],
+    ['v1.8.29', ['Main search now also matches DA number, DA link, portal name and assignee (not just customer/ID).','Completing a request now fills the progress bar to 100% and marks all sub-steps done instantly, no page reload.']],
     ['v1.8.28', ['All email communications now use the Intel blue #001E50 consistently: status accents, SLA numbers, table headers, the Info Request buttons and the Complete DA number all match the banner and background.']],
     ['v1.8.27', ['Card date is now white instead of faint grey, so it is easy to read.']],
     ['v1.8.26', ['FIX: Assigned To now reads ONLY the iGO Admin field. If nobody in iGO is assigned it shows nothing (chip hidden, card says "Unassigned") instead of falling back to the FCE Lead or other fields.']],
@@ -1088,11 +1094,17 @@ function emailGreetingName(value) {
 
 // Shared sender for the newer status-change emails (Out for Signature, In Approval
 // Loop, Complete). Respects the same Test mode toggle as Acknowledged/Info Request.
-async function sendTrackerEmail(id, subject, bodyHtml, name, customer, label) {
+async function sendTrackerEmail(id, subject, bodyHtml, name, customer, label, extraCc) {
     const reqs = allRequests.filter(r => String(r.id) === String(id));
     const req0 = reqs[0] || {};
     const to = testModeEnabled ? 'jair.garcia@intel.com' : (req0.requestorEmail || '');
-    const cc = testModeEnabled ? '' : 'fs.da.ops@intel.com';
+    // In Test mode nothing is CC'd (all goes only to Jair). In live mode we CC
+    // FS DA OPS plus any extra recipients (e.g. COD copies Birthe + James).
+    let cc = '';
+    if (!testModeEnabled) {
+        const ccList = ['fs.da.ops@intel.com'].concat(Array.isArray(extraCc) ? extraCc : []);
+        cc = ccList.filter(Boolean).join(';');
+    }
     if (!to) { console.warn('No recipient email for #' + id); return false; }
     if (!CONFIG.sendEmailUrl) return false;
     try {
@@ -1262,21 +1274,67 @@ async function openInApprovalLoopEmail(id) {
 }
 
 // Build the "Complete" celebration email — sparkles + portal name + DA number.
-function buildCompleteEmailHtml(name, id, customer, portalName, daNumber) {
+// Build the "Complete" celebration email. Content adapts to the request type(s):
+//  - Portal Creation / New DA -> portal ready + AGS WebView Access instruction
+//  - IFS NDA -> document signed, can start business relationship with the customer
+//  - MP-NDA / Multi-Party -> document signed, can start relationship between the two customers
+//  - COD -> generic completion notice
+// types = array of canonical requestType strings for the group.
+function buildCompleteEmailHtml(name, id, customer, portalName, daNumber, types) {
+    types = types || [];
+    const has = (t) => types.includes(t);
+    const isPortal = has('Portal Creation') || has('New DA') || has('Portal Addition');
+    const isIfsNda = has('IFS NDA');
+    const isMpNda = has('MP-NDA');
+
     const sparkleTop = `<tr><td align="center" style="padding:0;line-height:0;font-size:0;">`
         + `<div style="font-size:34px;line-height:1;letter-spacing:14px;padding:18px 0 4px;">&#10022;&nbsp;&#10024;&nbsp;&#10022;&nbsp;&#10024;&nbsp;&#10022;</div>`
         + `</td></tr>`;
+
+    // Headline + subline vary by type
+    let headline = '&#127881; Congratulations!';
+    let subline = 'Your request is complete.';
+    if (isPortal) subline = 'Your portal is already created.';
+    else if (isIfsNda) subline = 'Your NDA is fully signed.';
+    else if (isMpNda) subline = 'Your Multi-Party NDA is fully signed.';
+
+    // Intro paragraph varies by type
+    let intro = `Great news &mdash; your request (<strong>REQ. ${id} &mdash; ${customer}</strong>) has been <strong style="color:#001E50;">Completed</strong>.`;
+    if (isPortal) intro += ` Your portal is fully set up and ready to use.`;
+    else if (isIfsNda) intro += ` The document has been signed &mdash; you can start building the business relationship with the customer.`;
+    else if (isMpNda) intro += ` The document has been signed &mdash; you can start building the relationship between these two customers.`;
+
+    // Details table (only Portal-type shows portal name / DA WebView instruction)
+    let detailsBlock = '';
+    if (isPortal) {
+        const webViewName = portalName ? `${portalName} WebView Only` : 'the portal WebView Only';
+        detailsBlock =
+            `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:18px;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0;margin-bottom:8px;">`
+            + `<tr style="background-color:#001E50;color:#ffffff;"><td colspan="2" style="padding:12px 16px;font-weight:600;font-size:16px;text-align:left;">Portal Details</td></tr>`
+            + `<tr style="background-color:#ffffff;"><td style="width:40%;padding:12px 16px;border-top:1px solid #eef2f6;font-size:16px;text-align:left;color:#6b7684;">Portal Name</td><td style="padding:12px 16px;border-top:1px solid #eef2f6;font-size:17px;text-align:left;font-weight:700;color:#041c32;">${portalName || '&mdash;'}</td></tr>`
+            + `<tr style="background-color:#f5f9fc;"><td style="padding:12px 16px;border-top:1px solid #eef2f6;font-size:16px;text-align:left;color:#6b7684;">DA (Disclosure Agreement) ID</td><td style="padding:12px 16px;border-top:1px solid #eef2f6;font-size:17px;text-align:left;font-weight:700;color:#001E50;">${daNumber || '&mdash;'}</td></tr>`
+            + `</table>`
+            + `<div style="margin:16px 0 0;padding:14px 16px;background-color:#eef4fb;border-left:4px solid #001E50;border-radius:6px;text-align:left;font-size:16px;color:#041c32;">`
+            + `<strong>Next step:</strong> Please go to <strong>AGS</strong> and apply to the WebView Access: <strong style="color:#001E50;">${webViewName}</strong>.`
+            + `</div>`;
+    } else if (isIfsNda || isMpNda) {
+        // Show DA ID only if we have it
+        if (daNumber) {
+            detailsBlock =
+                `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:18px;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0;margin-bottom:8px;">`
+                + `<tr style="background-color:#001E50;color:#ffffff;"><td colspan="2" style="padding:12px 16px;font-weight:600;font-size:16px;text-align:left;">Agreement Details</td></tr>`
+                + `<tr style="background-color:#ffffff;"><td style="width:40%;padding:12px 16px;border-top:1px solid #eef2f6;font-size:16px;text-align:left;color:#6b7684;">DA (Disclosure Agreement) ID</td><td style="padding:12px 16px;border-top:1px solid #eef2f6;font-size:17px;text-align:left;font-weight:700;color:#001E50;">${daNumber}</td></tr>`
+                + `</table>`;
+        }
+    }
+
     const inner = sparkleTop
         + `<tr><td style="padding:8px 34px 34px;color:#1a202c;font-size:18px;line-height:1.7;text-align:center;">`
-        + `<div style="font-size:26px;font-weight:800;color:#001E50;letter-spacing:0.3px;margin-bottom:6px;">&#127881; Congratulations!</div>`
-        + `<div style="font-size:19px;font-weight:600;color:#041c32;margin-bottom:22px;">Your portal is already created.</div>`
+        + `<div style="font-size:26px;font-weight:800;color:#001E50;letter-spacing:0.3px;margin-bottom:6px;">${headline}</div>`
+        + `<div style="font-size:19px;font-weight:600;color:#041c32;margin-bottom:22px;">${subline}</div>`
         + `<p style="margin:0 0 22px;font-size:18px;text-align:left;">Dear <strong>${name}</strong>,</p>`
-        + `<p style="margin:0 0 24px;font-size:18px;text-align:left;">Great news &mdash; your request (<strong>REQ. ${id} &mdash; ${customer}</strong>) has been <strong style="color:#001E50;">Completed</strong>. Your portal is fully set up and ready to use.</p>`
-        + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:18px;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0;margin-bottom:8px;">`
-        + `<tr style="background-color:#001E50;color:#ffffff;"><td colspan="2" style="padding:12px 16px;font-weight:600;font-size:16px;text-align:left;">Portal Details</td></tr>`
-        + `<tr style="background-color:#ffffff;"><td style="width:40%;padding:12px 16px;border-top:1px solid #eef2f6;font-size:16px;text-align:left;color:#6b7684;">Portal Name</td><td style="padding:12px 16px;border-top:1px solid #eef2f6;font-size:17px;text-align:left;font-weight:700;color:#041c32;">${portalName}</td></tr>`
-        + `<tr style="background-color:#f5f9fc;"><td style="padding:12px 16px;border-top:1px solid #eef2f6;font-size:16px;text-align:left;color:#6b7684;">DA (Disclosure Agreement) ID</td><td style="padding:12px 16px;border-top:1px solid #eef2f6;font-size:17px;text-align:left;font-weight:700;color:#001E50;">${daNumber}</td></tr>`
-        + `</table>`
+        + `<p style="margin:0 0 24px;font-size:18px;text-align:left;">${intro}</p>`
+        + detailsBlock
         + `<p style="margin:26px 0 0;font-size:18px;text-align:left;">Thank you for your patience throughout the process.</p>`
         + `<p style="margin:20px 0 0;font-size:18px;text-align:left;">Best regards,<br><strong style="color:#041c32;">FS DA OPS</strong> &middot; Intel Foundry Services</p>`
         + `</td></tr>`;
@@ -1289,9 +1347,13 @@ async function openCompleteEmail(id, portalName, daNumber) {
     const req0 = reqs[0];
     const name = emailGreetingName(req0.requestor || req0.requestorEmail);
     const customer = req0.customer || 'your request';
-    const subject = `REQ. ${id} - ${customer} - Portal Completed`;
-    const bodyHtml = buildCompleteEmailHtml(name, id, customer, portalName, daNumber);
-    await sendTrackerEmail(id, subject, bodyHtml, name, customer, 'Complete email');
+    const types = reqs.filter(r => r.requestType !== 'Unknown').map(r => r.requestType);
+    const subject = `REQ. ${id} - ${customer} - Completed`;
+    const bodyHtml = buildCompleteEmailHtml(name, id, customer, portalName, daNumber, types);
+    // COD requests copy the two extra recipients
+    const isCod = types.includes('COD');
+    const extraCc = isCod ? ['birthe.dallmer@intel.com', 'james.c.matayabas.jr@intel.com'] : [];
+    await sendTrackerEmail(id, subject, bodyHtml, name, customer, 'Complete email', extraCc);
 }
 
 // Remembers the DA number entered in the DA Link popup (In Approval Loop) so the
@@ -1363,26 +1425,72 @@ function refreshCard(id) {
 // DA number auto-fills from the DA Link popup if we captured one earlier; Portal
 // Name always needs to be typed here (that's what we write to SharePoint).
 let pendingCompleteId = null;
+let pendingCompleteIsCod = false;
 function openCompleteModal(id) {
     pendingCompleteId = id;
     const reqs = allRequests.filter(r => String(r.id) === String(id));
     const req0 = reqs[0] || {};
+    const types = reqs.filter(r => r.requestType !== 'Unknown').map(r => r.requestType);
+    // COD (with no portal-type in the group) uses a double-confirmation popup:
+    // it does NOT ask for portal name — the DA number is already known.
+    const isPortal = types.includes('Portal Creation') || types.includes('New DA') || types.includes('Portal Addition');
+    pendingCompleteIsCod = types.includes('COD') && !isPortal;
+
     document.getElementById('complete-modal-req').textContent = 'REQ. ' + id + (req0.customer ? ' \u2014 ' + req0.customer : '');
-    document.getElementById('complete-portal-input').value = req0.projectName || '';
-    document.getElementById('complete-da-input').value = daNumberById[String(id)] || '';
     const warn = document.getElementById('complete-modal-warn');
     if (warn) warn.style.display = 'none';
+
+    const titleEl = document.getElementById('complete-modal-title');
+    const hintEl = document.querySelector('#complete-modal .complete-modal-hint');
+    const portalWrap = document.getElementById('complete-portal-wrap');
+    const daWrap = document.getElementById('complete-da-wrap');
+    const okBtn = document.getElementById('complete-ok-btn');
+
+    if (pendingCompleteIsCod) {
+        if (titleEl) titleEl.innerHTML = '&#9989; Complete COD';
+        if (hintEl) hintEl.innerHTML = 'You are about to mark this <strong>COD</strong> request as <strong>Complete</strong>. Please confirm the ticket is fully completed. Birthe Dallmer and James Matayabas Jr. will be copied on the notice.';
+        if (portalWrap) portalWrap.style.display = 'none';
+        if (daWrap) daWrap.style.display = 'none';
+        if (okBtn) okBtn.textContent = 'Yes, ticket completed';
+    } else {
+        if (titleEl) titleEl.innerHTML = '&#127881; Portal Completed';
+        if (hintEl) hintEl.innerHTML = 'This request is being marked <strong>Complete</strong>. Enter the portal name and DA number so we can send the customer their completion notice.';
+        if (portalWrap) portalWrap.style.display = '';
+        if (daWrap) daWrap.style.display = '';
+        if (okBtn) okBtn.textContent = 'OK, send notice';
+        document.getElementById('complete-portal-input').value = req0.projectName || '';
+        document.getElementById('complete-da-input').value = daNumberById[String(id)] || '';
+    }
+
     document.getElementById('complete-modal').classList.add('open');
-    setTimeout(() => document.getElementById('complete-portal-input').focus(), 50);
+    if (!pendingCompleteIsCod) setTimeout(() => document.getElementById('complete-portal-input').focus(), 50);
 }
 function hideCompleteModal(e){
     if (e && e.target && e.target.id !== 'complete-modal' && e.type === 'click') return;
     document.getElementById('complete-modal').classList.remove('open');
     pendingCompleteId = null;
+    pendingCompleteIsCod = false;
 }
 async function confirmCompleteModal(){
     const id = pendingCompleteId;
     if (!id) return;
+
+    // COD flow: double-confirmation only, no portal name / DA number to write.
+    if (pendingCompleteIsCod) {
+        document.getElementById('complete-modal').classList.remove('open');
+        pendingCompleteId = null;
+        pendingCompleteIsCod = false;
+        const daNumber = daNumberById[String(id)] || '';
+        allRequests.forEach(r => { if (String(r.id) === String(id)) { r.status = 'Complete'; } });
+        markAllSubStepsComplete(id);
+        await saveTracking();
+        refreshCard(id);
+        if (autoEmailsEnabled) {
+            await openCompleteEmail(id, '', daNumber);
+        }
+        return;
+    }
+
     const portalName = document.getElementById('complete-portal-input').value.trim();
     const daNumber = document.getElementById('complete-da-input').value.trim();
     if (!portalName || !daNumber) {
@@ -1392,11 +1500,15 @@ async function confirmCompleteModal(){
     }
     document.getElementById('complete-modal').classList.remove('open');
     pendingCompleteId = null;
+    pendingCompleteIsCod = false;
 
     // Save the Project Portal Name to SharePoint (internal record) — every time we
     // complete a request, not gated by the Auto emails / Test mode toggles. Whatever
     // the customer suggested gets overwritten/confirmed by whatever we type here.
-    allRequests.forEach(r => { if (String(r.id) === String(id)) r.projectName = portalName; });
+    // Also force the local status to Complete and mark every sub-step complete so the
+    // progress bar jumps to 100% instantly, no page reload needed.
+    allRequests.forEach(r => { if (String(r.id) === String(id)) { r.projectName = portalName; r.status = 'Complete'; } });
+    markAllSubStepsComplete(id);
     if (!trackingData._portalConfirmed) trackingData._portalConfirmed = {};
     trackingData._portalConfirmed[id] = true;
     await saveTracking();
@@ -1764,10 +1876,18 @@ function renderRequests() {
         }
     }
 
-    if (search) filtered = filtered.filter(r =>
-        (r.customer||'').toLowerCase().includes(search) ||
-        String(r.id).includes(search)
-    );
+    if (search) filtered = filtered.filter(r => {
+        // DA number / link can live on the request (from SharePoint) or in local tracking
+        const localDaLink = (trackingData._daLink && trackingData._daLink[r.id]) || {};
+        const daNum = String(r.daLinkText || localDaLink.text || '').toLowerCase();
+        const daUrl = String(r.daLinkUrl || localDaLink.url || '').toLowerCase();
+        return (r.customer||'').toLowerCase().includes(search)
+            || String(r.id).includes(search)
+            || daNum.includes(search)
+            || daUrl.includes(search)
+            || (r.projectName||'').toLowerCase().includes(search)
+            || (r.assignedBD||'').toLowerCase().includes(search);
+    });
 
     const grouped = groupByID(filtered);
 
@@ -2276,6 +2396,31 @@ async function updateCodDaRoute(id, field, value) {
     // Log
     const label = field === 'route' ? 'Route Decision' : 'Info Request to BD';
     logHistory(id, reqs[0]?.customer || '', 'COD/DA Edit', label, value);
+}
+
+// Mark every sub-step of every service under this request id as Complete, so the
+// progress bar shows 100% instantly (no reload). Also handles the COD/DA Edit combo.
+function markAllSubStepsComplete(id) {
+    const reqs = allRequests.filter(r => String(r.id) === String(id));
+    const now = new Date().toISOString();
+    reqs.forEach(r => {
+        const steps = SUB_STEPS[r.requestType] || [];
+        if (!steps.length) return;
+        const key = id + '-' + r.requestType;
+        if (!trackingData[key]) trackingData[key] = {};
+        steps.forEach(s => {
+            trackingData[key][s.id] = 'Complete';
+            trackingData[key][s.id + '_by'] = currentUser;
+        });
+        trackingData[key]._updated = now;
+        trackingData[key]._updatedBy = currentUser;
+    });
+    // COD/DA Edit shared route bucket
+    const comboKey = id + '-cod-da-route';
+    if (trackingData[comboKey]) {
+        trackingData[comboKey]['info-request'] = 'Complete';
+        trackingData[comboKey]._updated = now;
+    }
 }
 
 function updateStep(key, stepId, value, el) {

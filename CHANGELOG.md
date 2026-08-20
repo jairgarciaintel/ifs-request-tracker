@@ -8,6 +8,16 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.30 — 2026-08-20
+- El correo de Complete ahora se adapta al tipo de request:
+  - Portal Creation / New DA: muestra Portal Name + DA ID y el paso "go to AGS and apply to [Portal] WebView Only".
+  - IFS NDA: el documento esta firmado, puedes iniciar la relacion de negocio con el cliente.
+  - MP-NDA / Multi-Party: el documento esta firmado, puedes iniciar la relacion entre los dos clientes.
+- COD al completar: popup de doble confirmacion (no pide portal name) y CC automatico a birthe.dallmer@intel.com y james.c.matayabas.jr@intel.com.
+## v1.8.29 — 2026-08-19
+- El buscador principal ahora tambien busca por DA number, DA link, nombre de portal y asignado (no solo customer/ID).
+- Al completar un request, la barra de progreso llega a 100% y todos los sub-steps quedan completos al instante, sin recargar la pagina.
+
 ## v1.8.28 — 2026-08-19
 - Todos los comunicados por correo usan ahora el azul Intel #001E50 de forma consistente: acentos de estado, numeros de SLA, cabeceras de tabla, botones de Info Request y el DA number del correo Complete quedan iguales al banner y al fondo.
 
