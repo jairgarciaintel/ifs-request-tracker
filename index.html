@@ -142,6 +142,26 @@ body{
   </div>
 </div>
 
+<div id="codename-modal" class="changelog-overlay" onclick="hideCodenameModal(event)">
+  <div class="changelog-box complete-box">
+    <div class="changelog-head">
+      <h3>&#128273; Assign Codename <span id="codename-modal-req" class="complete-modal-req"></span></h3>
+      <button class="changelog-close" onclick="hideCodenameModal()">&times;</button>
+    </div>
+    <div class="changelog-content">
+      <p class="complete-modal-hint">This <strong>Codename</strong> request is being marked <strong>Complete</strong>. Enter the codename you are assigning to <strong id="codename-company"></strong>. The BD and everyone copied on the request will receive it. The notice is sent <strong>encrypted</strong>.</p>
+      <label class="complete-field-label">Codename</label>
+      <input type="text" id="codename-input" class="complete-field-input" placeholder="e.g. Blue Falcon">
+      <div id="codename-recipients-note" class="complete-modal-hint" style="margin:-4px 0 12px;font-size:12px;"></div>
+      <div id="codename-modal-warn" class="complete-modal-warn">Please enter the codename.</div>
+      <div class="complete-modal-actions">
+        <button class="btn btn-secondary" onclick="hideCodenameModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="confirmCodenameModal()">Assign &amp; send (encrypted)</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="toolbar">
   <div class="filters">
     <select id="filter-time" onchange="renderRequests()">
@@ -492,10 +512,11 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.30';
+const APP_VERSION = 'v1.8.31';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
+    ['v1.8.31', ['Codename requests: completing one opens a popup that asks for the codename to assign to the company, then emails it (with the Intel format) to the BD and everyone copied on the request. The notice subject carries an [Encrypt] tag so an Exchange/Purview transport rule can encrypt it.']],
     ['v1.8.30', ['Complete email now adapts to the request type: Portal/New DA shows portal details + the "go to AGS and apply to [Portal] WebView Only" step; IFS NDA says the document is signed and you can start the business relationship with the customer; MP-NDA/Multi-Party says you can start the relationship between the two customers.','COD Complete now shows a double-confirmation popup (no portal name asked) and CCs Birthe Dallmer + James Matayabas Jr. on the notice.']],
     ['v1.8.29', ['Main search now also matches DA number, DA link, portal name and assignee (not just customer/ID).','Completing a request now fills the progress bar to 100% and marks all sub-steps done instantly, no page reload.']],
     ['v1.8.28', ['All email communications now use the Intel blue #001E50 consistently: status accents, SLA numbers, table headers, the Info Request buttons and the Complete DA number all match the banner and background.']],
@@ -730,11 +751,47 @@ async function fetchAndRender() {
                         
                         // Assigned To — ONLY the iGO Admin field. If nobody in iGO is
                         // assigned, leave it BLANK (no fallback to FCE Lead / other fields).
-                        let assignedBD = item.iGOAdminOnly_x002d_AssignedTo || '';
-                        if (Array.isArray(assignedBD)) assignedBD = assignedBD.map(p => typeof p==='object'?(p.DisplayName||p.Email||''):String(p)).join(', ');
-                        else if (typeof assignedBD === 'object' && assignedBD !== null) assignedBD = assignedBD.DisplayName || assignedBD.Email || '';
-                        else assignedBD = String(assignedBD || '');
-                        assignedBD = assignedBD.trim();
+                        // Helper: pull DisplayName(s) and Email(s) out of a SharePoint Person
+                        // field (which can be an object, an array of objects, or a string).
+                        function personNames(v) {
+                            if (!v) return '';
+                            if (Array.isArray(v)) return v.map(p => typeof p==='object'?(p.DisplayName||p.Title||p.Email||''):String(p)).filter(Boolean).join(', ');
+                            if (typeof v === 'object') return v.DisplayName || v.Title || v.Email || '';
+                            return String(v);
+                        }
+                        function personEmails(v) {
+                            const out = [];
+                            const grab = (p) => {
+                                if (!p) return;
+                                if (typeof p === 'object') {
+                                    let e = p.Email || p.UserPrincipalName || p.Mail || '';
+                                    if (!e && p.Claims) { const m = String(p.Claims).match(/[\w.\-]+@[\w.\-]+/); if (m) e = m[0]; }
+                                    if (e) out.push(e);
+                                } else {
+                                    const m = String(p).match(/[\w.\-]+@[\w.\-]+/); if (m) out.push(m[0]);
+                                }
+                            };
+                            if (Array.isArray(v)) v.forEach(grab); else grab(v);
+                            return out;
+                        }
+                        const assignedRaw = item.iGOAdminOnly_x002d_AssignedTo || '';
+                        let assignedBD = personNames(assignedRaw).trim();
+                        const assignedBDEmails = personEmails(assignedRaw);
+
+                        // Extra people to notify for the Codename email: the BD(s) and anyone
+                        // copied on the request. SharePoint internal names vary, so read several
+                        // likely Person columns defensively and collect their emails.
+                        const ccPersonSources = [
+                            item.BD, item.BDLead, item.BD_x0020_Lead, item.BusinessDevelopment,
+                            item.AssignedFCELead, item.FCELead, item.FCE_x0020_Lead,
+                            item.CC, item.Cc, item.CcPeople, item.CC_x0020_People,
+                            item.AdditionalRecipients, item.Additional_x0020_Recipients,
+                            item.PeopleToCopy, item.CopyTo, item.Copy_x0020_To
+                        ];
+                        let ccEmails = [];
+                        ccPersonSources.forEach(src => { ccEmails = ccEmails.concat(personEmails(src)); });
+                        // de-dup
+                        ccEmails = Array.from(new Set(ccEmails.filter(Boolean)));
                         
                         // Details
                         let details = item.Details || item.OData__x0044_etails || '';
@@ -815,6 +872,8 @@ async function fetchAndRender() {
                             daLinkUrl: daLinkUrl,
                             daLinkText: daLinkText,
                             assignedBD: assignedBD,
+                            assignedBDEmails: assignedBDEmails,
+                            ccEmails: ccEmails,
                             details: details,
                             attachments: attachments
                         };
@@ -1063,7 +1122,14 @@ async function changeSpStatus(id, newStatus, selectEl) {
     if (st === 'in approval loop') {
         openDaLinkModal(id);
     } else if (st === 'complete') {
-        openCompleteModal(id);
+        // Codename requests get their own popup (assign a codename, notify the BD).
+        const grp = allRequests.filter(r => String(r.id) === String(id));
+        const isCodename = grp.some(r => r.requestType === 'Codename');
+        if (isCodename) {
+            openCodenameModal(id);
+        } else {
+            openCompleteModal(id);
+        }
     }
     // Auto-emails to the customer on status change (only if the toggle is ON)
     if (autoEmailsEnabled) {
@@ -1521,6 +1587,125 @@ async function confirmCompleteModal(){
     if (autoEmailsEnabled) {
         await openCompleteEmail(id, portalName, daNumber);
     }
+}
+
+// ---- Codename flow ---------------------------------------------------------
+// When a Codename request is completed, we assign a codename and email it
+// (encrypted) to the BD + anyone copied on the request.
+let pendingCodenameId = null;
+function openCodenameModal(id) {
+    pendingCodenameId = id;
+    const reqs = allRequests.filter(r => String(r.id) === String(id));
+    const req0 = reqs[0] || {};
+    const company = req0.customer || 'the customer';
+    document.getElementById('codename-modal-req').textContent = 'REQ. ' + id + (req0.customer ? ' \u2014 ' + req0.customer : '');
+    document.getElementById('codename-company').textContent = company;
+    document.getElementById('codename-input').value = '';
+    const warn = document.getElementById('codename-modal-warn');
+    if (warn) warn.style.display = 'none';
+
+    // Show who will receive it (BD + CC), so the user knows before sending.
+    const recips = codenameRecipients(reqs);
+    const note = document.getElementById('codename-recipients-note');
+    if (note) {
+        if (testModeEnabled) {
+            note.innerHTML = '<em>Test mode ON &mdash; the encrypted notice goes only to jair.garcia@intel.com.</em>';
+        } else if (recips.length) {
+            note.innerHTML = 'Will be sent to: <strong>' + recips.join(', ') + '</strong>';
+        } else {
+            note.innerHTML = '<span style="color:#ff6b6b;">No BD / copied recipients found on this request. It will go to FS DA OPS only.</span>';
+        }
+    }
+
+    document.getElementById('codename-modal').classList.add('open');
+    setTimeout(() => document.getElementById('codename-input').focus(), 50);
+}
+function hideCodenameModal(e){
+    if (e && e.target && e.target.id !== 'codename-modal' && e.type === 'click') return;
+    document.getElementById('codename-modal').classList.remove('open');
+    pendingCodenameId = null;
+}
+// Collect the recipient emails for a Codename notice: the assigned BD plus anyone
+// copied on the request.
+function codenameRecipients(reqs) {
+    const req0 = reqs[0] || {};
+    let list = [];
+    (reqs || []).forEach(r => {
+        if (Array.isArray(r.assignedBDEmails)) list = list.concat(r.assignedBDEmails);
+        if (Array.isArray(r.ccEmails)) list = list.concat(r.ccEmails);
+    });
+    return Array.from(new Set(list.filter(Boolean)));
+}
+async function confirmCodenameModal(){
+    const id = pendingCodenameId;
+    if (!id) return;
+    const codename = document.getElementById('codename-input').value.trim();
+    if (!codename) {
+        const warn = document.getElementById('codename-modal-warn');
+        if (warn) warn.style.display = 'block';
+        return;
+    }
+    document.getElementById('codename-modal').classList.remove('open');
+    pendingCodenameId = null;
+
+    // Mark complete instantly (progress bar to 100%, no reload).
+    allRequests.forEach(r => { if (String(r.id) === String(id)) { r.status = 'Complete'; } });
+    markAllSubStepsComplete(id);
+    await saveTracking();
+    refreshCard(id);
+
+    // Send the encrypted codename notice (gated by the Auto emails toggle).
+    if (autoEmailsEnabled) {
+        await openCodenameEmail(id, codename);
+    }
+}
+
+// Build + send the encrypted Codename notice to the BD and copied people.
+async function openCodenameEmail(id, codename) {
+    const reqs = allRequests.filter(r => String(r.id) === String(id));
+    if (!reqs.length) return;
+    const req0 = reqs[0];
+    const company = req0.customer || 'the customer';
+    const name = emailGreetingName(req0.assignedBD || req0.requestor || '');
+    const recips = codenameRecipients(reqs);
+
+    // Recipients: BD + copied people. Test mode overrides everything to Jair only.
+    const to = testModeEnabled ? 'jair.garcia@intel.com' : (recips.join(';') || 'fs.da.ops@intel.com');
+    const cc = testModeEnabled ? '' : 'fs.da.ops@intel.com';
+    // [Encrypt] subject tag triggers the Exchange / Purview transport rule that
+    // encrypts the message. If TI has no such rule yet, the email still sends
+    // (just not encrypted) — see sync/ notes.
+    const subject = `[Encrypt] REQ. ${id} - ${company} - Codename Assigned`;
+    const bodyHtml = buildCodenameEmailHtml(name, id, company, codename);
+
+    if (!CONFIG.sendEmailUrl) return;
+    if (!to) { console.warn('No recipient email for Codename #' + id); return; }
+    try {
+        const res = await fetch(CONFIG.sendEmailUrl, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ to, cc, subject, name, id: String(id), customer: company, bodyHtml })
+        });
+        if (res.ok) { updateSync('Codename email sent for #' + id); return; }
+        console.warn('Send-email flow returned ' + res.status);
+    } catch (e) { console.warn('Codename email failed:', e.message); }
+}
+
+function buildCodenameEmailHtml(name, id, company, codename) {
+    const inner =
+        `<tr><td style="padding:26px 34px 34px;color:#1a202c;font-size:18px;line-height:1.7;">`
+        + `<div style="font-size:22px;font-weight:800;color:#001E50;letter-spacing:0.3px;margin-bottom:4px;">&#128273; Codename Assigned</div>`
+        + `<div style="font-size:13px;color:#6b7684;margin-bottom:20px;">Intel Confidential &mdash; encrypted communication</div>`
+        + `<p style="margin:0 0 22px;">Dear <strong>${name}</strong>,</p>`
+        + `<p style="margin:0 0 24px;">A codename has been assigned for the customer below. Please use this codename for all further references.</p>`
+        + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:18px;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0;margin-bottom:8px;">`
+        + `<tr style="background-color:#001E50;color:#ffffff;"><td colspan="2" style="padding:12px 16px;font-weight:600;font-size:16px;">Codename Details</td></tr>`
+        + `<tr style="background-color:#ffffff;"><td style="width:40%;padding:12px 16px;border-top:1px solid #eef2f6;font-size:16px;color:#6b7684;">Company</td><td style="padding:12px 16px;border-top:1px solid #eef2f6;font-size:17px;font-weight:700;color:#041c32;">${company}</td></tr>`
+        + `<tr style="background-color:#f5f9fc;"><td style="padding:12px 16px;border-top:1px solid #eef2f6;font-size:16px;color:#6b7684;">Codename</td><td style="padding:12px 16px;border-top:1px solid #eef2f6;font-size:18px;font-weight:800;color:#001E50;">${codename}</td></tr>`
+        + `<tr style="background-color:#ffffff;"><td style="padding:12px 16px;border-top:1px solid #eef2f6;font-size:16px;color:#6b7684;">Request</td><td style="padding:12px 16px;border-top:1px solid #eef2f6;font-size:15px;color:#041c32;">REQ. ${id}</td></tr>`
+        + `</table>`
+        + `<p style="margin:24px 0 0;">Best regards,<br><strong style="color:#041c32;">FS DA OPS</strong> &middot; Intel Foundry Services</p>`
+        + `</td></tr>`;
+    return wrapEmail(inner, 34);
 }
 
 // Log change to history
