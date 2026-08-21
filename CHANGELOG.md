@@ -8,10 +8,11 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.35 — 2026-08-20
+- Todos los correos mandan ahora el campo sensitivity explicito: vacio ("") en los normales (Acknowledged, Info Request, Out for Signature, In Approval Loop, Complete) y la etiqueta "Intel Confidential\Intel Employees (Encrypted - IC)" SOLO en Codename.
+- Esto calza con la expresion del flow: if(empty(sensitivity), null, sensitivity). Asi solo el Codename sale cifrado y el resto normal. No hay que editar mas el flow.
 ## v1.8.34 — 2026-08-20
-- El dropdown Sensitivity de Send an email (V2) no trae "Do not forward" generico; trae las etiquetas de Intel. La correcta para Codename es "Intel Confidential\Intel Employees (Encrypted - IC)" (cifra + solo empleados Intel).
-- El tracker ahora manda ese texto EXACTO en el campo sensitivity SOLO en el correo de Codename. Los demas correos mandan sensitivity vacio.
-- Como el flow es compartido (todos los correos), el campo Sensitivity del flow debe usar una expresion (if empty -> null) o una Condition para que solo Codename se cifre y el resto salga normal. Instrucciones en sync/DoNotForward-setup.md.
+- El dropdown Sensitivity trae etiquetas de Intel; la correcta para Codename es "Intel Confidential\Intel Employees (Encrypted - IC)". El tracker manda ese texto exacto solo en Codename.
 ## v1.8.33 — 2026-08-20
 - Do Not Forward via Sensitivity del flow (sin admin). Asunto limpio.
 ## v1.8.32 — 2026-08-20

@@ -512,11 +512,12 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.34';
+const APP_VERSION = 'v1.8.35';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
-    ['v1.8.34', ['Codename encryption uses the real Intel sensitivity label "Intel Confidential\\Intel Employees (Encrypted - IC)" (the Sensitivity dropdown has no generic Do-not-forward). The tracker sends that exact label only on the Codename email; the shared flow must apply it via an expression/Condition so other emails stay unencrypted. Setup in sync/DoNotForward-setup.md.']],
+    ['v1.8.35', ['All emails now send an explicit sensitivity field: empty for normal emails, and the Intel Confidential label only for Codename. This matches the flow expression (if empty -> null) so only Codename gets encrypted and everything else goes out normally. No flow editing needed beyond the sensitivity expression already set.']],
+    ['v1.8.34', ['Codename encryption uses the real Intel sensitivity label "Intel Confidential\\Intel Employees (Encrypted - IC)". Tracker sends that label only on the Codename email.']],
     ['v1.8.33', ['Codename Do Not Forward without Exchange admin: the tracker sends a sensitivity field and the flow applies it via Send an email V2 > Sensitivity. Subject cleaned.']],
     ['v1.8.32', ['Codename: the key icon is now an SVG (no emoji). Recipients fixed to the real SharePoint people fields: BD (AssignedFCELead) + Project Contact + Author.']],
     ['v1.8.31', ['Codename requests: completing one opens a popup that asks for the codename to assign to the company, then emails it (with the Intel format) to the BD and everyone copied on the request. The notice subject carries an [Encrypt] tag so an Exchange/Purview transport rule can encrypt it.']],
@@ -1180,7 +1181,8 @@ async function sendTrackerEmail(id, subject, bodyHtml, name, customer, label, ex
     try {
         const res = await fetch(CONFIG.sendEmailUrl, {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ to, cc, subject, name, id: String(id), customer, bodyHtml })
+            // sensitivity empty -> the flow expression sends it with no encryption.
+            body: JSON.stringify({ to, cc, subject, name, id: String(id), customer, bodyHtml, sensitivity: '' })
         });
         if (res.ok) { updateSync(label + ' sent for #' + id); return true; }
         console.warn('Send-email flow returned ' + res.status);
@@ -1208,7 +1210,7 @@ async function openInfoRequestEmail(id) {
         try {
             const res = await fetch(CONFIG.sendEmailUrl, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ to, cc, subject, name, id: String(id), customer, bodyHtml })
+                body: JSON.stringify({ to, cc, subject, name, id: String(id), customer, bodyHtml, sensitivity: '' })
             });
             if (res.ok) { updateSync('Info Request email sent for #' + id); return; }
             console.warn('Send-email flow returned ' + res.status);
@@ -1261,7 +1263,7 @@ async function openAcknowledgedEmail(id) {
             const res = await fetch(CONFIG.sendEmailUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ to, cc, subject, name, id: String(id), customer, bodyHtml })
+                body: JSON.stringify({ to, cc, subject, name, id: String(id), customer, bodyHtml, sensitivity: '' })
             });
             if (res.ok) {
                 updateSync('Acknowledged email sent for #' + id);
