@@ -8,10 +8,12 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.34 — 2026-08-20
+- El dropdown Sensitivity de Send an email (V2) no trae "Do not forward" generico; trae las etiquetas de Intel. La correcta para Codename es "Intel Confidential\Intel Employees (Encrypted - IC)" (cifra + solo empleados Intel).
+- El tracker ahora manda ese texto EXACTO en el campo sensitivity SOLO en el correo de Codename. Los demas correos mandan sensitivity vacio.
+- Como el flow es compartido (todos los correos), el campo Sensitivity del flow debe usar una expresion (if empty -> null) o una Condition para que solo Codename se cifre y el resto salga normal. Instrucciones en sync/DoNotForward-setup.md.
 ## v1.8.33 — 2026-08-20
-- Do Not Forward SIN admin: la accion "Send an email (V2)" ya trae el parametro Sensitivity con "Do not forward". El tracker ahora manda un campo sensitivity="do not forward" SOLO en el correo de Codename; el flow lo aplica en ese parametro. No hace falta regla de transporte ni permisos de Exchange admin.
-- Se quito el tag [DoNotForward] del asunto (ya no se usa). Asunto limpio: "REQ. <id> - <empresa> - Codename Assigned".
-- Instrucciones del flow (agregar sensitivity al schema + aplicar Sensitivity en Send an email V2) en sync/DoNotForward-setup.md.
+- Do Not Forward via Sensitivity del flow (sin admin). Asunto limpio.
 ## v1.8.32 — 2026-08-20
 - Codename: el icono de llave ahora es SVG (sin emoji), en el popup y el correo.
 - Destinatarios corregidos con los campos Person reales de SharePoint: BD = AssignedFCELead, mas Project Contact y Author (el campo iGO Admin Assigned To no existe en varios requests).

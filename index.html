@@ -512,11 +512,12 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.33';
+const APP_VERSION = 'v1.8.34';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
-    ['v1.8.33', ['Codename Do Not Forward now works without Exchange admin: the tracker sends a "sensitivity: do not forward" field and the send-email flow applies it via Send an email V2 > Sensitivity. Subject is clean again (no [DoNotForward] tag). Flow setup steps in sync/DoNotForward-setup.md.']],
+    ['v1.8.34', ['Codename encryption uses the real Intel sensitivity label "Intel Confidential\\Intel Employees (Encrypted - IC)" (the Sensitivity dropdown has no generic Do-not-forward). The tracker sends that exact label only on the Codename email; the shared flow must apply it via an expression/Condition so other emails stay unencrypted. Setup in sync/DoNotForward-setup.md.']],
+    ['v1.8.33', ['Codename Do Not Forward without Exchange admin: the tracker sends a sensitivity field and the flow applies it via Send an email V2 > Sensitivity. Subject cleaned.']],
     ['v1.8.32', ['Codename: the key icon is now an SVG (no emoji). Recipients fixed to the real SharePoint people fields: BD (AssignedFCELead) + Project Contact + Author.']],
     ['v1.8.31', ['Codename requests: completing one opens a popup that asks for the codename to assign to the company, then emails it (with the Intel format) to the BD and everyone copied on the request. The notice subject carries an [Encrypt] tag so an Exchange/Purview transport rule can encrypt it.']],
     ['v1.8.30', ['Complete email now adapts to the request type: Portal/New DA shows portal details + the "go to AGS and apply to [Portal] WebView Only" step; IFS NDA says the document is signed and you can start the business relationship with the customer; MP-NDA/Multi-Party says you can start the relationship between the two customers.','COD Complete now shows a double-confirmation popup (no portal name asked) and CCs Birthe Dallmer + James Matayabas Jr. on the notice.']],
@@ -1685,11 +1686,11 @@ async function openCodenameEmail(id, codename) {
     try {
         const res = await fetch(CONFIG.sendEmailUrl, {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            // sensitivity tells the flow to set "Do not forward" on this email
-            // (Send an email V2 -> Advanced -> Sensitivity). The flow applies it
-            // only when this field equals "do not forward"; all other emails send
-            // normally. No Exchange admin rule needed.
-            body: JSON.stringify({ to, cc, subject, name, id: String(id), customer: company, bodyHtml, sensitivity: 'do not forward' })
+            // sensitivity carries the exact Intel sensitivity label so the flow's
+            // "Send an email (V2) -> Sensitivity" applies encryption on this email.
+            // The Codename notice must be encrypted + Intel-only. Other emails send
+            // this field empty, so they go out normally (no encryption).
+            body: JSON.stringify({ to, cc, subject, name, id: String(id), customer: company, bodyHtml, sensitivity: 'Intel Confidential\\Intel Employees (Encrypted - IC)' })
         });
         if (res.ok) { updateSync('Codename email sent for #' + id); return; }
         console.warn('Send-email flow returned ' + res.status);
@@ -1700,7 +1701,7 @@ function buildCodenameEmailHtml(name, id, company, codename) {
     const inner =
         `<tr><td style="padding:26px 34px 34px;color:#1a202c;font-size:18px;line-height:1.7;">`
         + `<div style="font-size:22px;font-weight:800;color:#001E50;letter-spacing:0.3px;margin-bottom:4px;">Codename Assigned</div>`
-        + `<div style="font-size:13px;color:#6b7684;margin-bottom:20px;">Intel Confidential &mdash; Do Not Forward</div>`
+        + `<div style="font-size:13px;color:#6b7684;margin-bottom:20px;">Intel Confidential &mdash; Encrypted, Intel employees only</div>`
         + `<p style="margin:0 0 22px;">Dear <strong>${name}</strong>,</p>`
         + `<p style="margin:0 0 24px;">A codename has been assigned for the customer below. Please use this codename for all further references.</p>`
         + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:18px;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0;margin-bottom:8px;">`
