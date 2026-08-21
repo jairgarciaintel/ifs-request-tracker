@@ -8,6 +8,11 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.31 — 2026-08-20
+- Codename: al completar un request de tipo Codename, sale un popup que pide el codename a asignar a la empresa (Company Name).
+- Al confirmar, se envia el codename con el formato Intel al BD (iGO Admin Assigned To) y a todas las personas copiadas en el request.
+- El correo lleva la etiqueta [Encrypt] en el asunto para que una regla de transporte de Exchange/Purview lo cifre. IMPORTANTE: el cifrado real depende de que TI tenga esa regla configurada; sin ella el correo sale sin cifrar.
+- Se leen los emails del BD y de los copiados desde campos Person de SharePoint (varios nombres internos probables). Si algun destinatario no aparece, hay que confirmar el nombre interno del campo.
 ## v1.8.30 — 2026-08-20
 - El correo de Complete ahora se adapta al tipo de request:
   - Portal Creation / New DA: muestra Portal Name + DA ID y el paso "go to AGS and apply to [Portal] WebView Only".
