@@ -145,18 +145,18 @@ body{
 <div id="codename-modal" class="changelog-overlay" onclick="hideCodenameModal(event)">
   <div class="changelog-box complete-box">
     <div class="changelog-head">
-      <h3>&#128273; Assign Codename <span id="codename-modal-req" class="complete-modal-req"></span></h3>
+      <h3><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;"><circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.7 12.3 21 2"/><path d="m15 5 3 3"/><path d="m18 8 2-2"/></svg>Assign Codename <span id="codename-modal-req" class="complete-modal-req"></span></h3>
       <button class="changelog-close" onclick="hideCodenameModal()">&times;</button>
     </div>
     <div class="changelog-content">
-      <p class="complete-modal-hint">This <strong>Codename</strong> request is being marked <strong>Complete</strong>. Enter the codename you are assigning to <strong id="codename-company"></strong>. The BD and everyone copied on the request will receive it. The notice is sent <strong>encrypted</strong>.</p>
+      <p class="complete-modal-hint">This <strong>Codename</strong> request is being marked <strong>Complete</strong>. Enter the codename you are assigning to <strong id="codename-company"></strong>. The BD, project contact and requestor will receive it. The notice is marked <strong>Do Not Forward</strong> (encrypt + no forwarding).</p>
       <label class="complete-field-label">Codename</label>
       <input type="text" id="codename-input" class="complete-field-input" placeholder="e.g. Blue Falcon">
       <div id="codename-recipients-note" class="complete-modal-hint" style="margin:-4px 0 12px;font-size:12px;"></div>
       <div id="codename-modal-warn" class="complete-modal-warn">Please enter the codename.</div>
       <div class="complete-modal-actions">
         <button class="btn btn-secondary" onclick="hideCodenameModal()">Cancel</button>
-        <button class="btn btn-primary" onclick="confirmCodenameModal()">Assign &amp; send (encrypted)</button>
+        <button class="btn btn-primary" onclick="confirmCodenameModal()">Assign &amp; send (Do Not Forward)</button>
       </div>
     </div>
   </div>
@@ -512,10 +512,11 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.31';
+const APP_VERSION = 'v1.8.32';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
+    ['v1.8.32', ['Codename: the key icon is now an SVG (no emoji). Recipients fixed to the real SharePoint people fields: BD (AssignedFCELead) + Project Contact + Author. The notice subject now uses [DoNotForward] so an Exchange/Purview rule can apply Do Not Forward (encrypt + block forwarding) — the rule must be set up by IT (see sync/DoNotForward-setup.md).']],
     ['v1.8.31', ['Codename requests: completing one opens a popup that asks for the codename to assign to the company, then emails it (with the Intel format) to the BD and everyone copied on the request. The notice subject carries an [Encrypt] tag so an Exchange/Purview transport rule can encrypt it.']],
     ['v1.8.30', ['Complete email now adapts to the request type: Portal/New DA shows portal details + the "go to AGS and apply to [Portal] WebView Only" step; IFS NDA says the document is signed and you can start the business relationship with the customer; MP-NDA/Multi-Party says you can start the relationship between the two customers.','COD Complete now shows a double-confirmation popup (no portal name asked) and CCs Birthe Dallmer + James Matayabas Jr. on the notice.']],
     ['v1.8.29', ['Main search now also matches DA number, DA link, portal name and assignee (not just customer/ID).','Completing a request now fills the progress bar to 100% and marks all sub-steps done instantly, no page reload.']],
@@ -774,19 +775,20 @@ async function fetchAndRender() {
                             if (Array.isArray(v)) v.forEach(grab); else grab(v);
                             return out;
                         }
-                        const assignedRaw = item.iGOAdminOnly_x002d_AssignedTo || '';
-                        let assignedBD = personNames(assignedRaw).trim();
-                        const assignedBDEmails = personEmails(assignedRaw);
+                        // Assigned To for display: prefer the iGO Admin field; if empty,
+                        // fall back to the FCE Lead (that's the BD on most requests).
+                        const igoAssignedRaw = item.iGOAdminOnly_x002d_AssignedTo || '';
+                        const fceLeadRaw = item.AssignedFCELead || '';
+                        let assignedBD = personNames(igoAssignedRaw).trim();
+                        const assignedBDEmails = personEmails(igoAssignedRaw);
 
-                        // Extra people to notify for the Codename email: the BD(s) and anyone
-                        // copied on the request. SharePoint internal names vary, so read several
-                        // likely Person columns defensively and collect their emails.
+                        // Codename notice recipients: the BD/FCE Lead + the project contact +
+                        // the requestor (Author). These are the real Person columns confirmed
+                        // from the SharePoint items (AssignedFCELead, Project_x0020_Contact, Author).
                         const ccPersonSources = [
-                            item.BD, item.BDLead, item.BD_x0020_Lead, item.BusinessDevelopment,
-                            item.AssignedFCELead, item.FCELead, item.FCE_x0020_Lead,
-                            item.CC, item.Cc, item.CcPeople, item.CC_x0020_People,
-                            item.AdditionalRecipients, item.Additional_x0020_Recipients,
-                            item.PeopleToCopy, item.CopyTo, item.Copy_x0020_To
+                            fceLeadRaw,
+                            item.Project_x0020_Contact,
+                            item.Author
                         ];
                         let ccEmails = [];
                         ccPersonSources.forEach(src => { ccEmails = ccEmails.concat(personEmails(src)); });
@@ -1609,7 +1611,7 @@ function openCodenameModal(id) {
     const note = document.getElementById('codename-recipients-note');
     if (note) {
         if (testModeEnabled) {
-            note.innerHTML = '<em>Test mode ON &mdash; the encrypted notice goes only to jair.garcia@intel.com.</em>';
+            note.innerHTML = '<em>Test mode ON &mdash; the notice goes only to jair.garcia@intel.com.</em>';
         } else if (recips.length) {
             note.innerHTML = 'Will be sent to: <strong>' + recips.join(', ') + '</strong>';
         } else {
@@ -1672,10 +1674,12 @@ async function openCodenameEmail(id, codename) {
     // Recipients: BD + copied people. Test mode overrides everything to Jair only.
     const to = testModeEnabled ? 'jair.garcia@intel.com' : (recips.join(';') || 'fs.da.ops@intel.com');
     const cc = testModeEnabled ? '' : 'fs.da.ops@intel.com';
-    // [Encrypt] subject tag triggers the Exchange / Purview transport rule that
-    // encrypts the message. If TI has no such rule yet, the email still sends
-    // (just not encrypted) — see sync/ notes.
-    const subject = `[Encrypt] REQ. ${id} - ${company} - Codename Assigned`;
+    // [DoNotForward] subject tag is meant to trigger an Exchange transport rule /
+    // Purview protection template that applies "Do Not Forward" (encrypt + block
+    // forwarding), i.e. Outlook > Options > Encrypt > Do Not Forward. This must be
+    // configured in Exchange/Purview by IT — the flow/JS alone cannot enforce it.
+    // See sync/DoNotForward-setup.md for the transport-rule instructions.
+    const subject = `[DoNotForward] REQ. ${id} - ${company} - Codename Assigned`;
     const bodyHtml = buildCodenameEmailHtml(name, id, company, codename);
 
     if (!CONFIG.sendEmailUrl) return;
@@ -1693,8 +1697,8 @@ async function openCodenameEmail(id, codename) {
 function buildCodenameEmailHtml(name, id, company, codename) {
     const inner =
         `<tr><td style="padding:26px 34px 34px;color:#1a202c;font-size:18px;line-height:1.7;">`
-        + `<div style="font-size:22px;font-weight:800;color:#001E50;letter-spacing:0.3px;margin-bottom:4px;">&#128273; Codename Assigned</div>`
-        + `<div style="font-size:13px;color:#6b7684;margin-bottom:20px;">Intel Confidential &mdash; encrypted communication</div>`
+        + `<div style="font-size:22px;font-weight:800;color:#001E50;letter-spacing:0.3px;margin-bottom:4px;">Codename Assigned</div>`
+        + `<div style="font-size:13px;color:#6b7684;margin-bottom:20px;">Intel Confidential &mdash; Do Not Forward</div>`
         + `<p style="margin:0 0 22px;">Dear <strong>${name}</strong>,</p>`
         + `<p style="margin:0 0 24px;">A codename has been assigned for the customer below. Please use this codename for all further references.</p>`
         + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:18px;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0;margin-bottom:8px;">`

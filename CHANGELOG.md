@@ -8,6 +8,10 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.32 — 2026-08-20
+- Codename: el icono de llave ahora es SVG (sin emoji), en el popup y el correo.
+- Destinatarios corregidos con los campos Person reales de SharePoint: BD = AssignedFCELead, mas Project Contact y Author (el campo iGO Admin Assigned To no existe en varios requests).
+- "Encrypt" cambiado a "Do Not Forward": el asunto ahora usa [DoNotForward]. Esto NO cifra por si solo; requiere una regla de transporte de Exchange/Purview que aplique la plantilla Do Not Forward al detectar el tag. Instrucciones en sync/DoNotForward-setup.md. El tracker/flow por si solos no pueden forzar el cifrado ni bloquear el reenvio.
 ## v1.8.31 — 2026-08-20
 - Codename: al completar un request de tipo Codename, sale un popup que pide el codename a asignar a la empresa (Company Name).
 - Al confirmar, se envia el codename con el formato Intel al BD (iGO Admin Assigned To) y a todas las personas copiadas en el request.
