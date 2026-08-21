@@ -70,7 +70,7 @@ body{
     </div>
   </div>
   <div class="header-right">
-    <span id="app-version" class="version-badge" title="Click to see changelog" onclick="showChangelog()">v1.8.22</span>
+    <span id="app-version" class="version-badge" title="Click to see changelog" onclick="showChangelog()">v1.8.29</span>
     <label class="auto-toggle" title="Auto emails on status change">
       <span class="auto-toggle-label">Auto emails</span>
       <span class="switch"><input type="checkbox" id="auto-emails-toggle" onchange="toggleAutoEmails(this)"><span class="slider"></span></span>
@@ -120,19 +120,23 @@ body{
 <div id="complete-modal" class="changelog-overlay" onclick="hideCompleteModal(event)">
   <div class="changelog-box complete-box">
     <div class="changelog-head">
-      <h3>&#127881; Portal Completed <span id="complete-modal-req" class="complete-modal-req"></span></h3>
+      <h3><span id="complete-modal-title">&#127881; Portal Completed</span> <span id="complete-modal-req" class="complete-modal-req"></span></h3>
       <button class="changelog-close" onclick="hideCompleteModal()">&times;</button>
     </div>
     <div class="changelog-content">
       <p class="complete-modal-hint">This request is being marked <strong>Complete</strong>. Enter the portal name and DA number so we can send the customer their completion notice.</p>
-      <label class="complete-field-label">Portal Name</label>
-      <input type="text" id="complete-portal-input" class="complete-field-input" placeholder="e.g. Magnet Sci-Fi">
-      <label class="complete-field-label">DA Number (Disclosure Agreement)</label>
-      <input type="text" id="complete-da-input" class="complete-field-input" placeholder="e.g. 16654">
+      <div id="complete-portal-wrap">
+        <label class="complete-field-label">Portal Name</label>
+        <input type="text" id="complete-portal-input" class="complete-field-input" placeholder="e.g. Magnet Sci-Fi">
+      </div>
+      <div id="complete-da-wrap">
+        <label class="complete-field-label">DA Number (Disclosure Agreement)</label>
+        <input type="text" id="complete-da-input" class="complete-field-input" placeholder="e.g. 16654">
+      </div>
       <div id="complete-modal-warn" class="complete-modal-warn">Please fill in both fields.</div>
       <div class="complete-modal-actions">
         <button class="btn btn-secondary" onclick="hideCompleteModal()">Cancel</button>
-        <button class="btn btn-primary" onclick="confirmCompleteModal()">OK, send notice</button>
+        <button id="complete-ok-btn" class="btn btn-primary" onclick="confirmCompleteModal()">OK, send notice</button>
       </div>
     </div>
   </div>
@@ -169,7 +173,10 @@ body{
       <option value="complete">Complete</option>
       <option value="failed">Failed</option>
     </select>
-    <input type="text" id="search-box" placeholder="Search customer or ID..." oninput="renderRequests()"/>
+    <select id="filter-assignee" onchange="renderRequests()">
+      <option value="all">All Assignees</option>
+    </select>
+    <input type="text" id="search-box" placeholder="Search customer, ID, DA number, portal..." oninput="renderRequests()"/>
   </div>
   <div class="toolbar-actions">
     <button class="btn btn-secondary btn-sm" onclick="toggleAllCards(true)">Expand All</button>
@@ -183,6 +190,8 @@ body{
     <span id="stat-progress" class="stat-pill s-progress stat-clickable" onclick="toggleStatFilter('in-progress')">0 WIP</span>
     <span id="stat-complete" class="stat-pill s-done stat-clickable" onclick="toggleStatFilter('complete')">0 done</span>
     <span id="stat-new" class="stat-pill s-new stat-clickable" onclick="toggleStatFilter('not-started')">0 new</span>
+    <span id="stat-ack" class="stat-pill s-ack stat-clickable" onclick="toggleStatFilter('acknowledged')">0 ack</span>
+    <span id="stat-canceled" class="stat-pill s-canceled stat-clickable" onclick="toggleStatFilter('canceled')">0 canceled</span>
   </div>
   <select id="sort-order" onchange="renderRequests()" style="background:rgba(4,28,50,0.8);color:var(--light);border:1px solid rgba(78,200,240,0.2);padding:5px 10px;border-radius:6px;font-size:11px;">
     <option value="id-desc">Newest First (ID)</option>
@@ -196,7 +205,7 @@ body{
 </main>
 
 <style>
-.header{padding:16px 32px;display:flex;align-items:center;justify-content:space-between;background:rgba(4,28,50,0.92);border-bottom:1px solid rgba(78,200,240,0.15);backdrop-filter:blur(10px);position:sticky;top:0;z-index:100;}
+.header{padding:16px 32px;display:flex;align-items:center;justify-content:space-between;background:rgba(0,30,80,0.95);border-bottom:1px solid rgba(78,200,240,0.15);backdrop-filter:blur(10px);position:sticky;top:0;z-index:100;}
 .header-left{display:flex;align-items:center;gap:16px;}
 .logo{height:68px;width:auto;}
 .header-title h1{font-family:'Cabinet Grotesk',sans-serif;font-size:1.3rem;font-weight:700;}
@@ -270,6 +279,10 @@ body.light-mode .auto-toggle-label{color:#4a5568;}
 .s-done.stat-active{border-color:var(--green);box-shadow:0 0 6px rgba(107,203,119,0.3);}
 .s-new{background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.4);}
 .s-new.stat-active{border-color:rgba(255,255,255,0.4);box-shadow:0 0 6px rgba(255,255,255,0.1);}
+.s-ack{background:rgba(78,200,240,0.12);color:var(--cyan);}
+.s-ack.stat-active{border-color:var(--cyan);box-shadow:0 0 6px rgba(78,200,240,0.3);}
+.s-canceled{background:rgba(204,0,0,0.12);color:#ff6b6b;}
+.s-canceled.stat-active{border-color:#ff6b6b;box-shadow:0 0 6px rgba(204,0,0,0.3);}
 .request-list{padding:20px 32px;display:flex;flex-direction:column;gap:14px;}
 .empty-state{text-align:center;padding:80px 20px;color:rgba(255,255,255,0.4);}
 .empty-state h3{font-family:'Cabinet Grotesk',sans-serif;font-size:1.3rem;color:var(--cyan);}
@@ -316,7 +329,8 @@ body.light-mode .auto-toggle-label{color:#4a5568;}
 .badge-codename{background:rgba(107,203,119,0.1);color:var(--green);border:1px solid rgba(107,203,119,0.25);}
 .badge-webview{background:rgba(240,160,48,0.1);color:var(--amber);border:1px solid rgba(240,160,48,0.25);}
 .group-overall{min-width:20px;display:flex;align-items:center;}
-.group-date{font-size:11px;color:rgba(255,255,255,0.25);min-width:50px;text-align:right;}
+.group-owner{display:inline-flex;align-items:center;font-size:11px;font-weight:600;color:var(--cyan);background:rgba(78,200,240,0.1);border:1px solid rgba(78,200,240,0.22);border-radius:10px;padding:2px 9px;white-space:nowrap;max-width:170px;overflow:hidden;text-overflow:ellipsis;}
+.group-date{font-size:11px;color:#ffffff;min-width:50px;text-align:right;}
 .chevron{font-size:16px;color:rgba(255,255,255,0.25);transition:transform 0.3s;margin-left:6px;}
 .group-card.open .chevron{transform:rotate(90deg);color:var(--cyan);}
 
@@ -452,6 +466,7 @@ body.light-mode .circle{display:none;}
 body.light-mode .group-customer{color:#1a202c;}
 body.light-mode .group-id{color:#0071c5;}
 body.light-mode .group-date{color:#64748b;}
+body.light-mode .group-owner{color:#0071c5;background:rgba(0,113,197,0.08);border-color:rgba(0,113,197,0.25);}
 body.light-mode .chevron{color:#94a3b8;}
 body.light-mode .meta{color:#64748b;}
 body.light-mode .header-title h1 .accent{color:#0071c5;}
@@ -477,10 +492,18 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.22';
+const APP_VERSION = 'v1.8.30';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
+    ['v1.8.30', ['Complete email now adapts to the request type: Portal/New DA shows portal details + the "go to AGS and apply to [Portal] WebView Only" step; IFS NDA says the document is signed and you can start the business relationship with the customer; MP-NDA/Multi-Party says you can start the relationship between the two customers.','COD Complete now shows a double-confirmation popup (no portal name asked) and CCs Birthe Dallmer + James Matayabas Jr. on the notice.']],
+    ['v1.8.29', ['Main search now also matches DA number, DA link, portal name and assignee (not just customer/ID).','Completing a request now fills the progress bar to 100% and marks all sub-steps done instantly, no page reload.']],
+    ['v1.8.28', ['All email communications now use the Intel blue #001E50 consistently: status accents, SLA numbers, table headers, the Info Request buttons and the Complete DA number all match the banner and background.']],
+    ['v1.8.27', ['Card date is now white instead of faint grey, so it is easy to read.']],
+    ['v1.8.26', ['FIX: Assigned To now reads ONLY the iGO Admin field. If nobody in iGO is assigned it shows nothing (chip hidden, card says "Unassigned") instead of falling back to the FCE Lead or other fields.']],
+    ['v1.8.25', ['Banners now use Intel classic blue #001E50: the portal header and the email communications (Acknowledged, Info Request, Out for Signature, In Approval Loop, Complete).']],
+    ['v1.8.24', ['Assignee (Assigned To) now shown as a chip in the card header, before the date, so you can see who owns each request without opening it.']],
+    ['v1.8.23', ['New "Assigned To" filter (iGO Admin Only - Assigned To) in the top filter bar.','Acknowledged requests now count as WIP (In Progress) instead of New.','New stat pills: Acknowledged (ack) and Canceled. Canceled is its own bucket, no longer lumped with Done.']],
     ['v1.8.22', ['New "DA Number" row on the card, separate from DA Link. The number captured in the DA Link popup now saves to its own SharePoint text column (DA_x0020_Number) and is read back on Sync.','DA Link button label is now always "Open DA Link" (number lives in its own row).']],
     ['v1.8.21', ['DA Link now saves to SharePoint correctly (the DALink column is a plain URL field, so we send only the URL). The DA number is kept in the tracker to auto-fill the Complete email.','Removed leftover Instructions_follow notes from the repo and gitignored them (they contained a signed flow URL).']],
     ['v1.8.20', ['DA Link now shown on the card, next to Portal Name. Saved instantly from the DA Link popup (In Approval Loop) even before SharePoint confirms the write, and also reads it back from SharePoint once the data flow returns it.']],
@@ -705,11 +728,13 @@ async function fetchAndRender() {
                         if (typeof status === 'object' && status !== null) status = status.Value || status.Label || '';
                         else status = String(status || '');
                         
-                        // Assigned BD (real SP field is iGOAdminOnly_x002d_AssignedTo; fallbacks: AssignedFCELead)
-                        let assignedBD = item.iGOAdminOnly_x002d_AssignedTo || item.AssignedFCELead || item.AssignedBD || item.Assigned_x0020_BD || '';
+                        // Assigned To — ONLY the iGO Admin field. If nobody in iGO is
+                        // assigned, leave it BLANK (no fallback to FCE Lead / other fields).
+                        let assignedBD = item.iGOAdminOnly_x002d_AssignedTo || '';
                         if (Array.isArray(assignedBD)) assignedBD = assignedBD.map(p => typeof p==='object'?(p.DisplayName||p.Email||''):String(p)).join(', ');
                         else if (typeof assignedBD === 'object' && assignedBD !== null) assignedBD = assignedBD.DisplayName || assignedBD.Email || '';
                         else assignedBD = String(assignedBD || '');
+                        assignedBD = assignedBD.trim();
                         
                         // Details
                         let details = item.Details || item.OData__x0044_etails || '';
@@ -850,6 +875,7 @@ async function fetchAndRender() {
         const now = new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
         updateSync(rawRequests.length + ' requests (' + allRequests.length + ' services) \u00b7 ' + now);
         ensureUsername();
+        populateAssigneeFilter();
         renderRequests();
         startAutoRefresh();
         startRealtimePolling();
@@ -1068,11 +1094,17 @@ function emailGreetingName(value) {
 
 // Shared sender for the newer status-change emails (Out for Signature, In Approval
 // Loop, Complete). Respects the same Test mode toggle as Acknowledged/Info Request.
-async function sendTrackerEmail(id, subject, bodyHtml, name, customer, label) {
+async function sendTrackerEmail(id, subject, bodyHtml, name, customer, label, extraCc) {
     const reqs = allRequests.filter(r => String(r.id) === String(id));
     const req0 = reqs[0] || {};
     const to = testModeEnabled ? 'jair.garcia@intel.com' : (req0.requestorEmail || '');
-    const cc = testModeEnabled ? '' : 'fs.da.ops@intel.com';
+    // In Test mode nothing is CC'd (all goes only to Jair). In live mode we CC
+    // FS DA OPS plus any extra recipients (e.g. COD copies Birthe + James).
+    let cc = '';
+    if (!testModeEnabled) {
+        const ccList = ['fs.da.ops@intel.com'].concat(Array.isArray(extraCc) ? extraCc : []);
+        cc = ccList.filter(Boolean).join(';');
+    }
     if (!to) { console.warn('No recipient email for #' + id); return false; }
     if (!CONFIG.sendEmailUrl) return false;
     try {
@@ -1121,14 +1153,14 @@ function buildAckEmailHtml(name, id, customer) {
     // Uses the SAME shared wrapper (blue bg + circles), header and footer as Info Request.
     const inner = `<tr><td style="padding:34px;color:#1a202c;font-size:18px;line-height:1.7;">`
         + `<p style="margin:0 0 18px;font-size:18px;">Dear <strong>${name}</strong>,</p>`
-        + `<p style="margin:0 0 18px;font-size:18px;">This is to let you know that your request (<strong>REQ. ${id} &mdash; ${customer}</strong>) has been <strong style="color:#0071c5;">Acknowledged</strong> and is now in our queue.</p>`
+        + `<p style="margin:0 0 18px;font-size:18px;">This is to let you know that your request (<strong>REQ. ${id} &mdash; ${customer}</strong>) has been <strong style="color:#001E50;">Acknowledged</strong> and is now in our queue.</p>`
         + `<p style="margin:0 0 24px;font-size:18px;">We are actively working on it. Please stay tuned as we move it through the process.</p>`
-        + `<div style="font-size:16px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:#0071c5;margin-bottom:10px;">Estimated SLAs &middot; 2026 average turnaround</div>`
+        + `<div style="font-size:16px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:#001E50;margin-bottom:10px;">Estimated SLAs &middot; 2026 average turnaround</div>`
         + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:18px;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0;">`
-        + `<tr style="background-color:#041c32;color:#ffffff;"><td style="padding:12px 16px;font-weight:600;font-size:18px;">Stage</td><td style="padding:12px 16px;font-weight:600;font-size:18px;text-align:right;">Estimated Time</td></tr>`
-        + `<tr style="background-color:#ffffff;"><td width="64%" style="width:64%;padding:12px 16px;border-top:1px solid #eef2f6;font-size:18px;white-space:nowrap;">Acknowledged &rarr; Next step</td><td width="36%" style="width:36%;padding:12px 16px;border-top:1px solid #eef2f6;text-align:right;font-weight:600;font-size:18px;color:#0071c5;white-space:nowrap;">24&ndash;48 hrs</td></tr>`
-        + `<tr style="background-color:#f5f9fc;"><td style="padding:12px 16px;border-top:1px solid #eef2f6;font-size:18px;">In Approval Loop</td><td style="padding:12px 16px;border-top:1px solid #eef2f6;text-align:right;font-weight:600;font-size:18px;color:#0071c5;">2&ndash;4 days</td></tr>`
-        + `<tr style="background-color:#ffffff;"><td style="padding:12px 16px;border-top:1px solid #eef2f6;font-size:18px;">Out for Signature</td><td style="padding:12px 16px;border-top:1px solid #eef2f6;text-align:right;font-weight:600;font-size:15px;color:#0071c5;white-space:nowrap;">Depends on Customer &middot; Avg 48&ndash;56 hrs</td></tr>`
+        + `<tr style="background-color:#001E50;color:#ffffff;"><td style="padding:12px 16px;font-weight:600;font-size:18px;">Stage</td><td style="padding:12px 16px;font-weight:600;font-size:18px;text-align:right;">Estimated Time</td></tr>`
+        + `<tr style="background-color:#ffffff;"><td width="64%" style="width:64%;padding:12px 16px;border-top:1px solid #eef2f6;font-size:18px;white-space:nowrap;">Acknowledged &rarr; Next step</td><td width="36%" style="width:36%;padding:12px 16px;border-top:1px solid #eef2f6;text-align:right;font-weight:600;font-size:18px;color:#001E50;white-space:nowrap;">24&ndash;48 hrs</td></tr>`
+        + `<tr style="background-color:#f5f9fc;"><td style="padding:12px 16px;border-top:1px solid #eef2f6;font-size:18px;">In Approval Loop</td><td style="padding:12px 16px;border-top:1px solid #eef2f6;text-align:right;font-weight:600;font-size:18px;color:#001E50;">2&ndash;4 days</td></tr>`
+        + `<tr style="background-color:#ffffff;"><td style="padding:12px 16px;border-top:1px solid #eef2f6;font-size:18px;">Out for Signature</td><td style="padding:12px 16px;border-top:1px solid #eef2f6;text-align:right;font-weight:600;font-size:15px;color:#001E50;white-space:nowrap;">Depends on Customer &middot; Avg 48&ndash;56 hrs</td></tr>`
         + `</table>`
         + `<p style="margin:16px 0 0;font-size:15px;color:#6b7684;font-style:italic;">Note: In Approval Loop and Out for Signature depend on external approvers, signers and the customer, so timing can vary.</p>`
         + `<p style="margin:26px 0 0;font-size:18px;">Thank you for your patience.</p>`
@@ -1189,11 +1221,11 @@ async function openAcknowledgedEmail(id) {
 function buildOutForSignatureEmailHtml(name, id, customer) {
     const inner = `<tr><td style="padding:34px;color:#1a202c;font-size:18px;line-height:1.7;">`
         + `<p style="margin:0 0 18px;font-size:18px;">Dear <strong>${name}</strong>,</p>`
-        + `<p style="margin:0 0 18px;font-size:18px;">Your request (<strong>REQ. ${id} &mdash; ${customer}</strong>) is now <strong style="color:#0071c5;">Out for Signature</strong>.</p>`
+        + `<p style="margin:0 0 18px;font-size:18px;">Your request (<strong>REQ. ${id} &mdash; ${customer}</strong>) is now <strong style="color:#001E50;">Out for Signature</strong>.</p>`
         + `<p style="margin:0 0 24px;font-size:18px;">The document has moved forward to the signing stage. Once all parties sign, we will move it to the next step.</p>`
         + `<div style="background:#f5f9fc;border:1px solid #e2e8f0;border-radius:8px;padding:16px 18px;margin-bottom:8px;">`
         + `<div style="font-size:15px;color:#6b7684;">Estimated time</div>`
-        + `<div style="font-size:18px;font-weight:700;color:#0071c5;">Depends on Customer &middot; Avg 48&ndash;56 hrs</div>`
+        + `<div style="font-size:18px;font-weight:700;color:#001E50;">Depends on Customer &middot; Avg 48&ndash;56 hrs</div>`
         + `</div>`
         + `<p style="margin:16px 0 0;font-size:15px;color:#6b7684;font-style:italic;">Note: this stage depends on external signers and the customer, so timing can vary.</p>`
         + `<p style="margin:26px 0 0;font-size:18px;">Thank you for your patience.</p>`
@@ -1217,11 +1249,11 @@ async function openOutForSignatureEmail(id) {
 function buildInApprovalLoopEmailHtml(name, id, customer) {
     const inner = `<tr><td style="padding:34px;color:#1a202c;font-size:18px;line-height:1.7;">`
         + `<p style="margin:0 0 18px;font-size:18px;">Dear <strong>${name}</strong>,</p>`
-        + `<p style="margin:0 0 18px;font-size:18px;">Your request (<strong>REQ. ${id} &mdash; ${customer}</strong>) is now <strong style="color:#0071c5;">In Approval Loop</strong>.</p>`
+        + `<p style="margin:0 0 18px;font-size:18px;">Your request (<strong>REQ. ${id} &mdash; ${customer}</strong>) is now <strong style="color:#001E50;">In Approval Loop</strong>.</p>`
         + `<p style="margin:0 0 24px;font-size:18px;">It is currently being reviewed by the required approvers. We will keep you updated as it moves forward.</p>`
         + `<div style="background:#f5f9fc;border:1px solid #e2e8f0;border-radius:8px;padding:16px 18px;margin-bottom:8px;">`
         + `<div style="font-size:15px;color:#6b7684;">Estimated time</div>`
-        + `<div style="font-size:18px;font-weight:700;color:#0071c5;">2&ndash;4 days</div>`
+        + `<div style="font-size:18px;font-weight:700;color:#001E50;">2&ndash;4 days</div>`
         + `</div>`
         + `<p style="margin:16px 0 0;font-size:15px;color:#6b7684;font-style:italic;">Note: this stage depends on internal approvers, so timing can vary.</p>`
         + `<p style="margin:26px 0 0;font-size:18px;">Thank you for your patience.</p>`
@@ -1242,21 +1274,67 @@ async function openInApprovalLoopEmail(id) {
 }
 
 // Build the "Complete" celebration email — sparkles + portal name + DA number.
-function buildCompleteEmailHtml(name, id, customer, portalName, daNumber) {
+// Build the "Complete" celebration email. Content adapts to the request type(s):
+//  - Portal Creation / New DA -> portal ready + AGS WebView Access instruction
+//  - IFS NDA -> document signed, can start business relationship with the customer
+//  - MP-NDA / Multi-Party -> document signed, can start relationship between the two customers
+//  - COD -> generic completion notice
+// types = array of canonical requestType strings for the group.
+function buildCompleteEmailHtml(name, id, customer, portalName, daNumber, types) {
+    types = types || [];
+    const has = (t) => types.includes(t);
+    const isPortal = has('Portal Creation') || has('New DA') || has('Portal Addition');
+    const isIfsNda = has('IFS NDA');
+    const isMpNda = has('MP-NDA');
+
     const sparkleTop = `<tr><td align="center" style="padding:0;line-height:0;font-size:0;">`
         + `<div style="font-size:34px;line-height:1;letter-spacing:14px;padding:18px 0 4px;">&#10022;&nbsp;&#10024;&nbsp;&#10022;&nbsp;&#10024;&nbsp;&#10022;</div>`
         + `</td></tr>`;
+
+    // Headline + subline vary by type
+    let headline = '&#127881; Congratulations!';
+    let subline = 'Your request is complete.';
+    if (isPortal) subline = 'Your portal is already created.';
+    else if (isIfsNda) subline = 'Your NDA is fully signed.';
+    else if (isMpNda) subline = 'Your Multi-Party NDA is fully signed.';
+
+    // Intro paragraph varies by type
+    let intro = `Great news &mdash; your request (<strong>REQ. ${id} &mdash; ${customer}</strong>) has been <strong style="color:#001E50;">Completed</strong>.`;
+    if (isPortal) intro += ` Your portal is fully set up and ready to use.`;
+    else if (isIfsNda) intro += ` The document has been signed &mdash; you can start building the business relationship with the customer.`;
+    else if (isMpNda) intro += ` The document has been signed &mdash; you can start building the relationship between these two customers.`;
+
+    // Details table (only Portal-type shows portal name / DA WebView instruction)
+    let detailsBlock = '';
+    if (isPortal) {
+        const webViewName = portalName ? `${portalName} WebView Only` : 'the portal WebView Only';
+        detailsBlock =
+            `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:18px;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0;margin-bottom:8px;">`
+            + `<tr style="background-color:#001E50;color:#ffffff;"><td colspan="2" style="padding:12px 16px;font-weight:600;font-size:16px;text-align:left;">Portal Details</td></tr>`
+            + `<tr style="background-color:#ffffff;"><td style="width:40%;padding:12px 16px;border-top:1px solid #eef2f6;font-size:16px;text-align:left;color:#6b7684;">Portal Name</td><td style="padding:12px 16px;border-top:1px solid #eef2f6;font-size:17px;text-align:left;font-weight:700;color:#041c32;">${portalName || '&mdash;'}</td></tr>`
+            + `<tr style="background-color:#f5f9fc;"><td style="padding:12px 16px;border-top:1px solid #eef2f6;font-size:16px;text-align:left;color:#6b7684;">DA (Disclosure Agreement) ID</td><td style="padding:12px 16px;border-top:1px solid #eef2f6;font-size:17px;text-align:left;font-weight:700;color:#001E50;">${daNumber || '&mdash;'}</td></tr>`
+            + `</table>`
+            + `<div style="margin:16px 0 0;padding:14px 16px;background-color:#eef4fb;border-left:4px solid #001E50;border-radius:6px;text-align:left;font-size:16px;color:#041c32;">`
+            + `<strong>Next step:</strong> Please go to <strong>AGS</strong> and apply to the WebView Access: <strong style="color:#001E50;">${webViewName}</strong>.`
+            + `</div>`;
+    } else if (isIfsNda || isMpNda) {
+        // Show DA ID only if we have it
+        if (daNumber) {
+            detailsBlock =
+                `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:18px;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0;margin-bottom:8px;">`
+                + `<tr style="background-color:#001E50;color:#ffffff;"><td colspan="2" style="padding:12px 16px;font-weight:600;font-size:16px;text-align:left;">Agreement Details</td></tr>`
+                + `<tr style="background-color:#ffffff;"><td style="width:40%;padding:12px 16px;border-top:1px solid #eef2f6;font-size:16px;text-align:left;color:#6b7684;">DA (Disclosure Agreement) ID</td><td style="padding:12px 16px;border-top:1px solid #eef2f6;font-size:17px;text-align:left;font-weight:700;color:#001E50;">${daNumber}</td></tr>`
+                + `</table>`;
+        }
+    }
+
     const inner = sparkleTop
         + `<tr><td style="padding:8px 34px 34px;color:#1a202c;font-size:18px;line-height:1.7;text-align:center;">`
-        + `<div style="font-size:26px;font-weight:800;color:#0071c5;letter-spacing:0.3px;margin-bottom:6px;">&#127881; Congratulations!</div>`
-        + `<div style="font-size:19px;font-weight:600;color:#041c32;margin-bottom:22px;">Your portal is already created.</div>`
+        + `<div style="font-size:26px;font-weight:800;color:#001E50;letter-spacing:0.3px;margin-bottom:6px;">${headline}</div>`
+        + `<div style="font-size:19px;font-weight:600;color:#041c32;margin-bottom:22px;">${subline}</div>`
         + `<p style="margin:0 0 22px;font-size:18px;text-align:left;">Dear <strong>${name}</strong>,</p>`
-        + `<p style="margin:0 0 24px;font-size:18px;text-align:left;">Great news &mdash; your request (<strong>REQ. ${id} &mdash; ${customer}</strong>) has been <strong style="color:#0071c5;">Completed</strong>. Your portal is fully set up and ready to use.</p>`
-        + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:18px;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0;margin-bottom:8px;">`
-        + `<tr style="background-color:#041c32;color:#ffffff;"><td colspan="2" style="padding:12px 16px;font-weight:600;font-size:16px;text-align:left;">Portal Details</td></tr>`
-        + `<tr style="background-color:#ffffff;"><td style="width:40%;padding:12px 16px;border-top:1px solid #eef2f6;font-size:16px;text-align:left;color:#6b7684;">Portal Name</td><td style="padding:12px 16px;border-top:1px solid #eef2f6;font-size:17px;text-align:left;font-weight:700;color:#041c32;">${portalName}</td></tr>`
-        + `<tr style="background-color:#f5f9fc;"><td style="padding:12px 16px;border-top:1px solid #eef2f6;font-size:16px;text-align:left;color:#6b7684;">DA (Disclosure Agreement) ID</td><td style="padding:12px 16px;border-top:1px solid #eef2f6;font-size:17px;text-align:left;font-weight:700;color:#0071c5;">${daNumber}</td></tr>`
-        + `</table>`
+        + `<p style="margin:0 0 24px;font-size:18px;text-align:left;">${intro}</p>`
+        + detailsBlock
         + `<p style="margin:26px 0 0;font-size:18px;text-align:left;">Thank you for your patience throughout the process.</p>`
         + `<p style="margin:20px 0 0;font-size:18px;text-align:left;">Best regards,<br><strong style="color:#041c32;">FS DA OPS</strong> &middot; Intel Foundry Services</p>`
         + `</td></tr>`;
@@ -1269,9 +1347,13 @@ async function openCompleteEmail(id, portalName, daNumber) {
     const req0 = reqs[0];
     const name = emailGreetingName(req0.requestor || req0.requestorEmail);
     const customer = req0.customer || 'your request';
-    const subject = `REQ. ${id} - ${customer} - Portal Completed`;
-    const bodyHtml = buildCompleteEmailHtml(name, id, customer, portalName, daNumber);
-    await sendTrackerEmail(id, subject, bodyHtml, name, customer, 'Complete email');
+    const types = reqs.filter(r => r.requestType !== 'Unknown').map(r => r.requestType);
+    const subject = `REQ. ${id} - ${customer} - Completed`;
+    const bodyHtml = buildCompleteEmailHtml(name, id, customer, portalName, daNumber, types);
+    // COD requests copy the two extra recipients
+    const isCod = types.includes('COD');
+    const extraCc = isCod ? ['birthe.dallmer@intel.com', 'james.c.matayabas.jr@intel.com'] : [];
+    await sendTrackerEmail(id, subject, bodyHtml, name, customer, 'Complete email', extraCc);
 }
 
 // Remembers the DA number entered in the DA Link popup (In Approval Loop) so the
@@ -1343,26 +1425,72 @@ function refreshCard(id) {
 // DA number auto-fills from the DA Link popup if we captured one earlier; Portal
 // Name always needs to be typed here (that's what we write to SharePoint).
 let pendingCompleteId = null;
+let pendingCompleteIsCod = false;
 function openCompleteModal(id) {
     pendingCompleteId = id;
     const reqs = allRequests.filter(r => String(r.id) === String(id));
     const req0 = reqs[0] || {};
+    const types = reqs.filter(r => r.requestType !== 'Unknown').map(r => r.requestType);
+    // COD (with no portal-type in the group) uses a double-confirmation popup:
+    // it does NOT ask for portal name — the DA number is already known.
+    const isPortal = types.includes('Portal Creation') || types.includes('New DA') || types.includes('Portal Addition');
+    pendingCompleteIsCod = types.includes('COD') && !isPortal;
+
     document.getElementById('complete-modal-req').textContent = 'REQ. ' + id + (req0.customer ? ' \u2014 ' + req0.customer : '');
-    document.getElementById('complete-portal-input').value = req0.projectName || '';
-    document.getElementById('complete-da-input').value = daNumberById[String(id)] || '';
     const warn = document.getElementById('complete-modal-warn');
     if (warn) warn.style.display = 'none';
+
+    const titleEl = document.getElementById('complete-modal-title');
+    const hintEl = document.querySelector('#complete-modal .complete-modal-hint');
+    const portalWrap = document.getElementById('complete-portal-wrap');
+    const daWrap = document.getElementById('complete-da-wrap');
+    const okBtn = document.getElementById('complete-ok-btn');
+
+    if (pendingCompleteIsCod) {
+        if (titleEl) titleEl.innerHTML = '&#9989; Complete COD';
+        if (hintEl) hintEl.innerHTML = 'You are about to mark this <strong>COD</strong> request as <strong>Complete</strong>. Please confirm the ticket is fully completed. Birthe Dallmer and James Matayabas Jr. will be copied on the notice.';
+        if (portalWrap) portalWrap.style.display = 'none';
+        if (daWrap) daWrap.style.display = 'none';
+        if (okBtn) okBtn.textContent = 'Yes, ticket completed';
+    } else {
+        if (titleEl) titleEl.innerHTML = '&#127881; Portal Completed';
+        if (hintEl) hintEl.innerHTML = 'This request is being marked <strong>Complete</strong>. Enter the portal name and DA number so we can send the customer their completion notice.';
+        if (portalWrap) portalWrap.style.display = '';
+        if (daWrap) daWrap.style.display = '';
+        if (okBtn) okBtn.textContent = 'OK, send notice';
+        document.getElementById('complete-portal-input').value = req0.projectName || '';
+        document.getElementById('complete-da-input').value = daNumberById[String(id)] || '';
+    }
+
     document.getElementById('complete-modal').classList.add('open');
-    setTimeout(() => document.getElementById('complete-portal-input').focus(), 50);
+    if (!pendingCompleteIsCod) setTimeout(() => document.getElementById('complete-portal-input').focus(), 50);
 }
 function hideCompleteModal(e){
     if (e && e.target && e.target.id !== 'complete-modal' && e.type === 'click') return;
     document.getElementById('complete-modal').classList.remove('open');
     pendingCompleteId = null;
+    pendingCompleteIsCod = false;
 }
 async function confirmCompleteModal(){
     const id = pendingCompleteId;
     if (!id) return;
+
+    // COD flow: double-confirmation only, no portal name / DA number to write.
+    if (pendingCompleteIsCod) {
+        document.getElementById('complete-modal').classList.remove('open');
+        pendingCompleteId = null;
+        pendingCompleteIsCod = false;
+        const daNumber = daNumberById[String(id)] || '';
+        allRequests.forEach(r => { if (String(r.id) === String(id)) { r.status = 'Complete'; } });
+        markAllSubStepsComplete(id);
+        await saveTracking();
+        refreshCard(id);
+        if (autoEmailsEnabled) {
+            await openCompleteEmail(id, '', daNumber);
+        }
+        return;
+    }
+
     const portalName = document.getElementById('complete-portal-input').value.trim();
     const daNumber = document.getElementById('complete-da-input').value.trim();
     if (!portalName || !daNumber) {
@@ -1372,11 +1500,15 @@ async function confirmCompleteModal(){
     }
     document.getElementById('complete-modal').classList.remove('open');
     pendingCompleteId = null;
+    pendingCompleteIsCod = false;
 
     // Save the Project Portal Name to SharePoint (internal record) — every time we
     // complete a request, not gated by the Auto emails / Test mode toggles. Whatever
     // the customer suggested gets overwritten/confirmed by whatever we type here.
-    allRequests.forEach(r => { if (String(r.id) === String(id)) r.projectName = portalName; });
+    // Also force the local status to Complete and mark every sub-step complete so the
+    // progress bar jumps to 100% instantly, no page reload needed.
+    allRequests.forEach(r => { if (String(r.id) === String(id)) { r.projectName = portalName; r.status = 'Complete'; } });
+    markAllSubStepsComplete(id);
     if (!trackingData._portalConfirmed) trackingData._portalConfirmed = {};
     trackingData._portalConfirmed[id] = true;
     await saveTracking();
@@ -1644,6 +1776,27 @@ function syncSpStatusToSubSteps() {
     if (changed) saveTracking();
 }
 
+// Populate the "Assigned To" (iGO Admin Only - Assigned To) filter dropdown with
+// the unique assignees found in the current data, preserving the current selection.
+function populateAssigneeFilter() {
+    const sel = document.getElementById('filter-assignee');
+    if (!sel) return;
+    const prev = sel.value;
+    const names = new Set();
+    let hasUnassigned = false;
+    allRequests.forEach(r => {
+        const a = (r.assignedBD || '').trim();
+        if (a) names.add(a); else hasUnassigned = true;
+    });
+    const sorted = Array.from(names).sort((a, b) => a.localeCompare(b));
+    let html = '<option value="all">All Assignees</option>';
+    sorted.forEach(n => { html += `<option value="${n.replace(/"/g,'&quot;')}">${n}</option>`; });
+    if (hasUnassigned) html += '<option value="__unassigned__">Unassigned</option>';
+    sel.innerHTML = html;
+    // Restore prior selection if it still exists
+    if (prev && (prev === 'all' || prev === '__unassigned__' || sorted.includes(prev))) sel.value = prev;
+}
+
 // ============================================================
 // STAT FILTER: Click pills to filter, multi-select supported
 // ============================================================
@@ -1670,6 +1823,10 @@ function toggleStatFilter(status) {
     document.getElementById('stat-progress').classList.toggle('stat-active', activeStatFilters.has('in-progress'));
     document.getElementById('stat-complete').classList.toggle('stat-active', activeStatFilters.has('complete'));
     document.getElementById('stat-new').classList.toggle('stat-active', activeStatFilters.has('not-started'));
+    const ackPill = document.getElementById('stat-ack');
+    if (ackPill) ackPill.classList.toggle('stat-active', activeStatFilters.has('acknowledged'));
+    const cancPill = document.getElementById('stat-canceled');
+    if (cancPill) cancPill.classList.toggle('stat-active', activeStatFilters.has('canceled'));
     
     // Also sync the dropdown filter
     document.getElementById('filter-status').value = 'all';
@@ -1707,34 +1864,68 @@ function renderRequests() {
     filtered = filterByTime(filtered);
 
     if (typeFilter !== 'all') filtered = filtered.filter(r => r.requestType === typeFilter);
-    if (search) filtered = filtered.filter(r =>
-        (r.customer||'').toLowerCase().includes(search) ||
-        String(r.id).includes(search)
-    );
+
+    // Assignee filter (iGO Admin Only - Assigned To -> r.assignedBD)
+    const assigneeEl = document.getElementById('filter-assignee');
+    const assigneeFilter = assigneeEl ? assigneeEl.value : 'all';
+    if (assigneeFilter && assigneeFilter !== 'all') {
+        if (assigneeFilter === '__unassigned__') {
+            filtered = filtered.filter(r => !(r.assignedBD || '').trim());
+        } else {
+            filtered = filtered.filter(r => (r.assignedBD || '').trim() === assigneeFilter);
+        }
+    }
+
+    if (search) filtered = filtered.filter(r => {
+        // DA number / link can live on the request (from SharePoint) or in local tracking
+        const localDaLink = (trackingData._daLink && trackingData._daLink[r.id]) || {};
+        const daNum = String(r.daLinkText || localDaLink.text || '').toLowerCase();
+        const daUrl = String(r.daLinkUrl || localDaLink.url || '').toLowerCase();
+        return (r.customer||'').toLowerCase().includes(search)
+            || String(r.id).includes(search)
+            || daNum.includes(search)
+            || daUrl.includes(search)
+            || (r.projectName||'').toLowerCase().includes(search)
+            || (r.assignedBD||'').toLowerCase().includes(search);
+    });
 
     const grouped = groupByID(filtered);
 
     // Stats
     const allGrouped = groupByID(filtered);
     let totalGroups = Object.keys(allGrouped).length;
-    let wipCount = 0, doneCount = 0, newCount = 0;
+    let wipCount = 0, doneCount = 0, newCount = 0, canceledCount = 0, ackCount = 0;
     Object.entries(allGrouped).forEach(([id, reqs]) => {
         const s = getGroupOverall(id, reqs);
         if (s==='complete') doneCount++;
+        else if (s==='canceled') canceledCount++;
         else if (s==='in-progress') wipCount++;
         else newCount++;
+        // Acknowledged count (subset, based on the raw SharePoint status)
+        if (String(reqs[0].status || '').toLowerCase() === 'acknowledged') ackCount++;
     });
     document.getElementById('stat-total').textContent = totalGroups + ' total';
     document.getElementById('stat-progress').textContent = wipCount + ' WIP';
     document.getElementById('stat-complete').textContent = doneCount + ' done';
     document.getElementById('stat-new').textContent = newCount + ' new';
+    const cancEl = document.getElementById('stat-canceled');
+    if (cancEl) cancEl.textContent = canceledCount + ' canceled';
+    const ackEl = document.getElementById('stat-ack');
+    if (ackEl) ackEl.textContent = ackCount + ' ack';
 
     // Filter by overall status (from pills or dropdown)
     let ids = Object.keys(grouped);
     const statusFilter = document.getElementById('filter-status').value;
     
     if (!activeStatFilters.has('all')) {
-        ids = ids.filter(id => activeStatFilters.has(getGroupOverall(id, grouped[id])));
+        ids = ids.filter(id => {
+            const overall = getGroupOverall(id, grouped[id]);
+            if (activeStatFilters.has(overall)) return true;
+            // "acknowledged" is a sub-filter based on the raw SharePoint status
+            if (activeStatFilters.has('acknowledged')
+                && String(grouped[id][0].status || '').toLowerCase() === 'acknowledged') return true;
+            return false;
+        });
     } else if (statusFilter !== 'all') {
         ids = ids.filter(id => getGroupOverall(id, grouped[id]) === statusFilter);
     }
@@ -1786,8 +1977,8 @@ const EMAIL_LINKS = {
 function wrapEmail(innerRows, totalCircles) {
     const total = totalCircles || 40;
     const perSide = Math.round(total / 2);
-    return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;background-color:#0a2540;font-family:'Segoe UI',Arial,sans-serif;">`
-        + `<tr><td align="center" style="background-color:#0a2540;padding:36px 12px;">`
+    return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;background-color:#001E50;font-family:'Segoe UI',Arial,sans-serif;">`
+        + `<tr><td align="center" style="background-color:#001E50;padding:36px 12px;">`
         + `<table role="presentation" width="792" cellpadding="0" cellspacing="0" style="width:792px;max-width:792px;border-collapse:collapse;">`
         + `<tr>`
         + `<td width="96" valign="top" style="width:96px;vertical-align:top;">${emailCircles('left', perSide)}</td>`
@@ -1828,14 +2019,14 @@ function emailCircles(side, count) {
 
 // Bright Intel-blue banner header (badge FS + Intel Foundry Services).
 function emailHeader() {
-    return `<tr><td style="background:#0071c5;background:linear-gradient(90deg,#0071c5 0%,#00aeef 100%);padding:26px 34px;">`
+    return `<tr><td style="background-color:#001E50;background:#001E50;padding:26px 34px;">`
         + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>`
         + `<td style="vertical-align:middle;width:52px;"><span style="display:inline-block;width:52px;height:52px;line-height:52px;text-align:center;border:2px solid #ffffff;border-radius:11px;color:#ffffff;font-size:22px;font-weight:700;letter-spacing:1px;">FS</span></td>`
         + `<td style="vertical-align:middle;padding-left:16px;">`
         + `<div style="color:#ffffff;font-size:24px;font-weight:700;letter-spacing:0.3px;">Intel Foundry Services</div>`
-        + `<div style="color:#d6f1ff;font-size:14px;letter-spacing:1px;text-transform:uppercase;">FS Request Tracker &middot; DA OPS</div>`
+        + `<div style="color:#c7d6ea;font-size:14px;letter-spacing:1px;text-transform:uppercase;">FS Request Tracker &middot; DA OPS</div>`
         + `</td></tr></table></td></tr>`
-        + `<tr><td style="height:4px;background:#041c32;font-size:0;line-height:0;">&nbsp;</td></tr>`;
+        + `<tr><td style="height:4px;background:#00122f;font-size:0;line-height:0;">&nbsp;</td></tr>`;
 }
 
 // Footer: notification text, then REAL logo image, then Intel Confidential
@@ -1851,7 +2042,7 @@ function emailFooter() {
 // Build the styled HTML for the Info Request email (all templates for the request types)
 function buildInfoRequestEmailHtml(name, id, customer, types) {
     const has = t => types.some(x => x.toLowerCase() === t.toLowerCase());
-    const btn = (label, url) => `<a href="${url}" style="display:inline-block;background:#0071c5;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:8px 18px;border-radius:6px;margin-top:4px;">${label} &raquo;</a>`;
+    const btn = (label, url) => `<a href="${url}" style="display:inline-block;background:#001E50;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:8px 18px;border-radius:6px;margin-top:4px;">${label} &raquo;</a>`;
     let items = '';
     if (has('New DA')) items += `<li style="margin-bottom:14px;"><strong>New DA</strong> — please fill out this template.<br>${btn('Open New DA template', EMAIL_LINKS.newDA)}</li>`;
     if (has('DA Edit')) items += `<li style="margin-bottom:14px;"><strong>DA Edit</strong> — please fill out this template.<br>${btn('Open DA Edit template', EMAIL_LINKS.newDA)}</li>`;
@@ -1947,7 +2138,8 @@ function renderGroupCard(id, reqs) {
 
     // Request info block (from SharePoint): Created By, Assigned BD, Details, Attachments
     const createdBy = reqs[0].requestor || '\u2014';
-    const assignedBD = reqs[0].assignedBD || '\u2014';
+    const assignedBD = (reqs[0].assignedBD || '').trim();
+    const assignedBDHtml = assignedBD ? assignedBD : '<span class="info-empty">Unassigned</span>';
     const details = reqs[0].details || '';
     const attachments = Array.isArray(reqs[0].attachments) ? reqs[0].attachments : [];
     const attachmentsHtml = attachments.length
@@ -1976,7 +2168,7 @@ function renderGroupCard(id, reqs) {
     const daNumberHtml = daNumber ? daNumber : '<span class="info-empty">Not set yet</span>';
     const infoBlock = `<div class="req-info">
       <div class="req-info-row"><span class="req-info-label">Created By</span><span class="req-info-val">${createdByHtml}</span></div>
-      <div class="req-info-row"><span class="req-info-label">Assigned BD</span><span class="req-info-val">${assignedBD}</span></div>
+      <div class="req-info-row"><span class="req-info-label">Assigned To</span><span class="req-info-val">${assignedBDHtml}</span></div>
       <div class="req-info-row"><span class="req-info-label">Portal Name</span><span class="req-info-val">${portalNameHtml}</span></div>
       <div class="req-info-row"><span class="req-info-label">DA Link</span><span class="req-info-val">${daLinkHtml}</span></div>
       <div class="req-info-row"><span class="req-info-label">DA Number</span><span class="req-info-val">${daNumberHtml}</span></div>
@@ -2058,6 +2250,7 @@ function renderGroupCard(id, reqs) {
         <div class="group-badges">${badges}${statusBadge}</div>
         ${ageBadge}
         <span class="group-overall" title="SharePoint status: ${sourceStatus || 'No status'}">${svgIcon(overall)}</span>
+        ${assignedBD && assignedBD !== '\u2014' ? `<span class="group-owner" title="Assigned To: ${assignedBD}"><svg width="11" height="11" viewBox="0 0 16 16" style="margin-right:4px;vertical-align:-1px;"><circle cx="8" cy="5" r="3" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M2.5,14 a5.5,5.5 0 0 1 11,0" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>${assignedBD}</span>` : ''}
         <span class="group-date">${date}</span>
         <span class="chevron">\u203A</span>
       </div>
@@ -2205,6 +2398,31 @@ async function updateCodDaRoute(id, field, value) {
     logHistory(id, reqs[0]?.customer || '', 'COD/DA Edit', label, value);
 }
 
+// Mark every sub-step of every service under this request id as Complete, so the
+// progress bar shows 100% instantly (no reload). Also handles the COD/DA Edit combo.
+function markAllSubStepsComplete(id) {
+    const reqs = allRequests.filter(r => String(r.id) === String(id));
+    const now = new Date().toISOString();
+    reqs.forEach(r => {
+        const steps = SUB_STEPS[r.requestType] || [];
+        if (!steps.length) return;
+        const key = id + '-' + r.requestType;
+        if (!trackingData[key]) trackingData[key] = {};
+        steps.forEach(s => {
+            trackingData[key][s.id] = 'Complete';
+            trackingData[key][s.id + '_by'] = currentUser;
+        });
+        trackingData[key]._updated = now;
+        trackingData[key]._updatedBy = currentUser;
+    });
+    // COD/DA Edit shared route bucket
+    const comboKey = id + '-cod-da-route';
+    if (trackingData[comboKey]) {
+        trackingData[comboKey]['info-request'] = 'Complete';
+        trackingData[comboKey]._updated = now;
+    }
+}
+
 function updateStep(key, stepId, value, el) {
     if (!trackingData[key]) trackingData[key] = {};
     trackingData[key][stepId] = value;
@@ -2322,8 +2540,11 @@ function getSectionOverall(key, steps) {
 function getGroupOverall(id, reqs) {
     // First check: if the SOURCE status from SharePoint says Complete/Canceled, use that
     const sourceStatus = String(reqs[0].status || '').toLowerCase();
-    if (sourceStatus === 'complete' || sourceStatus === 'canceled') return 'complete';
-    if (sourceStatus === 'wip' || sourceStatus === 'in approval loop' || sourceStatus === 'out for signature' || sourceStatus === 'it request submitted') return 'in-progress';
+    if (sourceStatus === 'complete') return 'complete';
+    if (sourceStatus === 'canceled') return 'canceled';
+    if (sourceStatus === 'wip' || sourceStatus === 'in approval loop' || sourceStatus === 'out for signature'
+        || sourceStatus === 'it request submitted' || sourceStatus === 'acknowledged'
+        || sourceStatus === 'info requested' || sourceStatus === 'on hold') return 'in-progress';
     
     // Otherwise, calculate from tracking sub-steps
     const sectionStatuses = reqs.map(r => {
@@ -2338,7 +2559,7 @@ function getGroupOverall(id, reqs) {
 }
 
 function statusLabel(s) {
-    return {'complete':'Done','in-progress':'In Progress','failed':'Failed','not-started':'New'}[s]||'New';
+    return {'complete':'Done','in-progress':'In Progress','failed':'Failed','not-started':'New','canceled':'Canceled'}[s]||'New';
 }
 
 function svgIcon(status) {

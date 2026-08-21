@@ -8,6 +8,36 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.30 — 2026-08-20
+- El correo de Complete ahora se adapta al tipo de request:
+  - Portal Creation / New DA: muestra Portal Name + DA ID y el paso "go to AGS and apply to [Portal] WebView Only".
+  - IFS NDA: el documento esta firmado, puedes iniciar la relacion de negocio con el cliente.
+  - MP-NDA / Multi-Party: el documento esta firmado, puedes iniciar la relacion entre los dos clientes.
+- COD al completar: popup de doble confirmacion (no pide portal name) y CC automatico a birthe.dallmer@intel.com y james.c.matayabas.jr@intel.com.
+## v1.8.29 — 2026-08-19
+- El buscador principal ahora tambien busca por DA number, DA link, nombre de portal y asignado (no solo customer/ID).
+- Al completar un request, la barra de progreso llega a 100% y todos los sub-steps quedan completos al instante, sin recargar la pagina.
+
+## v1.8.28 — 2026-08-19
+- Todos los comunicados por correo usan ahora el azul Intel #001E50 de forma consistente: acentos de estado, numeros de SLA, cabeceras de tabla, botones de Info Request y el DA number del correo Complete quedan iguales al banner y al fondo.
+
+## v1.8.27 — 2026-08-19
+- La fecha de la tarjeta ahora es blanca en vez de gris tenue, para que se lea bien.
+
+## v1.8.26 — 2026-08-19
+- FIX: "Assigned To" ahora lee UNICAMENTE el campo iGO Admin (iGOAdminOnly_x002d_AssignedTo). Si nadie de iGO esta asignado, no muestra nada (el chip se oculta y la tarjeta dice "Unassigned"), en vez de caer al FCE Lead u otros campos.
+
+## v1.8.25 — 2026-08-19
+- Banners con el azul clasico de Intel #001E50: el header del portal y los comunicados por correo (Acknowledged, Info Request, Out for Signature, In Approval Loop, Complete). El fondo exterior de los correos tambien usa #001E50.
+
+## v1.8.24 — 2026-08-19
+- El asignado (Assigned To) ahora aparece como chip en la cabecera de la tarjeta, antes de la fecha, para ver de quien es cada request sin abrirlo.
+
+## v1.8.23 — 2026-08-19
+- Nuevo filtro "Assigned To" (campo iGO Admin Only - Assigned To) en la barra de filtros de arriba. Se llena solo con los asignados que existan; incluye opcion "Unassigned".
+- Los requests con status Acknowledged ahora cuentan como WIP (In Progress), ya no como New.
+- Nuevos stat pills: Acknowledged (ack) y Canceled. Canceled es su propia categoria (ya no se mezcla con Done). Al hacer clic filtran igual que los demas pills.
+
 ## v1.8.22 — 2026-08-19
 - Nueva fila "DA Number" en la tarjeta, separada de DA Link. El numero que se captura en el popup de DA Link ahora se guarda en su propia columna de texto en SharePoint (DA_x0020_Number) y se lee de vuelta al hacer Sync.
 - El boton de DA Link ahora siempre dice "Open DA Link" (el numero vive en su propia fila).
