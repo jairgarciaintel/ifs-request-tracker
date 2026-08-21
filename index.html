@@ -512,11 +512,12 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.32';
+const APP_VERSION = 'v1.8.33';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
-    ['v1.8.32', ['Codename: the key icon is now an SVG (no emoji). Recipients fixed to the real SharePoint people fields: BD (AssignedFCELead) + Project Contact + Author. The notice subject now uses [DoNotForward] so an Exchange/Purview rule can apply Do Not Forward (encrypt + block forwarding) — the rule must be set up by IT (see sync/DoNotForward-setup.md).']],
+    ['v1.8.33', ['Codename Do Not Forward now works without Exchange admin: the tracker sends a "sensitivity: do not forward" field and the send-email flow applies it via Send an email V2 > Sensitivity. Subject is clean again (no [DoNotForward] tag). Flow setup steps in sync/DoNotForward-setup.md.']],
+    ['v1.8.32', ['Codename: the key icon is now an SVG (no emoji). Recipients fixed to the real SharePoint people fields: BD (AssignedFCELead) + Project Contact + Author.']],
     ['v1.8.31', ['Codename requests: completing one opens a popup that asks for the codename to assign to the company, then emails it (with the Intel format) to the BD and everyone copied on the request. The notice subject carries an [Encrypt] tag so an Exchange/Purview transport rule can encrypt it.']],
     ['v1.8.30', ['Complete email now adapts to the request type: Portal/New DA shows portal details + the "go to AGS and apply to [Portal] WebView Only" step; IFS NDA says the document is signed and you can start the business relationship with the customer; MP-NDA/Multi-Party says you can start the relationship between the two customers.','COD Complete now shows a double-confirmation popup (no portal name asked) and CCs Birthe Dallmer + James Matayabas Jr. on the notice.']],
     ['v1.8.29', ['Main search now also matches DA number, DA link, portal name and assignee (not just customer/ID).','Completing a request now fills the progress bar to 100% and marks all sub-steps done instantly, no page reload.']],
@@ -1674,12 +1675,9 @@ async function openCodenameEmail(id, codename) {
     // Recipients: BD + copied people. Test mode overrides everything to Jair only.
     const to = testModeEnabled ? 'jair.garcia@intel.com' : (recips.join(';') || 'fs.da.ops@intel.com');
     const cc = testModeEnabled ? '' : 'fs.da.ops@intel.com';
-    // [DoNotForward] subject tag is meant to trigger an Exchange transport rule /
-    // Purview protection template that applies "Do Not Forward" (encrypt + block
-    // forwarding), i.e. Outlook > Options > Encrypt > Do Not Forward. This must be
-    // configured in Exchange/Purview by IT — the flow/JS alone cannot enforce it.
-    // See sync/DoNotForward-setup.md for the transport-rule instructions.
-    const subject = `[DoNotForward] REQ. ${id} - ${company} - Codename Assigned`;
+    // "Do not forward" is applied by the flow via the Sensitivity parameter
+    // (sent below as sensitivity), not by a subject tag. Keep the subject clean.
+    const subject = `REQ. ${id} - ${company} - Codename Assigned`;
     const bodyHtml = buildCodenameEmailHtml(name, id, company, codename);
 
     if (!CONFIG.sendEmailUrl) return;
@@ -1687,7 +1685,11 @@ async function openCodenameEmail(id, codename) {
     try {
         const res = await fetch(CONFIG.sendEmailUrl, {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ to, cc, subject, name, id: String(id), customer: company, bodyHtml })
+            // sensitivity tells the flow to set "Do not forward" on this email
+            // (Send an email V2 -> Advanced -> Sensitivity). The flow applies it
+            // only when this field equals "do not forward"; all other emails send
+            // normally. No Exchange admin rule needed.
+            body: JSON.stringify({ to, cc, subject, name, id: String(id), customer: company, bodyHtml, sensitivity: 'do not forward' })
         });
         if (res.ok) { updateSync('Codename email sent for #' + id); return; }
         console.warn('Send-email flow returned ' + res.status);

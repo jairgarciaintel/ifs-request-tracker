@@ -1,64 +1,68 @@
-# Do Not Forward (encriptar + bloquear reenvio) para el correo de Codename
+# Do Not Forward para el correo de Codename (SIN permisos de admin)
 
-## Que hace el tracker
-Cuando completas un request de tipo **Codename**, el tracker manda el correo con
-el asunto:
+## Buena noticia
+NO necesitas ser Exchange admin ni crear reglas de transporte. La accion
+"Send an email (V2)" del conector Office 365 Outlook YA trae un parametro
+**Sensitivity** con la opcion **Do not forward**. Se aplica directo en el flow.
 
-    [DoNotForward] REQ. <id> - <empresa> - Codename Assigned
+El tracker ahora manda al flow un campo extra `sensitivity` con el valor
+`do not forward` SOLO cuando es un correo de Codename. Los demas correos
+(Acknowledged, Complete, etc.) siguen saliendo normales.
 
-El tag `[DoNotForward]` en el asunto es la senal. El tracker NO puede aplicar el
-cifrado / "Do Not Forward" por si solo: eso lo controla Exchange Online / Microsoft
-Purview del lado de Intel. Hay que configurar UNA regla (una sola vez) para que
-cualquier correo con ese tag salga protegido como "Do Not Forward"
-(equivalente a Outlook > Options > Encrypt > Do Not Forward).
+## Que hay que configurar en el flow de envio (una vez)
+Es el flow que ya manda los correos del tracker (el de CONFIG.sendEmailUrl,
+la accion "Send an email (V2)").
 
-## Opcion A (recomendada) — Regla de transporte en Exchange Admin Center
-Necesita permisos de Exchange admin (probablemente TI, no nosotros).
+### 1. Agregar `sensitivity` al schema del trigger
+En el trigger "When an HTTP request is received", en el JSON Schema agrega la
+propiedad `sensitivity` junto a las que ya tienes (to, cc, subject, bodyHtml, etc.):
 
-1. Entra a https://admin.exchange.microsoft.com  ->  Mail flow  ->  Rules
-2. Add a rule  ->  "Apply Office 365 Message Encryption and rights protection..."
-3. Nombre: `FS Tracker - Codename Do Not Forward`
-4. Apply this rule if:
-   - The subject includes any of these words  ->  `[DoNotForward]`
-   - (opcional y mas seguro) AND The sender is  ->  la cuenta/servicio que usa el
-     flow de Power Automate para mandar (la que aparece como From en el correo)
-5. Do the following:
-   - "Apply Office 365 Message Encryption and rights protection"  ->  elige la
-     plantilla **Do Not Forward** (RMS template "Do Not Forward").
-6. Guardar y activar.
+    "sensitivity": { "type": "string" }
 
-Con esto, todo correo con `[DoNotForward]` en el asunto sale cifrado y sin poder
-reenviarse, aunque lo mande Power Automate.
+(Si el schema es un objeto con "properties", metela ahi. No pasa nada si en la
+mayoria de las llamadas no viene: queda vacia.)
 
-## Opcion B — Etiqueta de sensibilidad (Purview) auto-aplicada
-Si Intel usa etiquetas de sensibilidad, TI puede crear una auto-label / regla que
-aplique la etiqueta con proteccion "Do Not Forward" cuando el asunto trae el tag.
-Mismo efecto, distinto lugar (Purview compliance portal).
+### 2. Aplicar la Sensitivity en la accion "Send an email (V2)"
+En la accion Send an email (V2):
+  - Click en "Show advanced options" (o "Mostrar opciones avanzadas").
+  - Busca el parametro **Sensitivity**.
+  - El valor debe ser dinamico segun lo que mande el tracker. Como el conector
+    espera uno de los valores fijos (Normal / Personal / Private / Confidential /
+    Do not forward / Encrypt), lo mas simple y robusto es:
 
-## Que NO funciona (por que no lo hago en el flow/JS)
-- El conector "Send an email (V2)" de Power Automate NO tiene un switch de
-  "Do Not Forward". No existe parametro para eso.
-- Desde JavaScript del tracker no se puede forzar cifrado de un correo saliente.
-- Por eso la unica via real es la regla de Exchange/Purview de arriba, que ademas
-  es lo estandar en Intel.
+    OPCION SENCILLA (recomendada): pon una CONDICION antes del envio.
+      - Agrega un "Condition":  sensitivity  is equal to  do not forward
+      - Rama TRUE:  una accion "Send an email (V2)" con Sensitivity = "Do not forward"
+      - Rama FALSE: la accion "Send an email (V2)" normal (sin sensitivity)
+      Ambas ramas usan los mismos To/CC/Subject/Body (dynamic content del trigger).
 
-## Para probar despues de que TI configure la regla
-1. Con Test mode ON (el correo llega solo a jair.garcia@intel.com).
-2. Completa un request Codename, pon un codename, envia.
-3. Abre el correo que llega: debe verse el candado / aviso de "Do Not Forward"
-   y el boton de reenviar deshabilitado.
-4. Si llega normal (sin proteccion), la regla aun no esta activa o el tag del
-   asunto no coincide -> confirmar con TI que la condicion sea exactamente
-   `[DoNotForward]`.
+    OPCION AVANZADA (una sola accion): en el campo Sensitivity usa una expresion
+      que devuelva el valor cuando venga y vacio cuando no:
+        if(equals(toLower(triggerBody()?['sensitivity']), 'do not forward'), 'Do not forward', '')
+      OJO: el texto debe coincidir EXACTO con la etiqueta que el conector espera
+      ("Do not forward"). Si el conector la rechaza, usa la Opcion sencilla.
+
+### 3. Guardar. No cambia la URL del flow.
+
+## Que hace el tracker (ya deployado)
+- En el correo de Codename manda: to, cc, subject, name, id, customer, bodyHtml,
+  y ademas  sensitivity: "do not forward".
+- Los otros correos NO mandan sensitivity (o va vacia) -> salen normales.
+
+## Probar
+1. Test mode ON (llega solo a jair.garcia@intel.com).
+2. Completa un request Codename, pon codename, envia.
+3. El correo debe llegar con el candado / marca "Do Not Forward" y el boton de
+   Reenviar deshabilitado.
+4. Si llega normal: revisa que el flow tenga el paso de Sensitivity = Do not
+   forward en la rama correcta, y que el schema tenga `sensitivity`.
 
 ## Destinatarios del correo de Codename (confirmado del item 2698)
-El tracker manda el codename a los correos de estos campos Person de SharePoint:
-- `AssignedFCELead`  (el BD / FCE Lead, ej. ravi.gutala@intel.com)
-- `Project_x0020_Contact`  (contacto del proyecto)
-- `Author`  (quien creo el request)
-CC: fs.da.ops@intel.com
-En Test mode todo va solo a jair.garcia@intel.com sin CC.
+Se leen de estos campos Person de SharePoint:
+- `AssignedFCELead`      -> el BD / FCE Lead (ej. ravi.gutala@intel.com)
+- `Project_x0020_Contact` -> contacto del proyecto
+- `Author`               -> quien creo el request
+CC: fs.da.ops@intel.com. En Test mode todo va solo a jair.garcia@intel.com.
 
 NOTA: el campo `iGOAdminOnly_x002d_AssignedTo` NO existe en varios requests
-(por eso "Assigned To" sale vacio). Para el correo de Codename usamos AssignedFCELead
-como BD, que si viene en los items.
+(por eso "Assigned To" sale vacio). Para Codename usamos AssignedFCELead como BD.
