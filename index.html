@@ -535,11 +535,12 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.36';
+const APP_VERSION = 'v1.8.37';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
-    ['v1.8.36', ['Assign from the frontend: each card now has an Assign/Change button next to "Assigned To". Pick a team member (Jair, Jenn) and it writes to the SharePoint iGO Admin - Assigned To field. Needs a small flow tweak (see sync/Assign-field-flow.md).','Complete popup now auto-fills Portal Name and DA number from a previous request of the same customer when available (editable before sending), so repeat customers do not have to be re-typed.']],
+    ['v1.8.37', ['Assign to SharePoint made simpler: the tracker now also sends the ready-made claim (assignedToClaim), so the flow just drops a token into the Assigned To field — no concat/if expression needed (that was causing "expression has a problem"). See sync/Assign-field-flow.md.']],
+    ['v1.8.36', ['Assign from the frontend: each card now has an Assign/Change button next to "Assigned To". Pick a team member and it writes to the SharePoint iGO Admin - Assigned To field.','Complete popup auto-fills Portal Name and DA number from a previous request of the same customer (editable before sending).']],
     ['v1.8.35', ['All emails send an explicit sensitivity field: empty for normal, Intel Confidential label only for Codename, matching the flow expression.']],
     ['v1.8.34', ['Codename encryption uses the real Intel sensitivity label "Intel Confidential\\Intel Employees (Encrypted - IC)". Tracker sends that label only on the Codename email.']],
     ['v1.8.33', ['Codename Do Not Forward without Exchange admin: the tracker sends a sensitivity field and the flow applies it via Send an email V2 > Sensitivity. Subject cleaned.']],
@@ -1127,9 +1128,14 @@ async function updateSharePointFields(requestId, { daLinkUrl, daLinkText, daNumb
     const num = daNumber || daLinkText;
     if (num) payload.daNumber = num;
     if (projectPortalName) payload.projectPortalName = projectPortalName;
-    // Assign To (iGO Admin - Assigned To, a Person field). Send the email so the
-    // flow can resolve the person; send it even when empty to allow clearing it.
-    if (assignedToEmail !== undefined) payload.assignedToEmail = assignedToEmail;
+    // Assign To (iGO Admin - Assigned To, a Person field). Send the plain email AND
+    // the ready-made SharePoint claim string, so the flow can use whichever its
+    // connector expects with a plain token (no concat/if expression needed).
+    // Empty values clear the field.
+    if (assignedToEmail !== undefined) {
+        payload.assignedToEmail = assignedToEmail;
+        payload.assignedToClaim = assignedToEmail ? ('i:0#.f|membership|' + assignedToEmail) : '';
+    }
     try {
         const res = await fetch(CONFIG.updateFieldsUrl, {
             method: 'POST',
@@ -1836,7 +1842,9 @@ async function confirmAssignModal(){
     populateAssigneeFilter();
     logHistory(id, '', 'Assignment', 'Assigned To', newName || 'Unassigned');
 
-    // Write to SharePoint (Person field). Send the email; empty clears it.
+    // Write to SharePoint (Person field). Send both the plain email and the
+    // ready-made SharePoint claim so the flow can just drop a token in — no
+    // concat/if expression needed on the flow side. Empty clears the field.
     await updateSharePointFields(id, { assignedToEmail: email });
     updateSync((newName ? ('Assigned #' + id + ' to ' + newName) : ('Unassigned #' + id)));
 }

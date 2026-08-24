@@ -1,48 +1,53 @@
-# Asignar request desde el frontend -> escribir "iGO Admin - Assigned To" en SharePoint
+# Asignar request -> escribir "iGO Admin - Assigned To" (Person) en SharePoint
 
-## Que hace el tracker (ya deployado)
-- En cada tarjeta, junto a "Assigned To", hay un boton **Assign** (o **Change**).
-- Abre un popup con un dropdown: Unassigned + los miembros del equipo
-  (Jair Garcia, Jenn Glavan). Para agregar mas personas, editar la lista
-  `TEAM_MEMBERS` en index.html.
-- Al confirmar, el tracker:
-  1. Actualiza la tarjeta al instante.
-  2. Llama al flow updateFieldsUrl con:  { id, assignedToEmail: "<email>" }
-     (assignedToEmail vacio "" = desasignar)
+## El error "This expression has a problem"
+Casi siempre es por las COMILLAS: al pegar, las comillas simples ' se vuelven
+tipograficas ' ' y Power Automate no las reconoce. La doc de Microsoft dice:
+borrar la expresion y ESCRIBIRLA A MANO para quitar caracteres ocultos.
+(https://learn.microsoft.com/en-us/power-automate/error-reference)
 
-## Lo que falta en el flow (Update Fields - workflow 7c9ac8ba)
-Hay que aceptar `assignedToEmail` y escribirlo al campo Person
-`iGOAdminOnly_x002d_AssignedTo`.
+Pero para evitarte pelear con la expresion, el tracker ahora manda el claim YA
+ARMADO. Asi en el flow NO necesitas concat ni if: solo pones un token.
 
-### Paso 1 - schema del trigger
+## Lo que manda el tracker ahora (ya deployado)
+En la llamada de asignar manda:
+- `assignedToEmail`  = "jair.garcia@intel.com"  (o "" si desasignas)
+- `assignedToClaim`  = "i:0#.f|membership|jair.garcia@intel.com"  (o "" si desasignas)
+
+## Configurar el flow (SIN expresiones) - Opcion facil
+### 1. schema del trigger
 En "When an HTTP request is received", agrega al JSON Schema:
-    "assignedToEmail": { "type": "string" }
+    "assignedToEmail": { "type": "string" },
+    "assignedToClaim": { "type": "string" }
 
-### Paso 2 - escribir el campo Person en "Update item"
-El campo Assigned To es tipo Person. En el conector SharePoint "Update item",
-los campos Person suelen aparecer como "<Campo> Claims" (Assigned To Claims).
+### 2. En "Update item", campo Assigned To
+El campo Person suele aparecer como "iGO Admin Only - Assigned To Claims".
+  - Haz click en ese campo.
+  - En el dynamic content elige el token  `assignedToClaim`  (el que manda el
+    tracker). NADA de escribir expresiones. Solo el token.
+  - Si tu conector muestra el campo pidiendo el email en vez del claim, entonces
+    usa el token  `assignedToEmail`  en su lugar.
 
-  - En el campo  "iGO Admin Only - Assigned To Claims"  pon una expresion que
-    mande el claim del usuario cuando venga email, y vacio cuando no:
+### 3. Guardar. No cambia la URL del flow.
 
-      if(empty(triggerBody()?['assignedToEmail']), null, concat('i:0#.f|membership|', triggerBody()?['assignedToEmail']))
+Con esto, cuando asignas a Jair, el tracker manda el claim listo y el flow solo
+lo coloca. Cuando desasignas, manda "" y el campo se limpia.
 
-    (El formato de claim de SharePoint es  i:0#.f|membership|correo@intel.com )
+## Si de todas formas quieres usar la expresion (Opcion avanzada)
+Escribela A MANO (no pegar) para evitar comillas curvas. Version sin `?`:
 
-  - Si tu conector muestra el campo como "Assigned To" que pide directamente el
-    email (algunas versiones aceptan solo el email), entonces usa:
-      if(empty(triggerBody()?['assignedToEmail']), null, triggerBody()?['assignedToEmail'])
+    if(empty(triggerBody()['assignedToEmail']),null,concat('i:0#.f|membership|',triggerBody()['assignedToEmail']))
 
-### Paso 3 - Guardar. No cambia la URL del flow.
-
-## Nota sobre desasignar
-Mandar assignedToEmail = "" debe LIMPIAR el campo. Con la expresion de arriba
-manda null cuando viene vacio. Si el conector no limpia con null, quiza haya que
-una Condition: si assignedToEmail vacio -> no tocar el campo (o setearlo a null
-segun lo permita el conector).
+Ojo: las comillas deben ser rectas '  no curvas ' '. Si al pegar falla, borra
+y reescribe las comillas una por una, o mejor usa la Opcion facil de arriba.
 
 ## Probar
-1. En una tarjeta sin asignar, boton **Assign** -> elige Jair -> Assign.
-2. La tarjeta debe mostrar "Jair Garcia" al instante.
-3. En SharePoint, el item debe quedar con iGO Admin - Assigned To = Jair.
-4. Volver a abrir, elegir Unassigned -> debe limpiarse en SharePoint.
+1. Tarjeta sin asignar -> boton Assign -> Jair -> Assign.
+2. La tarjeta muestra "Jair Garcia" al instante.
+3. En SharePoint el item queda con iGO Admin - Assigned To = Jair.
+4. Assign -> Unassigned -> debe limpiarse en SharePoint.
+
+## Nota: si al hacer Sync no se ve el asignado
+El flow "Get all requests" quiza no incluye la columna iGOAdminOnly_x002d_AssignedTo
+en su salida (en el debug del 2698 no venia). Si pasa eso, hay que agregar esa
+columna al $select del flow de lectura. Avisar para verlo.
