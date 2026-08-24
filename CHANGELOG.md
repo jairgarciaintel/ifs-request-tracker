@@ -8,9 +8,11 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.36 — 2026-08-20
+- Asignar desde el frontend: cada tarjeta tiene un boton Assign/Change junto a "Assigned To". Se elige a un miembro del equipo (Jair, Jenn; se agregan mas en la lista TEAM_MEMBERS) y escribe al campo Person "iGO Admin - Assigned To" de SharePoint. Requiere ajuste al flow (aceptar assignedToEmail y escribir el claim). Instrucciones en sync/Assign-field-flow.md.
+- Popup de Complete con autollenado: si el mismo cliente ya tiene un request previo con Portal Name / DA number, el popup los prellena (editables antes de enviar) y avisa que vienen de un request anterior. Asi los clientes repetidos no se re-escriben. No inventa datos: solo reutiliza lo que ya existe en la lista.
 ## v1.8.35 — 2026-08-20
-- Todos los correos mandan ahora el campo sensitivity explicito: vacio ("") en los normales (Acknowledged, Info Request, Out for Signature, In Approval Loop, Complete) y la etiqueta "Intel Confidential\Intel Employees (Encrypted - IC)" SOLO en Codename.
-- Esto calza con la expresion del flow: if(empty(sensitivity), null, sensitivity). Asi solo el Codename sale cifrado y el resto normal. No hay que editar mas el flow.
+- Todos los correos mandan ahora el campo sensitivity explicito: vacio ("") en los normales y "Intel Confidential\Intel Employees (Encrypted - IC)" SOLO en Codename. Calza con la expresion del flow.
 ## v1.8.34 — 2026-08-20
 - El dropdown Sensitivity trae etiquetas de Intel; la correcta para Codename es "Intel Confidential\Intel Employees (Encrypted - IC)". El tracker manda ese texto exacto solo en Codename.
 ## v1.8.33 — 2026-08-20

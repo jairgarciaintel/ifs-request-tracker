@@ -162,6 +162,25 @@ body{
   </div>
 </div>
 
+<div id="assign-modal" class="changelog-overlay" onclick="hideAssignModal(event)">
+  <div class="changelog-box complete-box">
+    <div class="changelog-head">
+      <h3>Assign Request <span id="assign-modal-req" class="complete-modal-req"></span></h3>
+      <button class="changelog-close" onclick="hideAssignModal()">&times;</button>
+    </div>
+    <div class="changelog-content">
+      <p class="complete-modal-hint">Assign this request to a team member. This updates the <strong>iGO Admin - Assigned To</strong> field in SharePoint.</p>
+      <label class="complete-field-label">Assign to</label>
+      <select id="assign-select" class="complete-field-input"></select>
+      <div id="assign-modal-warn" class="complete-modal-warn">Please pick someone.</div>
+      <div class="complete-modal-actions">
+        <button class="btn btn-secondary" onclick="hideAssignModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="confirmAssignModal()">Assign</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="toolbar">
   <div class="filters">
     <select id="filter-time" onchange="renderRequests()">
@@ -251,6 +270,10 @@ body.light-mode .changelog-box{background:#fff;border-color:rgba(0,113,197,0.2);
 body.light-mode .changelog-head h3{color:#0071c5;}
 body.light-mode .cl-version h4{color:#0071c5;}
 body.light-mode .cl-version li{color:#334155;}
+/* Assign button in the card info block */
+.assign-btn{background:rgba(78,200,240,0.15);color:var(--cyan);border:1px solid rgba(78,200,240,0.4);border-radius:6px;padding:2px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Satoshi',sans-serif;letter-spacing:0.3px;vertical-align:1px;}
+.assign-btn:hover{background:rgba(78,200,240,0.3);}
+body.light-mode .assign-btn{background:rgba(0,113,197,0.1);color:#0071c5;border-color:rgba(0,113,197,0.3);}
 /* Complete popup (Portal Name + DA number) */
 .complete-box{max-width:460px;}
 .complete-modal-req{font-size:12px;color:rgba(255,255,255,0.5);font-weight:400;margin-left:8px;}
@@ -512,11 +535,12 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.35';
+const APP_VERSION = 'v1.8.36';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
-    ['v1.8.35', ['All emails now send an explicit sensitivity field: empty for normal emails, and the Intel Confidential label only for Codename. This matches the flow expression (if empty -> null) so only Codename gets encrypted and everything else goes out normally. No flow editing needed beyond the sensitivity expression already set.']],
+    ['v1.8.36', ['Assign from the frontend: each card now has an Assign/Change button next to "Assigned To". Pick a team member (Jair, Jenn) and it writes to the SharePoint iGO Admin - Assigned To field. Needs a small flow tweak (see sync/Assign-field-flow.md).','Complete popup now auto-fills Portal Name and DA number from a previous request of the same customer when available (editable before sending), so repeat customers do not have to be re-typed.']],
+    ['v1.8.35', ['All emails send an explicit sensitivity field: empty for normal, Intel Confidential label only for Codename, matching the flow expression.']],
     ['v1.8.34', ['Codename encryption uses the real Intel sensitivity label "Intel Confidential\\Intel Employees (Encrypted - IC)". Tracker sends that label only on the Codename email.']],
     ['v1.8.33', ['Codename Do Not Forward without Exchange admin: the tracker sends a sensitivity field and the flow applies it via Send an email V2 > Sensitivity. Subject cleaned.']],
     ['v1.8.32', ['Codename: the key icon is now an SVG (no emoji). Recipients fixed to the real SharePoint people fields: BD (AssignedFCELead) + Project Contact + Author.']],
@@ -984,6 +1008,12 @@ function normalizeType(type) {
 // ============================================================
 const FIREBASE_DB = 'https://fs-request-tracker-default-rtdb.firebaseio.com';
 const ALLOWED_USERS = ['jair', 'jenn'];
+// Team members available in the "Assign" dropdown. name = shown label,
+// email = what SharePoint's Person field (iGO Admin - Assigned To) needs.
+const TEAM_MEMBERS = [
+    { name: 'Jair Garcia', email: 'jair.garcia@intel.com' },
+    { name: 'Jenn Glavan', email: 'jenn.glavan@intel.com' }
+];
 let currentUser = localStorage.getItem('fs-username') || '';
 
 function ensureUsername() {
@@ -1088,7 +1118,7 @@ async function updateSharePoint(requestId, newStatus) {
 //  - daLinkUrl  -> "DA Link" column (plain URL, internal name DALink)
 //  - daNumber   -> "DA Number" text column (internal name DA_x0020_Number)
 //  - projectPortalName -> "Project Portal Name" (internal name Project_x002f_PortalName)
-async function updateSharePointFields(requestId, { daLinkUrl, daLinkText, daNumber, projectPortalName } = {}) {
+async function updateSharePointFields(requestId, { daLinkUrl, daLinkText, daNumber, projectPortalName, assignedToEmail } = {}) {
     if (!CONFIG.updateFieldsUrl) { console.warn('CONFIG.updateFieldsUrl not set — skipping SharePoint field update.'); return false; }
     const payload = { id: parseInt(requestId) };
     if (daLinkUrl) payload.daLinkUrl = daLinkUrl;
@@ -1097,6 +1127,9 @@ async function updateSharePointFields(requestId, { daLinkUrl, daLinkText, daNumb
     const num = daNumber || daLinkText;
     if (num) payload.daNumber = num;
     if (projectPortalName) payload.projectPortalName = projectPortalName;
+    // Assign To (iGO Admin - Assigned To, a Person field). Send the email so the
+    // flow can resolve the person; send it even when empty to allow clearing it.
+    if (assignedToEmail !== undefined) payload.assignedToEmail = assignedToEmail;
     try {
         const res = await fetch(CONFIG.updateFieldsUrl, {
             method: 'POST',
@@ -1496,6 +1529,28 @@ function refreshCard(id) {
 // Popup asking Portal Name + DA number before sending the Complete celebration email.
 // DA number auto-fills from the DA Link popup if we captured one earlier; Portal
 // Name always needs to be typed here (that's what we write to SharePoint).
+// Look for a previous request from the SAME customer that already has a Portal
+// Name and/or DA number, so the Complete popup can pre-fill them. Returns the most
+// recent match found. Never invents data — only reuses what already exists.
+function findPriorCustomerRecord(id, customer) {
+    const out = { portalName: '', daNumber: '' };
+    if (!customer) return out;
+    const cust = String(customer).trim().toLowerCase();
+    // Candidates: other requests, same customer, most recent first.
+    const others = allRequests
+        .filter(r => String(r.id) !== String(id) && String(r.customer || '').trim().toLowerCase() === cust)
+        .sort((a, b) => new Date(b.created || 0) - new Date(a.created || 0));
+    for (const r of others) {
+        const localDa = (trackingData._daLink && trackingData._daLink[r.id]) || {};
+        if (!out.portalName && r.projectName) out.portalName = r.projectName;
+        if (!out.daNumber && (r.daLinkText || localDa.text || daNumberById[String(r.id)])) {
+            out.daNumber = r.daLinkText || localDa.text || daNumberById[String(r.id)];
+        }
+        if (out.portalName && out.daNumber) break;
+    }
+    return out;
+}
+
 let pendingCompleteId = null;
 let pendingCompleteIsCod = false;
 function openCompleteModal(id) {
@@ -1530,8 +1585,22 @@ function openCompleteModal(id) {
         if (portalWrap) portalWrap.style.display = '';
         if (daWrap) daWrap.style.display = '';
         if (okBtn) okBtn.textContent = 'OK, send notice';
-        document.getElementById('complete-portal-input').value = req0.projectName || '';
-        document.getElementById('complete-da-input').value = daNumberById[String(id)] || '';
+        // Auto-fill from what we already know, in priority order:
+        //  Portal: this request's own Project/Portal Name; else another request from
+        //          the same customer that already has one.
+        //  DA:     the number captured in this session's DA Link popup; else this
+        //          request's DA field; else another request from the same customer.
+        const prior = findPriorCustomerRecord(id, req0.customer);
+        const portalPrefill = req0.projectName || prior.portalName || '';
+        const daPrefill = daNumberById[String(id)] || (req0.daLinkText || '') || prior.daNumber || '';
+        const portalInput = document.getElementById('complete-portal-input');
+        const daInput = document.getElementById('complete-da-input');
+        portalInput.value = portalPrefill;
+        daInput.value = daPrefill;
+        // Hint the user when a value was pulled from a previous request of the same customer.
+        if (hintEl && (prior.portalName || prior.daNumber) && (!req0.projectName || !daNumberById[String(id)])) {
+            hintEl.innerHTML += ' <span style="color:var(--cyan);">Pre-filled from a previous request for this customer &mdash; review before sending.</span>';
+        }
     }
 
     document.getElementById('complete-modal').classList.add('open');
@@ -1715,6 +1784,61 @@ function buildCodenameEmailHtml(name, id, company, codename) {
         + `<p style="margin:24px 0 0;">Best regards,<br><strong style="color:#041c32;">FS DA OPS</strong> &middot; Intel Foundry Services</p>`
         + `</td></tr>`;
     return wrapEmail(inner, 34);
+}
+
+// ---- Assign flow -----------------------------------------------------------
+// Assign a request to a team member from the frontend. Writes the person to the
+// SharePoint "iGO Admin - Assigned To" field (Person, needs an email).
+let pendingAssignId = null;
+function openAssignModal(id) {
+    pendingAssignId = id;
+    const reqs = allRequests.filter(r => String(r.id) === String(id));
+    const req0 = reqs[0] || {};
+    document.getElementById('assign-modal-req').textContent = 'REQ. ' + id + (req0.customer ? ' \u2014 ' + req0.customer : '');
+    const current = (req0.assignedBD || '').trim();
+    // Build the dropdown: Unassigned + team members. Current pick preselected.
+    let html = '<option value="">Unassigned</option>';
+    TEAM_MEMBERS.forEach(m => {
+        const sel = (m.name === current) ? ' selected' : '';
+        html += `<option value="${m.email}" data-name="${m.name.replace(/"/g,'&quot;')}"${sel}>${m.name}</option>`;
+    });
+    const sel = document.getElementById('assign-select');
+    sel.innerHTML = html;
+    const warn = document.getElementById('assign-modal-warn');
+    if (warn) warn.style.display = 'none';
+    document.getElementById('assign-modal').classList.add('open');
+}
+function hideAssignModal(e){
+    if (e && e.target && e.target.id !== 'assign-modal' && e.type === 'click') return;
+    document.getElementById('assign-modal').classList.remove('open');
+    pendingAssignId = null;
+}
+async function confirmAssignModal(){
+    const id = pendingAssignId;
+    if (!id) return;
+    const sel = document.getElementById('assign-select');
+    const opt = sel.options[sel.selectedIndex];
+    const email = sel.value;                 // '' means Unassigned
+    const name = opt ? (opt.getAttribute('data-name') || opt.textContent) : '';
+
+    document.getElementById('assign-modal').classList.remove('open');
+    pendingAssignId = null;
+
+    // Update locally so the card reflects it right away.
+    const newName = email ? name : '';
+    allRequests.forEach(r => {
+        if (String(r.id) === String(id)) {
+            r.assignedBD = newName;
+            r.assignedBDEmails = email ? [email] : [];
+        }
+    });
+    refreshCard(id);
+    populateAssigneeFilter();
+    logHistory(id, '', 'Assignment', 'Assigned To', newName || 'Unassigned');
+
+    // Write to SharePoint (Person field). Send the email; empty clears it.
+    await updateSharePointFields(id, { assignedToEmail: email });
+    updateSync((newName ? ('Assigned #' + id + ' to ' + newName) : ('Unassigned #' + id)));
 }
 
 // Log change to history
@@ -2333,7 +2457,8 @@ function renderGroupCard(id, reqs) {
     // Request info block (from SharePoint): Created By, Assigned BD, Details, Attachments
     const createdBy = reqs[0].requestor || '\u2014';
     const assignedBD = (reqs[0].assignedBD || '').trim();
-    const assignedBDHtml = assignedBD ? assignedBD : '<span class="info-empty">Unassigned</span>';
+    const assignBtn = `<button class="assign-btn" onclick="event.stopPropagation();openAssignModal('${id}')">${assignedBD ? 'Change' : 'Assign'}</button>`;
+    const assignedBDHtml = (assignedBD ? assignedBD : '<span class="info-empty">Unassigned</span>') + ' ' + assignBtn;
     const details = reqs[0].details || '';
     const attachments = Array.isArray(reqs[0].attachments) ? reqs[0].attachments : [];
     const attachmentsHtml = attachments.length
