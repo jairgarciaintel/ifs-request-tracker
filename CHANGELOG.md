@@ -8,8 +8,11 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.38 — 2026-08-20
+- La tarjeta ahora muestra TRES campos de personas por separado: "Assigned To" (el campo iGO Admin que editamos con el boton Assign), "Assigned BD" (solo lectura) y "FCE Lead / Account Owner" (solo lectura). Solo el iGO Admin - Assigned To se edita/escribe desde el tracker.
+- Nota: el flow "Get all requests" debe devolver esas columnas (iGOAdminOnly_x002d_AssignedTo, AssignedBD, AssignedFCELead) para que aparezcan tras Sync. Detalle en sync/Assign-field-flow.md.
 ## v1.8.37 — 2026-08-20
-- Asignar a SharePoint mas simple: el tracker ahora manda tambien el claim ya armado (assignedToClaim = "i:0#.f|membership|correo"). En el flow solo pones ese token en el campo Assigned To Claims, sin concat ni if (eso causaba "expression has a problem" por las comillas curvas al pegar). Instrucciones actualizadas en sync/Assign-field-flow.md.
+- Asignar a SharePoint mas simple: el tracker manda tambien el claim ya armado (assignedToClaim). En el flow solo pones ese token en el campo Assigned To Claims, sin concat ni if.
 ## v1.8.36 — 2026-08-20
 - Asignar desde el frontend: cada tarjeta tiene un boton Assign/Change junto a "Assigned To". Se elige a un miembro del equipo (Jair, Jenn; se agregan mas en TEAM_MEMBERS) y escribe al campo Person "iGO Admin - Assigned To" de SharePoint.
 - Popup de Complete con autollenado: si el mismo cliente ya tiene un request previo con Portal Name / DA number, el popup los prellena (editables antes de enviar) y avisa que vienen de un request anterior. Asi los clientes repetidos no se re-escriben. No inventa datos: solo reutiliza lo que ya existe en la lista.

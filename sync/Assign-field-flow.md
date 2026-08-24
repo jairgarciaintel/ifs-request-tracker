@@ -51,3 +51,29 @@ y reescribe las comillas una por una, o mejor usa la Opcion facil de arriba.
 El flow "Get all requests" quiza no incluye la columna iGOAdminOnly_x002d_AssignedTo
 en su salida (en el debug del 2698 no venia). Si pasa eso, hay que agregar esa
 columna al $select del flow de lectura. Avisar para verlo.
+
+
+---
+
+## ACTUALIZACION: campos que se MUESTRAN en la tarjeta (v1.8.38)
+Aclaramos que hay 3 campos de personas distintos:
+- iGO Admin Only - Assigned To  -> el que ASIGNAMOS/actualizamos desde el tracker
+  (boton Assign). Es el que se muestra como "Assigned To".
+- Assigned BD                    -> campo aparte, SOLO lectura, se muestra en la tarjeta.
+- Assigned FCE Lead / Account Owner (AssignedFCELead) -> SOLO lectura, se muestra.
+
+El tracker ahora muestra las 3 filas en la tarjeta. Assigned BD y FCE Lead son
+informativos (no se editan aqui). Solo iGO Admin - Assigned To se edita/escribe.
+
+## IMPORTANTE - para que se VEA el asignado tras Sync
+El flow "Get all requests" (lectura) debe DEVOLVER estas columnas o no se veran
+en la tarjeta aunque esten en SharePoint. En el debug del 2698 NO venia
+iGOAdminOnly_x002d_AssignedTo. Revisar el flow de lectura y asegurar que el
+$select / los campos incluyan:
+  - iGOAdminOnly_x002d_AssignedTo   (Assigned To - el editable)
+  - AssignedBD  (o el nombre interno real del campo "Assigned BD")
+  - AssignedFCELead                 (FCE Lead / Account Owner)
+
+Si "Assigned BD" no aparece, dime el nombre interno real (se ve en la URL al
+editar esa columna en SharePoint, parametro Field=...) y lo ajusto en el tracker.
+El tracker ya intenta varios nombres: AssignedBD, Assigned_x0020_BD, BD.
