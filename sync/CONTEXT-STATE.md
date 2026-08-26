@@ -33,9 +33,13 @@ Responder siempre en espanol. Nada de emojis en la UI (usar SVG).
 - TRACKER (deploy, publico): jairgarciaintel/ifs-request-tracker
   Carpeta: Dashboards Analysis/Request-Tracker/
   Remote HTTPS con PAT de jairgarciaintel.
-- DEV (privado): hackerjj/dashboards-strategy-2026 (raiz 14. Dashboards, tiene .kiro/hooks/l4ve)
-  Remote SSH: git@github-hackerjj:hackerjj/dashboards-strategy-2026.git
+- DEV (privado): jairgarciaintel/dashboards-strategy-2026 (raiz 14. Dashboards, tiene .kiro/hooks/l4ve)
+  MIGRADO de hackerjj a jairgarciaintel el 2026-08-26. Remote HTTPS con PAT de jairgarciaintel.
+  Remote: https://jairgarciaintel:<PAT>@github.com/jairgarciaintel/dashboards-strategy-2026.git
+  (el PAT esta en .kiro/hooks/l4ve del repo dev. YA NO se usa hackerjj ni SSH.)
 - Compartir notas entre las 2 compus: carpeta sync/ del repo TRACKER (sin secretos).
+  NUNCA poner el PAT en sync/ (repo publico -> GitHub Push Protection lo bloquea).
+  Para pasar el PAT entre compus: carpeta MEGA (no es git), no por sync/ ni por chats.
 
 ============================================================
 ## URLs de Power Automate (en CONFIG dentro de index.html)
