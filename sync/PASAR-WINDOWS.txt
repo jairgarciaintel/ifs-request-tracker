@@ -1,45 +1,16 @@
 ============================================================
    MIGRAR EL KIRO "dev-dashboard" A jairgarciaintel (WINDOWS)
 ============================================================
-Correr en la TERMINAL del Kiro 1 (carpeta C:\MEGA\Intel\2026\dev-dashboard).
-NO en el del tracker.
+YA MIGRADO (2026-08-26). Este archivo queda como referencia.
+El token viejo fue REVOCADO por seguridad (habia quedado expuesto en un log).
 
-------------------------------------------------------------
-OJO CON EL TOKEN:
-El token de abajo tiene el texto  1222  METIDO A PROPOSITO en medio
-(para que GitHub no lo detecte como secreto y deje subir este archivo).
-ANTES DE USARLO tienes que BORRAR ese  1222  para dejar el token real.
+Si necesitas re-configurar el remote del repo dev en alguna compu:
+  git remote set-url origin "https://jairgarciaintel:<PAT_NUEVO>@github.com/jairgarciaintel/dashboards-strategy-2026.git"
+  git pull origin main
 
-Token partido (con 1222 en medio):
-  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6Eim
+El <PAT_NUEVO> se pasa entre compus por MEGA/archivo local, NUNCA por el repo
+publico ni pegando logs con el token dentro.
 
-Token YA LIMPIO seria (mismo, sin el 1222):  quita los 4 digitos "1222" del bloque de arriba.
-------------------------------------------------------------
-
-1) Confirmar carpeta:
-   git rev-parse --show-toplevel
-   (debe terminar en  dev-dashboard )
-
-2) Cambiar el remote. Copia esta linea PERO borra el 1222 del token antes de correrla:
-   git remote set-url origin "https://jairgarciaintel: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6Eim@github.com/jairgarciaintel/dashboards-strategy-2026.git"
-
-3) Verificar (debe decir dashboards-strategy-2026.git):
-   git remote -v
-
-4) Jalar todo:
-   git pull origin main
-
-============================================================
-SI FALLA
-============================================================
-- "Invalid username or token" / 403 -> te falto borrar el 1222 del token,
-  o lo cortaste. Repite el paso 2 con el token completo y SIN el 1222.
-- "local changes would be overwritten":
-   git stash
-   git pull origin main
-- "refusing to merge unrelated histories":
-   git pull origin main --allow-unrelated-histories
-
-============================================================
-BORRAR este archivo despues de migrar.
+REGLA: nunca pegar la salida de "git remote -v" en un archivo del repo,
+porque incluye el token completo.
 ============================================================
