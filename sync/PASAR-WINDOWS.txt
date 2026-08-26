@@ -1,0 +1,46 @@
+============================================================
+   MIGRAR EL REPO DASHBOARDS A jairgarciaintel EN LA WINDOWS
+============================================================
+
+Abre PowerShell en la Windows y corre estos comandos EN ORDEN.
+
+------------------------------------------------------------
+PASO 1 - Ir a la carpeta de los dashboards (ajusta la ruta si es otra):
+------------------------------------------------------------
+cd "C:\MEGA\Intel\2026\dev-dashboard"
+
+
+------------------------------------------------------------
+PASO 2 - Cambiar el origin (COPIA LA LINEA COMPLETA, ES UNA SOLA):
+         Reemplaza  PEGA_EL_TOKEN_AQUI  por el token que te paso Kiro en el chat.
+------------------------------------------------------------
+git remote set-url origin "https://jairgarciaintel:PEGA_EL_TOKEN_AQUI@github.com/jairgarciaintel/dashboards-strategy-2026.git"
+
+
+------------------------------------------------------------
+PASO 3 - Jalar todo:
+------------------------------------------------------------
+git pull origin main
+
+
+============================================================
+SI FALLA
+============================================================
+- "Invalid username or token"  -> pusiste mal el token (o dejaste PEGA_EL_TOKEN_AQUI
+   o pusiste "..."). Repite el PASO 2 con el token COMPLETO.
+
+- "local changes would be overwritten":
+   git stash
+   git pull origin main
+
+- "refusing to merge unrelated histories":
+   git pull origin main --allow-unrelated-histories
+
+
+============================================================
+COMPROBAR EN QUE REPO ESTOY (si algo sale raro)
+============================================================
+git remote -v
+git rev-parse --show-toplevel
+  - dice .../dashboards-strategy-2026.git  -> dashboards OK
+  - dice .../ifs-request-tracker.git       -> es el tracker (carpeta equivocada)
