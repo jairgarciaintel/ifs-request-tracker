@@ -1,40 +1,48 @@
 ============================================================
-   RECLONAR EL REPO DASHBOARDS EN LA WINDOWS (carpeta quedo vacia)
+   BAJAR TODO EL REPO DASHBOARDS EN LA WINDOWS (clone limpio)
 ============================================================
-La carpeta dev-dashboard quedo casi vacia (solo context.md). La Mac tiene TODO
-bien, asi que reclonamos limpio en una carpeta NUEVA.
+TODO tu contenido YA esta en GitHub (6680 archivos: week2..week13, meeting
+notes, agendas, schedules). La Windows solo necesita clonarlo limpio.
 
-OJO CON EL TOKEN: tiene  1222  metido a proposito (para que GitHub no lo detecte).
-ANTES de correr, BORRA los 4 caracteres  1222  del token.
+OJO CON EL TOKEN: tiene  1222  metido a proposito. BORRA esos 4 caracteres
+"1222" del token antes de correr el clone.
 
 ------------------------------------------------------------
-1) Ir a la carpeta padre:
+PASO 1 - Abrir PowerShell y ir a donde quieras la carpeta:
 ------------------------------------------------------------
 cd "C:\MEGA\Intel\2026"
 
 ------------------------------------------------------------
-2) Clonar en carpeta nueva "dashboards-nuevo".
-   COPIA la linea completa y BORRA el 1222 del token antes de correr:
+PASO 2 - Clonar (COPIA LA LINEA COMPLETA y BORRA el 1222 del token):
 ------------------------------------------------------------
-git clone "https://jairgarciaintel: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6Eim@github.com/jairgarciaintel/dashboards-strategy-2026.git" dashboards-nuevo
+git clone "https://jairgarciaintel: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6Eim@github.com/jairgarciaintel/dashboards-strategy-2026.git" Dashboards-2026
 
 ------------------------------------------------------------
-3) Entrar y ver que bajo todo:
+PASO 3 - Entrar y verificar:
 ------------------------------------------------------------
-cd dashboards-nuevo
+cd Dashboards-2026
 dir
+dir dashboards-week12
+dir dashboards-week13
 
-   Deberias ver: dashboards-week2 ... dashboards-week13, Meeting Notes, index.html, etc.
-   Abre en Kiro esta carpeta nueva (dashboards-nuevo) en vez de la vieja.
+   Deberias ver TODAS las carpetas week y sus archivos.
+   Abre ESTA carpeta (Dashboards-2026) en Kiro.
 
 ------------------------------------------------------------
-NOTAS
+SI FALLA
 ------------------------------------------------------------
-- Los binarios (PPTX, PDF, imagenes, ZIP) NO bajan: estan bloqueados por .gitignore,
-  nunca se subieron a GitHub. Solo baja el contenido de trabajo (HTML, MD, CSV, VTT).
-- La carpeta vieja dev-dashboard (con solo context.md) puedes borrarla o ignorarla.
-- Si "git clone" pide usuario/clave: te falto borrar el 1222 o cortaste el token.
+- Pide usuario/contrasena o da 403 -> te falto borrar el 1222, o cortaste el token.
+  Vuelve a copiar la linea completa del PASO 2 y borra SOLO el 1222.
+- "already exists and is not empty" -> ya existe esa carpeta; usa otro nombre
+  al final (ej. Dashboards-2026b) o borra la carpeta vieja primero.
+
+------------------------------------------------------------
+QUE NO BAJA (y es normal)
+------------------------------------------------------------
+- PPTX gigantes (Gold Deck 556MB, Itzamna 110MB c/u): NO estan en GitHub
+  (pesan mas de 100MB, limite de GitHub). Esos van por OneDrive/correo si los
+  necesitas. Todo lo demas (HTML, MD, CSV, VTT) SI baja.
 
 ============================================================
-BORRAR este archivo despues de usarlo.
+BORRAR este archivo despues de usarlo (tiene el token partido).
 ============================================================
