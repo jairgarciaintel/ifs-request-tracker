@@ -270,6 +270,11 @@ body.light-mode .changelog-box{background:#fff;border-color:rgba(0,113,197,0.2);
 body.light-mode .changelog-head h3{color:#0071c5;}
 body.light-mode .cl-version h4{color:#0071c5;}
 body.light-mode .cl-version li{color:#334155;}
+/* Separate-request button (Codename split) */
+.separate-row{margin:10px 0 4px;}
+.separate-btn{display:inline-flex;align-items:center;background:rgba(240,160,48,0.12);color:var(--amber);border:1px solid rgba(240,160,48,0.4);border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Satoshi',sans-serif;letter-spacing:0.2px;}
+.separate-btn:hover{background:rgba(240,160,48,0.22);}
+body.light-mode .separate-btn{background:rgba(217,119,6,0.1);color:#b45309;border-color:rgba(217,119,6,0.35);}
 /* Assign button in the card info block */
 .assign-btn{background:rgba(78,200,240,0.15);color:var(--cyan);border:1px solid rgba(78,200,240,0.4);border-radius:6px;padding:2px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Satoshi',sans-serif;letter-spacing:0.3px;vertical-align:1px;}
 .assign-btn:hover{background:rgba(78,200,240,0.3);}
@@ -537,11 +542,12 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.39';
+const APP_VERSION = 'v1.8.40';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
-    ['v1.8.39', ['The assignee chip in the card header is now visually separated (a divider) and uses a purple color instead of the cyan that clashed with the Acknowledged badge in dark mode.','Codename email now goes to the Assigned BD and FCE Lead / Account Owner (falls back to project contact/author if none).','Read more internal-name variants for the Assigned BD column. If it still does not show, its exact internal name is needed (see sync/Assign-field-flow.md).','Assigned To (Person) write to SharePoint: added the robust validateUpdateListItem method in the flow notes, since the plain Update item does not always resolve Person fields.']],
+    ['v1.8.40', ['Assigned BD now reads from the correct SharePoint column (Project_x0020_Contact).','New "Separate request" button: when a request bundles Codename with New DA / Portal Creation, one click creates a NEW SharePoint request with only the Codename and keeps the rest on the original. Needs a "Create Request" flow (see sync/Separate-request-flow.md).']],
+    ['v1.8.39', ['Assignee chip separated with a divider and purple color (no longer clashes with Acknowledged in dark mode). Codename email goes to Assigned BD and FCE Lead / Account Owner.']],
     ['v1.8.38', ['Cards show three people fields separately: Assigned To (iGO Admin, editable), Assigned BD and FCE Lead / Account Owner (read-only).']],
     ['v1.8.37', ['Assign to SharePoint made simpler: the tracker sends the ready-made claim (assignedToClaim) so the flow just drops a token into the Assigned To field — no concat/if expression needed.']],
     ['v1.8.36', ['Assign from the frontend: each card now has an Assign/Change button next to "Assigned To". Pick a team member and it writes to the SharePoint iGO Admin - Assigned To field.','Complete popup auto-fills Portal Name and DA number from a previous request of the same customer (editable before sending).']],
@@ -657,7 +663,11 @@ const CONFIG = {
     sendEmailUrl: 'https://default46c98d88e3444ed484964ed7712e25.5d.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/205f9f20a80543a2996515e52c0de68d/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=ExFcVZ5cJV8egXt3fO37KrzpQHsToznGKe4FG8g-i3Q',
 
     // Power Automate: update SharePoint fields other than Status (DA Link, Project/Portal Name).
-    updateFieldsUrl: 'https://default46c98d88e3444ed484964ed7712e25.5d.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/7c9ac8ba2e8444d7b015d4e959911ee0/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=U3Xr-ZBNXcQLEYdpMu7i5VSBiU506SxGSB7zQlKTroo'
+    updateFieldsUrl: 'https://default46c98d88e3444ed484964ed7712e25.5d.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/7c9ac8ba2e8444d7b015d4e959911ee0/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=U3Xr-ZBNXcQLEYdpMu7i5VSBiU506SxGSB7zQlKTroo',
+
+    // Power Automate: create a NEW SharePoint request (used by "Separate request").
+    // Paste the flow trigger URL here once the "Create Request" flow exists.
+    createRequestUrl: ''
 };
 
 // ============================================================
@@ -819,8 +829,8 @@ async function fetchAndRender() {
                         //  - Assigned BD (its own SharePoint column, internal name unknown —
                         //    read defensively from several likely names).
                         //  - Assigned FCE Lead / Account Owner (AssignedFCELead).
-                        const bdRaw = item.AssignedBD || item.Assigned_x0020_BD || item.BD || item.AssignedBd
-                            || item.Assigned_x0020_BD_x0020 || item.BusinessDevelopment || item.Assigned_BD || '';
+                        // "Assigned BD" is stored in SharePoint as Project_x0020_Contact.
+                        const bdRaw = item.Project_x0020_Contact || item.AssignedBD || item.Assigned_x0020_BD || '';
                         const fceLeadRaw = item.AssignedFCELead || item.Assigned_x0020_FCE_x0020_Lead || item.AccountOwner || '';
                         const assignedBDName = personNames(bdRaw).trim();
                         const fceLeadName = personNames(fceLeadRaw).trim();
@@ -1875,6 +1885,64 @@ async function confirmAssignModal(){
     updateSync((newName ? ('Assigned #' + id + ' to ' + newName) : ('Unassigned #' + id)));
 }
 
+// ---- Separate Codename into its own request --------------------------------
+// When a request bundles Codename with New DA / Portal Creation, this creates a
+// NEW SharePoint request (new ID) that only carries the Codename, and removes
+// Codename from the original. Needs a "Create Request" Power Automate flow
+// (CONFIG.createRequestUrl). See sync/Separate-request-flow.md.
+async function separateCodename(id) {
+    const reqs = allRequests.filter(r => String(r.id) === String(id));
+    if (!reqs.length) return;
+    const req0 = reqs[0];
+    const remainingTypes = reqs.map(r => r.requestType).filter(t => t !== 'Codename');
+
+    const ok = confirm(
+        'Separate this request?\n\n' +
+        'A NEW request will be created for the Codename only (same customer & details).\n' +
+        'This request (#' + id + ') will keep: ' + (remainingTypes.join(', ') || 'the other services') + '.\n\n' +
+        'Continue?'
+    );
+    if (!ok) return;
+
+    if (!CONFIG.createRequestUrl) {
+        alert('The "Create Request" flow is not configured yet (CONFIG.createRequestUrl is empty). See sync/Separate-request-flow.md to set it up.');
+        return;
+    }
+
+    // Payload for the new Codename-only request. The flow creates the item and
+    // should also update the original request to drop Codename from its RequestType.
+    const payload = {
+        sourceId: parseInt(id),
+        customer: req0.customer || '',
+        requestType: 'Codename',
+        details: req0.details || '',
+        // People to carry over so the new request keeps context.
+        projectContactClaim: (req0.bdEmailList && req0.bdEmailList[0]) ? ('i:0#.f|membership|' + req0.bdEmailList[0]) : '',
+        fceLeadClaim: (req0.fceLeadEmailList && req0.fceLeadEmailList[0]) ? ('i:0#.f|membership|' + req0.fceLeadEmailList[0]) : '',
+        // The remaining types the original request should keep (so the flow can
+        // rewrite the original RequestType without Codename).
+        remainingTypes: remainingTypes.join(';#')
+    };
+
+    try {
+        const res = await fetch(CONFIG.createRequestUrl, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+            updateSync('Separated Codename from #' + id + ' into a new request');
+            logHistory(id, req0.customer || '', 'Separate', 'Codename', 'moved to a new request');
+            alert('Done. A new Codename request is being created in SharePoint.\nIt will appear on the next Sync (up to a few minutes).');
+        } else {
+            console.warn('Create-request flow returned ' + res.status);
+            alert('The separate request could not be created (flow returned ' + res.status + '). Check the flow.');
+        }
+    } catch (e) {
+        console.warn('Separate request failed:', e.message);
+        alert('The separate request failed: ' + e.message);
+    }
+}
+
 // Log change to history
 async function logHistory(requestId, customer, reqType, stepLabel, newValue) {
     const user = ensureUsername();
@@ -2536,6 +2604,16 @@ function renderGroupCard(id, reqs) {
       <div class="req-info-row req-info-full"><span class="req-info-label">Attachments</span><span class="req-info-val req-info-attach">${attachmentsHtml}</span></div>
     </div>`;
 
+    // "Separate request" button: shown when a single request bundles Codename together
+    // with New DA / Portal Creation. Clicking it creates a NEW SharePoint request with
+    // only the Codename, and removes Codename from this one.
+    const typeSet = knownReqs.map(r => r.requestType);
+    const hasCodename = typeSet.includes('Codename');
+    const hasNewDaOrPortal = typeSet.includes('New DA') || typeSet.includes('Portal Creation') || typeSet.includes('Portal Addition');
+    const separateBtn = (hasCodename && hasNewDaOrPortal)
+        ? `<div class="separate-row"><button class="separate-btn" onclick="event.stopPropagation();separateCodename('${id}')"><svg width="13" height="13" viewBox="0 0 16 16" style="margin-right:6px;vertical-align:-2px;"><path d="M5,2 L5,14 M11,2 L11,14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-dasharray="2 2"/></svg>Separate request &mdash; move Codename to its own request</button></div>`
+        : '';
+
     // Handle COD/DA Edit combo: shared info request + route selector ABOVE the sections
     const hasCOD = knownReqs.some(r => r.requestType === 'COD');
     const hasDAEdit = knownReqs.some(r => r.requestType === 'DA Edit');
@@ -2632,6 +2710,7 @@ function renderGroupCard(id, reqs) {
           </select>
         </div>
         ${infoBlock}
+        ${separateBtn}
         <div class="sla-note">
           <svg width="12" height="12"><use href="#icon-progress"/></svg>
           SLA: ~48-56 hrs to move to the next step. In Approval Loop ~2 days, Out for Signature 48-56 hrs (depend on external approvers).

@@ -8,6 +8,9 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.40 — 2026-08-20
+- "Assigned BD" ahora se lee de la columna correcta de SharePoint: Project_x0020_Contact.
+- Nuevo boton "Separate request": cuando un request trae Codename junto con New DA / Portal Creation, un clic crea un request NUEVO en SharePoint solo con el Codename y deja el resto en el original. Requiere un flow "Create Request" (instrucciones en sync/Separate-request-flow.md). Mientras CONFIG.createRequestUrl este vacio, el boton avisa que falta configurar el flow y no rompe nada.
 ## v1.8.39 — 2026-08-20
 - El chip de asignado en la cabecera ahora se separa visualmente (con un divisor) y usa color morado en vez del cyan que chocaba con la badge de Acknowledged en modo oscuro.
 - El correo de Codename ahora va al Assigned BD y al FCE Lead / Account Owner (si ninguno tiene email, cae al project contact / author). CC: fs.da.ops.
