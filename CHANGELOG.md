@@ -8,6 +8,8 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.42 — 2026-08-20
+- MRUNDA ahora es un servicio DISTINTO de MP-NDA (ya no se agrupan). Aparece como su propio tipo "MRUNDA" en las tarjetas, en el filtro de tipos y en los correos (Info Request y Complete).
 ## v1.8.41 — 2026-08-20
 - Nuevo filtro "Tech Node" en la barra de arriba: selecciona Intel 18A, Intel N-x, etc. para filtrar por tecnologia (campo TechNode de SharePoint). El dropdown se llena solo con los tech nodes que existan en los datos. Tambien se muestra el Tech Node en cada tarjeta.
 - Nota: requiere que el flow "Get all requests" devuelva la columna TechNode (en el debug del 2698 si venia, deberia funcionar directo).

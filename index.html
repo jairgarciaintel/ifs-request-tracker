@@ -199,6 +199,7 @@ body{
       <option value="Portal Unencryption">Portal Unencryption</option>
       <option value="IFS NDA">IFS NDA</option>
       <option value="MP-NDA">MP-NDA</option>
+      <option value="MRUNDA">MRUNDA</option>
       <option value="DA Edit">DA Edit</option>
       <option value="COD">COD</option>
       <option value="Secure Chamber">Secure Chamber</option>
@@ -545,10 +546,11 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.41';
+const APP_VERSION = 'v1.8.42';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
+    ['v1.8.42', ['MRUNDA is now a DISTINCT service from MP-NDA (they are no longer merged). It shows as its own "MRUNDA" type in cards, the type filter and the emails.']],
     ['v1.8.41', ['New Tech Node filter in the top toolbar: pick Intel 18A, Intel N-nodes, etc. to filter requests by technology (SharePoint TechNode field). Tech Node is also shown on each card.']],
     ['v1.8.40', ['Assigned BD now reads from the correct SharePoint column (Project_x0020_Contact).','New "Separate request" button for Codename bundled with New DA / Portal Creation.']],
     ['v1.8.39', ['Assignee chip separated with a divider and purple color (no longer clashes with Acknowledged in dark mode). Codename email goes to Assigned BD and FCE Lead / Account Owner.']],
@@ -709,6 +711,9 @@ const SUB_STEPS = {
     ],
     'MP-NDA': [
         {id:'mp-nda-done', label:'MP-NDA'}
+    ],
+    'MRUNDA': [
+        {id:'mrunda-done', label:'MRUNDA'}
     ],
     'DA Edit': [
         {id:'da-edit-approval-loop', label:'In Approval Loop'},
@@ -1037,10 +1042,11 @@ function normalizeType(type) {
     if (t.includes('portal unencryption') || t.includes('unecrypted')) return 'Portal Unencryption';
     if (t.includes('secure chamber')) return 'Secure Chamber';
     if (t.includes('ifs nda')) return 'IFS NDA';
-    // SharePoint may call the same Multi-Party NDA service MP-NDA, MPA-NDA,
-    // MPA-IC, MRUNDA or Multi-Party. Keep one canonical type so all variants
-    // receive the MP-RUNDA template and use the same tracking step.
-    if (t.includes('mp-nda') || t.includes('mpa-nda') || t.includes('mpa-ic') || t.includes('mrunda') || t.includes('multi-party')) return 'MP-NDA';
+    // MRUNDA is its OWN distinct service — do NOT fold it into MP-NDA. Check it first
+    // so the MP-NDA rule below cannot catch it.
+    if (t.includes('mrunda')) return 'MRUNDA';
+    // MP-NDA family: MP-NDA, MPA-NDA, MPA-IC, Multi-Party are the same service.
+    if (t.includes('mp-nda') || t.includes('mpa-nda') || t.includes('mpa-ic') || t.includes('multi-party')) return 'MP-NDA';
     if (t.includes('da edit')) return 'DA Edit';
     if (t.includes('cod') && !t.includes('code')) return 'COD';
     if (t.includes('docusign')) return 'DocuSign Request';
@@ -1446,7 +1452,7 @@ function buildCompleteEmailHtml(name, id, customer, portalName, daNumber, types)
     const has = (t) => types.includes(t);
     const isPortal = has('Portal Creation') || has('New DA') || has('Portal Addition');
     const isIfsNda = has('IFS NDA');
-    const isMpNda = has('MP-NDA');
+    const isMpNda = has('MP-NDA') || has('MRUNDA');
 
     const sparkleTop = `<tr><td align="center" style="padding:0;line-height:0;font-size:0;">`
         + `<div style="font-size:34px;line-height:1;letter-spacing:14px;padding:18px 0 4px;">&#10022;&nbsp;&#10024;&nbsp;&#10022;&nbsp;&#10024;&nbsp;&#10022;</div>`
@@ -2511,7 +2517,8 @@ function buildInfoRequestEmailHtml(name, id, customer, types) {
     if (has('DA Edit')) items += `<li style="margin-bottom:14px;"><strong>DA Edit</strong> — please fill out this template.<br>${btn('Open DA Edit template', EMAIL_LINKS.newDA)}</li>`;
     if (has('Portal Creation')) items += `<li style="margin-bottom:14px;"><strong>Portal Creation</strong> — please fill out the New DA request template.<br>${btn('Open template', EMAIL_LINKS.newDA)}</li>`;
     if (has('IFS NDA')) items += `<li style="margin-bottom:14px;"><strong>IFS NDA</strong> — please fill out this template.<br>${btn('Open IFS NDA template', EMAIL_LINKS.ifsNDA)}</li>`;
-    if (has('MP-NDA') || has('MPA-NDA') || has('MPA-IC') || has('MRUNDA') || has('Multi-Party')) items += `<li style="margin-bottom:14px;"><strong>Multi-Party RUNDA Acknowledgment</strong> — please fill out this template.<br>${btn('Open MP-RUNDA template', EMAIL_LINKS.mpRunda)}</li>`;
+    if (has('MP-NDA') || has('MPA-NDA') || has('MPA-IC') || has('Multi-Party')) items += `<li style="margin-bottom:14px;"><strong>MP-NDA</strong> — please fill out this template.<br>${btn('Open MP-NDA template', EMAIL_LINKS.mpRunda)}</li>`;
+    if (has('MRUNDA')) items += `<li style="margin-bottom:14px;"><strong>MRUNDA</strong> — please fill out this template.<br>${btn('Open MRUNDA template', EMAIL_LINKS.mpRunda)}</li>`;
     if (has('Codename')) {
         items += `<li style="margin-bottom:14px;"><strong>Codename Request</strong> — please fill out the following with the customer information:`
             + `<div style="background:#f5f9fc;border:1px solid #e2e8f0;border-radius:8px;padding:14px 16px;margin-top:8px;font-size:14px;color:#1a202c;line-height:1.8;">`
@@ -2557,7 +2564,10 @@ function buildRequestEmail(id, reqs) {
     if (has('IFS NDA')) {
         body += `IFS NDA — please fill out this template.\nLink: ${EMAIL_LINKS.ifsNDA}\n\n`;
     }
-    if (has('MP-NDA') || has('MPA-NDA') || has('MPA-IC') || has('MRUNDA') || has('Multi-Party')) {
+    if (has('MRUNDA')) {
+        body += `MRUNDA — please fill out this template.\nLink: ${EMAIL_LINKS.mpRunda}\n\n`;
+    }
+    if (has('MP-NDA') || has('MPA-NDA') || has('MPA-IC') || has('Multi-Party')) {
         body += `Multi-Party RUNDA Acknowledgment — please fill out this template.\nLink: ${EMAIL_LINKS.mpRunda}\n\n`;
     }
     if (has('Codename')) {
@@ -2983,7 +2993,7 @@ function getBadgeClass(type) {
     const map = {
         'Portal Creation':'portal','New DA':'nda','Codename':'codename',
         'WebView AGS Role':'webview','Portal Unencryption':'webview',
-        'Secure Chamber':'portal','IFS NDA':'nda','MP-NDA':'nda',
+        'Secure Chamber':'portal','IFS NDA':'nda','MP-NDA':'nda','MRUNDA':'nda',
         'DA Edit':'codename','COD':'codename','DocuSign Request':'nda',
         'Redbook Release':'webview'
     };

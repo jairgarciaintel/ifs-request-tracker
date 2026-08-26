@@ -6,6 +6,9 @@ Version actual deployada: v1.8.41
 Todos estos pendientes dependen de configurar FLOWS de Power Automate (el codigo
 del tracker ya esta listo). Aqui esta cada uno con su estado y que falta hacer.
 
+>>> INSTRUCCIONES PASO A PASO DE LOS FLOWS 1, 2 y 3:
+>>> sync/FLOWS-1-2-3-INSTRUCCIONES.md
+
 ============================================================
 ## 1) CIFRADO del correo de CODENAME  (Do Not Forward / Intel Confidential)
 ============================================================
