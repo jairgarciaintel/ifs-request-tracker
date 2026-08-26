@@ -372,7 +372,8 @@ body.light-mode .auto-toggle-label{color:#4a5568;}
 .badge-codename{background:rgba(107,203,119,0.1);color:var(--green);border:1px solid rgba(107,203,119,0.25);}
 .badge-webview{background:rgba(240,160,48,0.1);color:var(--amber);border:1px solid rgba(240,160,48,0.25);}
 .group-overall{min-width:20px;display:flex;align-items:center;}
-.group-owner{display:inline-flex;align-items:center;font-size:11px;font-weight:600;color:var(--cyan);background:rgba(78,200,240,0.1);border:1px solid rgba(78,200,240,0.22);border-radius:10px;padding:2px 9px;white-space:nowrap;max-width:170px;overflow:hidden;text-overflow:ellipsis;}
+.group-owner{display:inline-flex;align-items:center;font-size:11px;font-weight:700;color:#c9b6ff;background:rgba(150,120,255,0.14);border:1px solid rgba(150,120,255,0.35);border-radius:10px;padding:2px 9px;white-space:nowrap;max-width:170px;overflow:hidden;text-overflow:ellipsis;margin-left:4px;}
+.group-owner::before{content:'';display:inline-block;width:1px;height:12px;background:rgba(255,255,255,0.18);margin-right:8px;}
 .group-date{font-size:11px;color:#ffffff;min-width:50px;text-align:right;}
 .chevron{font-size:16px;color:rgba(255,255,255,0.25);transition:transform 0.3s;margin-left:6px;}
 .group-card.open .chevron{transform:rotate(90deg);color:var(--cyan);}
@@ -509,7 +510,8 @@ body.light-mode .circle{display:none;}
 body.light-mode .group-customer{color:#1a202c;}
 body.light-mode .group-id{color:#0071c5;}
 body.light-mode .group-date{color:#64748b;}
-body.light-mode .group-owner{color:#0071c5;background:rgba(0,113,197,0.08);border-color:rgba(0,113,197,0.25);}
+body.light-mode .group-owner{color:#6b46c1;background:rgba(124,88,224,0.1);border-color:rgba(124,88,224,0.3);}
+body.light-mode .group-owner::before{background:rgba(0,0,0,0.12);}
 body.light-mode .chevron{color:#94a3b8;}
 body.light-mode .meta{color:#64748b;}
 body.light-mode .header-title h1 .accent{color:#0071c5;}
@@ -535,11 +537,12 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.38';
+const APP_VERSION = 'v1.8.39';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
-    ['v1.8.38', ['Cards now show three people fields separately: "Assigned To" (the iGO Admin field we edit with the Assign button), "Assigned BD" (read-only) and "FCE Lead / Account Owner" (read-only). Only iGO Admin - Assigned To is editable/written from the tracker. Note: the read flow must return these columns for them to appear (see sync/Assign-field-flow.md).']],
+    ['v1.8.39', ['The assignee chip in the card header is now visually separated (a divider) and uses a purple color instead of the cyan that clashed with the Acknowledged badge in dark mode.','Codename email now goes to the Assigned BD and FCE Lead / Account Owner (falls back to project contact/author if none).','Read more internal-name variants for the Assigned BD column. If it still does not show, its exact internal name is needed (see sync/Assign-field-flow.md).','Assigned To (Person) write to SharePoint: added the robust validateUpdateListItem method in the flow notes, since the plain Update item does not always resolve Person fields.']],
+    ['v1.8.38', ['Cards show three people fields separately: Assigned To (iGO Admin, editable), Assigned BD and FCE Lead / Account Owner (read-only).']],
     ['v1.8.37', ['Assign to SharePoint made simpler: the tracker sends the ready-made claim (assignedToClaim) so the flow just drops a token into the Assigned To field — no concat/if expression needed.']],
     ['v1.8.36', ['Assign from the frontend: each card now has an Assign/Change button next to "Assigned To". Pick a team member and it writes to the SharePoint iGO Admin - Assigned To field.','Complete popup auto-fills Portal Name and DA number from a previous request of the same customer (editable before sending).']],
     ['v1.8.35', ['All emails send an explicit sensitivity field: empty for normal, Intel Confidential label only for Codename, matching the flow expression.']],
@@ -816,10 +819,13 @@ async function fetchAndRender() {
                         //  - Assigned BD (its own SharePoint column, internal name unknown —
                         //    read defensively from several likely names).
                         //  - Assigned FCE Lead / Account Owner (AssignedFCELead).
-                        const bdRaw = item.AssignedBD || item.Assigned_x0020_BD || item.BD || item.AssignedBd || '';
+                        const bdRaw = item.AssignedBD || item.Assigned_x0020_BD || item.BD || item.AssignedBd
+                            || item.Assigned_x0020_BD_x0020 || item.BusinessDevelopment || item.Assigned_BD || '';
                         const fceLeadRaw = item.AssignedFCELead || item.Assigned_x0020_FCE_x0020_Lead || item.AccountOwner || '';
                         const assignedBDName = personNames(bdRaw).trim();
                         const fceLeadName = personNames(fceLeadRaw).trim();
+                        const assignedBDEmailList = personEmails(bdRaw);
+                        const fceLeadEmailList = personEmails(fceLeadRaw);
 
                         // Codename notice recipients: the BD/FCE Lead + the project contact +
                         // the requestor (Author). These are the real Person columns confirmed
@@ -916,6 +922,8 @@ async function fetchAndRender() {
                             assignedBDEmails: assignedBDEmails,
                             assignedBDName: assignedBDName,
                             fceLeadName: fceLeadName,
+                            bdEmailList: assignedBDEmailList,
+                            fceLeadEmailList: fceLeadEmailList,
                             ccEmails: ccEmails,
                             details: details,
                             attachments: attachments
@@ -1719,16 +1727,21 @@ function hideCodenameModal(e){
     document.getElementById('codename-modal').classList.remove('open');
     pendingCodenameId = null;
 }
-// Collect the recipient emails for a Codename notice: the assigned BD plus anyone
-// copied on the request.
+// Collect the recipient emails for a Codename notice: the Assigned BD and the
+// FCE Lead / Account Owner. Falls back to the project contact / author if neither
+// of those exists, so the notice never goes nowhere.
 function codenameRecipients(reqs) {
-    const req0 = reqs[0] || {};
     let list = [];
     (reqs || []).forEach(r => {
-        if (Array.isArray(r.assignedBDEmails)) list = list.concat(r.assignedBDEmails);
-        if (Array.isArray(r.ccEmails)) list = list.concat(r.ccEmails);
+        if (Array.isArray(r.bdEmailList)) list = list.concat(r.bdEmailList);
+        if (Array.isArray(r.fceLeadEmailList)) list = list.concat(r.fceLeadEmailList);
     });
-    return Array.from(new Set(list.filter(Boolean)));
+    list = Array.from(new Set(list.filter(Boolean)));
+    if (list.length) return list;
+    // Fallback: project contact / author (from ccEmails) if no BD/FCE Lead set.
+    let fb = [];
+    (reqs || []).forEach(r => { if (Array.isArray(r.ccEmails)) fb = fb.concat(r.ccEmails); });
+    return Array.from(new Set(fb.filter(Boolean)));
 }
 async function confirmCodenameModal(){
     const id = pendingCodenameId;

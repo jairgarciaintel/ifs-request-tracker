@@ -77,3 +77,61 @@ $select / los campos incluyan:
 Si "Assigned BD" no aparece, dime el nombre interno real (se ve en la URL al
 editar esa columna en SharePoint, parametro Field=...) y lo ajusto en el tracker.
 El tracker ya intenta varios nombres: AssignedBD, Assigned_x0020_BD, BD.
+
+
+---
+
+## v1.8.39 - dos problemas a resolver
+
+### A) "Assigned To" no se guarda en SharePoint (campo Person)
+El tracker manda bien el dato (se ve en consola: assignedToEmail y assignedToClaim
+con formato i:0#.f|membership|...). El HTTP responde 202 (aceptado). El problema
+esta en el paso "Update item" del flow: los campos Person a veces NO se llenan con
+el claim en el token, o "aceptan" pero no resuelven al usuario.
+
+PRIMERO revisa el Run history del flow -> la corrida -> paso "Update item":
+  - Si esta ROJO: copia el error (Inputs/Outputs).
+  - Si esta VERDE pero no llena: es el caso tipico de Person no resuelto.
+
+Solucion recomendada (INFALIBLE) - usar "Send an HTTP request to SharePoint"
+en vez de "Update item" para ese campo:
+
+  1. Agrega accion "Send an HTTP request to SharePoint".
+  2. Site Address: https://intel.sharepoint.com/sites/ifs-igo-requests
+  3. Method: POST
+  4. Uri:
+     _api/web/lists(guid'052c84aa-6a91-469d-9b44-35d068acc422')/items(@{triggerBody()?['id']})/validateUpdateListItem
+  5. Headers:
+     Accept: application/json;odata=nometadata
+     Content-Type: application/json
+  6. Body (resuelve el usuario por email con el formato Person):
+     {
+       "formValues": [
+         {
+           "FieldName": "iGOAdminOnly_x002d_AssignedTo",
+           "FieldValue": "[{'Key':'i:0#.f|membership|@{triggerBody()?['assignedToEmail']}'}]"
+         }
+       ]
+     }
+  Nota: si assignedToEmail viene vacio (desasignar), manda FieldValue "[]".
+  Se puede envolver en una Condition (si assignedToEmail vacio -> FieldValue "[]").
+
+  Este metodo (validateUpdateListItem) es el que resuelve bien los campos Person.
+
+Alternativa mas simple a probar primero en "Update item":
+  - En el campo Person, en vez del claim, pon SOLO el email (token assignedToEmail).
+  - Algunos conectores resuelven el usuario con solo el email.
+
+### B) Campo "Assigned BD" no se trae
+El FCE Lead (AssignedFCELead) SI se ve. El "Assigned BD" NO. Necesito el nombre
+interno real de esa columna. Como verlo:
+  - En SharePoint, ve a la lista -> List settings -> click en la columna "Assigned BD"
+  - Mira la URL: al final dice  Field=XXXX   -> ese XXXX es el nombre interno.
+  - Pasamelo y lo agrego. El tracker ya intenta: AssignedBD, Assigned_x0020_BD, BD,
+    BusinessDevelopment, Assigned_BD. Si el real es otro, no lo agarra.
+  - OJO: tambien el flow "Get all requests" debe DEVOLVER esa columna, o no llega
+    al tracker aunque exista.
+
+## Correo de Codename - destinatarios (v1.8.39)
+Ahora el correo de Codename va al Assigned BD + FCE Lead / Account Owner (sus
+emails). Si ninguno tiene email, cae al project contact / author. CC: fs.da.ops.

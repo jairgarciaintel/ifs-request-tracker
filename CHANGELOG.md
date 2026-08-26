@@ -8,8 +8,14 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.39 — 2026-08-20
+- El chip de asignado en la cabecera ahora se separa visualmente (con un divisor) y usa color morado en vez del cyan que chocaba con la badge de Acknowledged en modo oscuro.
+- El correo de Codename ahora va al Assigned BD y al FCE Lead / Account Owner (si ninguno tiene email, cae al project contact / author). CC: fs.da.ops.
+- Se leen mas variantes del nombre interno de "Assigned BD". Si sigue sin aparecer, se necesita el nombre interno exacto (ver sync/Assign-field-flow.md).
+- Escritura de "Assigned To" (Person) a SharePoint: se documenta el metodo robusto validateUpdateListItem en las notas del flow, porque el "Update item" normal no siempre resuelve campos Person.
+- PENDIENTE (siguiente paso): separar el servicio Codename en su propio card cuando un request trae Codename + Portal Creation + New DA juntos. Requiere llaves compuestas (id-servicio) y se hara con cuidado para no romper el tracking.
 ## v1.8.38 — 2026-08-20
-- La tarjeta ahora muestra TRES campos de personas por separado: "Assigned To" (el campo iGO Admin que editamos con el boton Assign), "Assigned BD" (solo lectura) y "FCE Lead / Account Owner" (solo lectura). Solo el iGO Admin - Assigned To se edita/escribe desde el tracker.
+- La tarjeta muestra TRES campos de personas por separado: Assigned To (iGO Admin, editable), Assigned BD y FCE Lead / Account Owner (solo lectura).
 - Nota: el flow "Get all requests" debe devolver esas columnas (iGOAdminOnly_x002d_AssignedTo, AssignedBD, AssignedFCELead) para que aparezcan tras Sync. Detalle en sync/Assign-field-flow.md.
 ## v1.8.37 — 2026-08-20
 - Asignar a SharePoint mas simple: el tracker manda tambien el claim ya armado (assignedToClaim). En el flow solo pones ese token en el campo Assigned To Claims, sin concat ni if.
