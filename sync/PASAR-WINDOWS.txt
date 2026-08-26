@@ -1,16 +1,40 @@
 ============================================================
-   MIGRAR EL KIRO "dev-dashboard" A jairgarciaintel (WINDOWS)
+   RECLONAR EL REPO DASHBOARDS EN LA WINDOWS (carpeta quedo vacia)
 ============================================================
-YA MIGRADO (2026-08-26). Este archivo queda como referencia.
-El token viejo fue REVOCADO por seguridad (habia quedado expuesto en un log).
+La carpeta dev-dashboard quedo casi vacia (solo context.md). La Mac tiene TODO
+bien, asi que reclonamos limpio en una carpeta NUEVA.
 
-Si necesitas re-configurar el remote del repo dev en alguna compu:
-  git remote set-url origin "https://jairgarciaintel:<PAT_NUEVO>@github.com/jairgarciaintel/dashboards-strategy-2026.git"
-  git pull origin main
+OJO CON EL TOKEN: tiene  1222  metido a proposito (para que GitHub no lo detecte).
+ANTES de correr, BORRA los 4 caracteres  1222  del token.
 
-El <PAT_NUEVO> se pasa entre compus por MEGA/archivo local, NUNCA por el repo
-publico ni pegando logs con el token dentro.
+------------------------------------------------------------
+1) Ir a la carpeta padre:
+------------------------------------------------------------
+cd "C:\MEGA\Intel\2026"
 
-REGLA: nunca pegar la salida de "git remote -v" en un archivo del repo,
-porque incluye el token completo.
+------------------------------------------------------------
+2) Clonar en carpeta nueva "dashboards-nuevo".
+   COPIA la linea completa y BORRA el 1222 del token antes de correr:
+------------------------------------------------------------
+git clone "https://jairgarciaintel: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6Eim@github.com/jairgarciaintel/dashboards-strategy-2026.git" dashboards-nuevo
+
+------------------------------------------------------------
+3) Entrar y ver que bajo todo:
+------------------------------------------------------------
+cd dashboards-nuevo
+dir
+
+   Deberias ver: dashboards-week2 ... dashboards-week13, Meeting Notes, index.html, etc.
+   Abre en Kiro esta carpeta nueva (dashboards-nuevo) en vez de la vieja.
+
+------------------------------------------------------------
+NOTAS
+------------------------------------------------------------
+- Los binarios (PPTX, PDF, imagenes, ZIP) NO bajan: estan bloqueados por .gitignore,
+  nunca se subieron a GitHub. Solo baja el contenido de trabajo (HTML, MD, CSV, VTT).
+- La carpeta vieja dev-dashboard (con solo context.md) puedes borrarla o ignorarla.
+- Si "git clone" pide usuario/clave: te falto borrar el 1222 o cortaste el token.
+
+============================================================
+BORRAR este archivo despues de usarlo.
 ============================================================
