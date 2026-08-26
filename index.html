@@ -215,6 +215,9 @@ body{
     <select id="filter-assignee" onchange="renderRequests()">
       <option value="all">All Assignees</option>
     </select>
+    <select id="filter-technode" onchange="renderRequests()">
+      <option value="all">All Tech Nodes</option>
+    </select>
     <input type="text" id="search-box" placeholder="Search customer, ID, DA number, portal..." oninput="renderRequests()"/>
   </div>
   <div class="toolbar-actions">
@@ -542,11 +545,12 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.40';
+const APP_VERSION = 'v1.8.41';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
-    ['v1.8.40', ['Assigned BD now reads from the correct SharePoint column (Project_x0020_Contact).','New "Separate request" button: when a request bundles Codename with New DA / Portal Creation, one click creates a NEW SharePoint request with only the Codename and keeps the rest on the original. Needs a "Create Request" flow (see sync/Separate-request-flow.md).']],
+    ['v1.8.41', ['New Tech Node filter in the top toolbar: pick Intel 18A, Intel N-nodes, etc. to filter requests by technology (SharePoint TechNode field). Tech Node is also shown on each card.']],
+    ['v1.8.40', ['Assigned BD now reads from the correct SharePoint column (Project_x0020_Contact).','New "Separate request" button for Codename bundled with New DA / Portal Creation.']],
     ['v1.8.39', ['Assignee chip separated with a divider and purple color (no longer clashes with Acknowledged in dark mode). Codename email goes to Assigned BD and FCE Lead / Account Owner.']],
     ['v1.8.38', ['Cards show three people fields separately: Assigned To (iGO Admin, editable), Assigned BD and FCE Lead / Account Owner (read-only).']],
     ['v1.8.37', ['Assign to SharePoint made simpler: the tracker sends the ready-made claim (assignedToClaim) so the flow just drops a token into the Assigned To field — no concat/if expression needed.']],
@@ -818,6 +822,19 @@ async function fetchAndRender() {
                             return out;
                         }
                         // Assigned To for display: prefer the iGO Admin field; if empty,
+                        // Tech Node (SharePoint choice/multi field: array of objects with Value,
+                        // a single object, or a string). Normalize to a comma-joined string.
+                        let techNode = '';
+                        const tnRaw = item.TechNode || item.Tech_x0020_Node || item.TechNodes || '';
+                        if (Array.isArray(tnRaw)) {
+                            techNode = tnRaw.map(t => typeof t === 'object' && t !== null ? (t.Value || t.Label || t.value || '') : String(t)).filter(Boolean).join(', ');
+                        } else if (typeof tnRaw === 'object' && tnRaw !== null) {
+                            techNode = tnRaw.Value || tnRaw.Label || '';
+                        } else {
+                            techNode = String(tnRaw || '');
+                        }
+                        techNode = techNode.trim();
+
                         // "Assigned To" (the editable owner we set from the tracker) =
                         // ONLY the iGO Admin field. This is what we show as "Assigned To"
                         // and what the Assign button writes.
@@ -925,6 +942,7 @@ async function fetchAndRender() {
                             requestorEmail: requestorEmail,
                             created: item.Created || '',
                             status: status,
+                            techNode: techNode,
                             projectName: item.Project_x002f_PortalName || '',
                             daLinkUrl: daLinkUrl,
                             daLinkText: daLinkText,
@@ -996,6 +1014,7 @@ async function fetchAndRender() {
         updateSync(rawRequests.length + ' requests (' + allRequests.length + ' services) \u00b7 ' + now);
         ensureUsername();
         populateAssigneeFilter();
+        populateTechNodeFilter();
         renderRequests();
         startAutoRefresh();
         startRealtimePolling();
@@ -2217,6 +2236,23 @@ function populateAssigneeFilter() {
     if (prev && (prev === 'all' || prev === '__unassigned__' || sorted.includes(prev))) sel.value = prev;
 }
 
+// Populate the Tech Node filter with the unique tech nodes found in the data.
+function populateTechNodeFilter() {
+    const sel = document.getElementById('filter-technode');
+    if (!sel) return;
+    const prev = sel.value;
+    const nodes = new Set();
+    allRequests.forEach(r => {
+        // A request can carry several tech nodes ("Intel 18A, Intel N2"); split them.
+        String(r.techNode || '').split(',').forEach(t => { const v = t.trim(); if (v) nodes.add(v); });
+    });
+    const sorted = Array.from(nodes).sort((a, b) => a.localeCompare(b));
+    let html = '<option value="all">All Tech Nodes</option>';
+    sorted.forEach(n => { html += `<option value="${n.replace(/"/g,'&quot;')}">${n}</option>`; });
+    sel.innerHTML = html;
+    if (prev && (prev === 'all' || sorted.includes(prev))) sel.value = prev;
+}
+
 // ============================================================
 // STAT FILTER: Click pills to filter, multi-select supported
 // ============================================================
@@ -2294,6 +2330,13 @@ function renderRequests() {
         } else {
             filtered = filtered.filter(r => (r.assignedBD || '').trim() === assigneeFilter);
         }
+    }
+
+    // Tech Node filter (SharePoint TechNode). A request may list several nodes.
+    const techEl = document.getElementById('filter-technode');
+    const techFilter = techEl ? techEl.value : 'all';
+    if (techFilter && techFilter !== 'all') {
+        filtered = filtered.filter(r => String(r.techNode || '').split(',').map(t => t.trim()).includes(techFilter));
     }
 
     if (search) filtered = filtered.filter(r => {
@@ -2592,8 +2635,11 @@ function renderGroupCard(id, reqs) {
     const bdNameHtml = bdName ? bdName : '<span class="info-empty">&mdash;</span>';
     const fceLead = (reqs[0].fceLeadName || '').trim();
     const fceLeadHtml = fceLead ? fceLead : '<span class="info-empty">&mdash;</span>';
+    const techNode = (reqs[0].techNode || '').trim();
+    const techNodeHtml = techNode ? techNode : '<span class="info-empty">&mdash;</span>';
     const infoBlock = `<div class="req-info">
       <div class="req-info-row"><span class="req-info-label">Created By</span><span class="req-info-val">${createdByHtml}</span></div>
+      <div class="req-info-row"><span class="req-info-label">Tech Node</span><span class="req-info-val">${techNodeHtml}</span></div>
       <div class="req-info-row"><span class="req-info-label">Assigned To</span><span class="req-info-val">${assignedBDHtml}</span></div>
       <div class="req-info-row"><span class="req-info-label">Assigned BD</span><span class="req-info-val">${bdNameHtml}</span></div>
       <div class="req-info-row"><span class="req-info-label">FCE Lead / Account Owner</span><span class="req-info-val">${fceLeadHtml}</span></div>

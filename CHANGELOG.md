@@ -8,6 +8,9 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.41 — 2026-08-20
+- Nuevo filtro "Tech Node" en la barra de arriba: selecciona Intel 18A, Intel N-x, etc. para filtrar por tecnologia (campo TechNode de SharePoint). El dropdown se llena solo con los tech nodes que existan en los datos. Tambien se muestra el Tech Node en cada tarjeta.
+- Nota: requiere que el flow "Get all requests" devuelva la columna TechNode (en el debug del 2698 si venia, deberia funcionar directo).
 ## v1.8.40 — 2026-08-20
 - "Assigned BD" ahora se lee de la columna correcta de SharePoint: Project_x0020_Contact.
 - Nuevo boton "Separate request": cuando un request trae Codename junto con New DA / Portal Creation, un clic crea un request NUEVO en SharePoint solo con el Codename y deja el resto en el original. Requiere un flow "Create Request" (instrucciones en sync/Separate-request-flow.md). Mientras CONFIG.createRequestUrl este vacio, el boton avisa que falta configurar el flow y no rompe nada.
