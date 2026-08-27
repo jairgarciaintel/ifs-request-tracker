@@ -350,3 +350,25 @@ Probar: separar un IFS NDA -> el request nuevo debe salir con RequestType = IFS 
         "{VersionNumber}": "1.0"
     }
 }
+
+
+============================================================
+## FIX confirmado: el dropdown Value NO tomo el token (sigue "Code Name Request")
+============================================================
+El input del Create item sigue con:
+    "item/RequestType": [ { "Value": "Code Name Request" } ]
+aunque el tracker manda requestType="IFS NDA". El dropdown choice revierte el token.
+
+SOLUCION (usar Code view del Create item):
+1. Flow "FS Tracker Create Request" -> paso "Create item" -> pestana "Code view".
+2. Buscar:
+       "item/RequestType": [ { "Value": "Code Name Request" } ]
+3. Cambiar por:
+       "item/RequestType": [ { "Value": "@{triggerBody()?['requestType']}" } ]
+4. Guardar.
+
+Alternativa (si no usas Code view): en el dropdown "Value - 1" del Request Type,
+elegir "Enter custom value" y ahi meter el dynamic content requestType. Pero el
+Code view es lo mas seguro.
+
+Probar: separar un IFS NDA -> el request nuevo debe salir con RequestType = IFS NDA.
