@@ -56,24 +56,37 @@ etiqueta se ELIGE del dropdown. Solucion: dos ramas.
 Flow a editar: Update Fields (workflow 7c9ac8ba, el de updateFieldsUrl).
 =======================================================================
 
-## Por que
-El tracker manda assignedToEmail (correo) y assignedToClaim (i:0#.f|membership|correo).
-Los campos Person no siempre se llenan con "Update item". Metodo infalible:
-"Send an HTTP request to SharePoint" con validateUpdateListItem.
+## NO NECESITA CONDICION. Es UN solo cambio en el paso "Update item".
 
-## Pasos
-1. Abre el flow -> Edit.
-2. En el trigger, JSON Schema, agrega (si no estan):
-       "assignedToEmail": { "type": "string" },
-       "assignedToClaim": { "type": "string" }
-3. Agrega una Condition (para asignar vs desasignar):
-      Izquierda (fx): triggerBody()?['assignedToEmail']
-      Operador: is not equal to
-      Derecha: vacio
-4. Rama "If yes" (asignar) -> accion "Send an HTTP request to SharePoint":
-      Site Address: https://intel.sharepoint.com/sites/ifs-igo-requests
-      Method: POST
-      Uri (todo en una linea):
+## El problema (visto en la foto del flow)
+El campo "iGO Admin Only - Assigned To Claims" del "Update item" esta puesto con:
+    outputs('Get_item')?['body/iGOAdminOnly_x002d_AssignedTo/Claims']
+Eso re-escribe el valor VIEJO (lo copia de Get item), por eso nunca cambia a quien
+asignas desde el tracker.
+
+## Pasos (simple)
+1. Abre el flow Update Fields -> Edit -> paso "Update item".
+2. Ubica el campo "iGO Admin Only - Assigned To Claims".
+3. Quita (X) el token actual que viene de outputs('Get_item')...
+4. Haz clic en el campo -> Dynamic content -> elige el token del TRIGGER:
+       assignedToClaim
+   (el que manda el tracker. NO el de Get item.)
+5. Guarda.
+
+Listo. Con eso guarda a quien se asigne (Jair, Jenn, etc.).
+No hay condicion, no hay HTTP request, no hay validateUpdateListItem. Solo cambiar
+ese campo por el token assignedToClaim.
+
+## Probar
+- En el tracker: boton Assign en una tarjeta -> elige Jenn -> Assign.
+- En SharePoint el request debe quedar con Assigned To = Jenn (no Jair).
+
+--- (metodo viejo/alternativo, IGNORAR si el de arriba funciona) ---
+Solo si el token directo no resolviera el Person, existe el metodo con
+"Send an HTTP request to SharePoint" validateUpdateListItem, pero NO se necesita
+mientras el paso Update item con el token assignedToClaim funcione.
+Referencia de ese metodo (no usar por ahora):
+      Uri:
         _api/web/lists(guid'052c84aa-6a91-469d-9b44-35d068acc422')/items(@{triggerBody()?['id']})/validateUpdateListItem
       Headers:
         Accept: application/json;odata=nometadata
