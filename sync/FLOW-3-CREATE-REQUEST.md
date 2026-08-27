@@ -400,3 +400,23 @@ Probar: separar un IFS NDA -> el request nuevo debe salir con RequestType = IFS 
   },
   "runAfter": {}
 }
+
+
+============================================================
+## RESUELTO (2026-08-27): RequestType ya usa el tipo correcto
+============================================================
+Fix final: en el Create item, campo Request Type -> "Value - 1" -> pestana fx
+(Expression) -> triggerBody()?['requestType']  (el dropdown/dynamic content NO lo
+aceptaba; el Code view era solo lectura; la EXPRESION fx en Value-1 SI funciono).
+Probado: separar IFS NDA creo el 2719 con Types ['IFS NDA'] (correcto).
+
+ESTADO DEL FLOW 3 = FUNCIONA:
+- Crea request nuevo con el TIPO correcto (IFS NDA / Codename / etc.).
+- Copia Assigned BD (Project Contact) y FCE Lead.
+- Deja el original con los tipos restantes (incluso varios: New DA + Portal creation).
+- Boton cubre Codename e IFS NDA.
+
+PENDIENTE MENOR: si un request NO trae Assigned BD (Project Contact vacio), el
+Create item puede truncar ("user could not be found") porque el array queda
+[{Claims:""}]. Los requests reales casi siempre traen BD, asi que es borde.
+Requests de prueba a borrar en SharePoint: 2713-2719 (TEST...).
