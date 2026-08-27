@@ -120,3 +120,55 @@ PROBAR
 
 https://default46c98d88e3444ed484964ed7712e25.5d.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/589245b526e14f92944fdaf82ae775b6/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=rOYFDRH4nYMNN-VVgfXai9ik1lGhX8iVb1xGxvygC08
 
+
+
+
+{
+    "host": {
+        "connectionReferenceName": "shared_sharepointonline",
+        "operationId": "HttpRequest"
+    },
+    "parameters": {
+        "dataset": "https://intel.sharepoint.com/sites/ifs-igo-requests",
+        "parameters/method": "POST",
+        "parameters/uri": "_api/web/lists(guid'052c84aa-6a91-469d-9b44-35d068acc422')/items(0)/validateUpdateListItem",
+        "parameters/headers": {
+            "Accept": "application/json;odata=nometadata",
+            "Content-Type": "application/json"
+        },
+        "parameters/body": "{\n    \"formValues\": [\n       { \"FieldName\": \"RequestType\", \"FieldValue\": \"New DA\" }\n     ]\n}"
+    }
+}{
+    "statusCode": 400,
+    "headers": {
+        "Cache-Control": "no-store, no-cache",
+        "Pragma": "no-cache",
+        "Set-Cookie": "ARRAffinity=ef9bdbeebd9e8fd1c371cb72cf507422b060ba0c9a7456117efdf038b6c44eb6;Path=/;HttpOnly;Secure;Domain=sharepointonline-ncus.azconn-ncus-001.p.azurewebsites.net,ARRAffinitySameSite=ef9bdbeebd9e8fd1c371cb72cf507422b060ba0c9a7456117efdf038b6c44eb6;Path=/;HttpOnly;SameSite=None;Secure;Domain=sharepointonline-ncus.azconn-ncus-001.p.azurewebsites.net",
+        "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+        "x-ms-request-id": "294035a2-3058-f000-2b69-eed5fc2249c7",
+        "X-Content-Type-Options": "nosniff",
+        "X-Frame-Options": "DENY",
+        "x-ms-environment-id": "default-46c98d88-e344-4ed4-8496-4ed7712e255d",
+        "x-ms-tenant-id": "46c98d88-e344-4ed4-8496-4ed7712e255d",
+        "x-ms-subscription-id": "197bf86c-a8ec-4d89-9f88-cfbf4cdaab01",
+        "x-ms-dlp-re": "HttpRequest|False|2026-08-19T22:09:34.7182410+00:00",
+        "x-ms-dlp-gu": "-|-",
+        "x-ms-dlp-ef": "-|-/-|-|-|-|-",
+        "x-ms-mip-sl": "-|-|-|-",
+        "x-ms-au-creator-id": "2729280b-5169-4c3b-84ab-a3349cb8b8e2",
+        "Timing-Allow-Origin": "*",
+        "x-ms-apihub-cached-response": "true",
+        "x-ms-apihub-obo": "false",
+        "x-ms-plex-failed": "400",
+        "Date": "Thu, 27 Aug 2026 06:08:41 GMT",
+        "Content-Length": "510",
+        "Content-Type": "application/json",
+        "Expires": "-1"
+    },
+    "body": {
+        "status": 400,
+        "message": "{\"odata.error\":{\"code\":\"-2147024809, System.ArgumentException\",\"message\":{\"lang\":\"en-US\",\"value\":\"Item does not exist. It may have been deleted by another user.\"}}}\r\nclientRequestId: 19951a0e-1de9-4f60-b74e-8621a8e46e6c\r\nserviceRequestId: 294035a2-3058-f000-2b69-eed5fc2249c7",
+        "source": "https://intel.sharepoint.com/sites/ifs-igo-requests/_api/web/lists(guid'052c84aa-6a91-469d-9b44-35d068acc422')/items(0)/validateUpdateListItem",
+        "errors": []
+    }
+}ss
