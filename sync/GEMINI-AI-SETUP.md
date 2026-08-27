@@ -1,5 +1,19 @@
 # Chatbot con IA real (Gemini) - SETUP PASO A PASO
 
+## ESTADO: DESCARTADO POR FALTA DE ACCESO (2026-08-27)
+No se pudo obtener API key: la cuenta de Intel obliga a crear el proyecto dentro
+de la organizacion (error "you must select a parent organization / no organization")
+y no hay acceso para crearlo; tampoco hay acceso para registrarse en Groq ni usar
+Gmail personal. Sin key no se puede montar IA real de forma segura.
+
+DECISION: el chatbot se queda con el FAQ inteligente ampliado (v1.8.49), que ya
+cubre las dudas comunes del tracker + boton "Report it" por correo. Cero costo,
+cero key, cero riesgo.
+
+Estas instrucciones quedan guardadas por si en el futuro hay acceso a una key
+(Gemini o Groq). Nada mas que activar.
+-----------------------------------------------------------
+
 Objetivo: que el chatbot use IA de verdad (Gemini) para responder cualquier
 pregunta, SIN exponer la API key en la pagina publica.
 
