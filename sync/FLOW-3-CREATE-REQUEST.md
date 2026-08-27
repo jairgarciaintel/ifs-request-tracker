@@ -1,266 +1,53 @@
-# FLOW 3 - Create Request (Separate Codename) - pasos completos
+# FLOW 3 - Create Request (Separate) - ESTADO
 
-Flow NUEVO: "FS Tracker Create Request". El boton "Separate request" del tracker
-(en requests con Codename + New DA/Portal) lo llama. Hace 2 cosas:
-  1. Crea un request NUEVO solo con Codename (copiando 3 campos de personas del original).
-  2. Quita Codename del request original.
-
-El tracker manda este payload (ya deployado v1.8.44):
-{
-  "sourceId": 2712,
-  "customer": "Ahead Computing Inc.",
-  "requestType": "Codename",
-  "details": "...",
-  "authorClaim": "i:0#.f|membership|<creador original>",       (Created By)
-  "authorEmail": "<creador original>",
-  "projectContactClaim": "i:0#.f|membership|<assigned BD>",     (Assigned BD)
-  "projectContactEmail": "<assigned BD>",
-  "fceLeadClaim": "i:0#.f|membership|<fce lead>",               (FCE Lead/Owner)
-  "fceLeadEmail": "<fce lead>",
-  "remainingTypes": "New DA;#Portal Creation"
-}
+Flow "FS Tracker Create Request" (workflow 589245b5). Conectado en el tracker
+(CONFIG.createRequestUrl, v1.8.45+).
 
 ============================================================
-PASO 1 - Crear el flow  (YA HECHO)
+## FUNCIONA (probado 2026-08-27)
 ============================================================
-Instant cloud flow -> "When an HTTP request is received".
-
-============================================================
-PASO 2 - JSON Schema del trigger
-============================================================
-{
-  "type": "object",
-  "properties": {
-    "sourceId": { "type": "integer" },
-    "customer": { "type": "string" },
-    "requestType": { "type": "string" },
-    "details": { "type": "string" },
-    "authorClaim": { "type": "string" },
-    "authorEmail": { "type": "string" },
-    "projectContactClaim": { "type": "string" },
-    "projectContactEmail": { "type": "string" },
-    "fceLeadClaim": { "type": "string" },
-    "fceLeadEmail": { "type": "string" },
-    "remainingTypes": { "type": "string" }
-  }
-}
+- Crea un request NUEVO con el servicio separado (Codename o IFS NDA).
+- Deja el request ORIGINAL con los tipos restantes, INCLUSO VARIOS
+  (ej. "New DA" + "Portal creation" juntos). El multi-valor SI funciona.
+- CLAVE: hay que usar los NOMBRES EXACTOS de SharePoint (case/word sensitive):
+    "New DA", "Portal creation" (c minuscula), "Code Name Request", "IFS NDA",
+    "DA edit", "WebView AGS role", "MRUNDA", "MP-NDA", etc.
+  El tracker ya manda requestTypeRaw (el nombre exacto), unidos por ;# .
+  Ejemplo remainingTypes que SI guardo los dos: "New DA;#Portal creation".
 
 ============================================================
-PASO 3 - Crear el request nuevo (solo Codename) + copiar los 3 campos de personas
+## PENDIENTE / BLINDAR (importante)
 ============================================================
-OJO con Created By (Author): el "Create item" normal NO deja poner el Author
-(lo pone automatico = la cuenta del flow). Para copiar el Created By del original
-hay que usar "Send an HTTP request to SharePoint" (validateUpdateListItem) despues
-de crear, o crear y luego setear Author por HTTP. Se hace en 2 sub-pasos:
+Si un request NO tiene BD (Project Contact) o FCE Lead, el claim llega VACIO ("")
+y el "Create item" TRUENA con:
+    status 400 - "The specified user could not be found."
+(visto cuando projectContactClaim / fceLeadClaim = "").
 
-3a. Accion "Create item" (SharePoint):
-    Site Address: https://intel.sharepoint.com/sites/ifs-igo-requests
-    List Name: DA Ops Requests
-    Title:        triggerBody()?['customer']
-    RequestType:  Codename   (si es multichoice, solo el valor Codename)
-    Details:      triggerBody()?['details']
-    Project Contact (Assigned BD) Claims: triggerBody()?['projectContactClaim']
-    AssignedFCELead Claims:               triggerBody()?['fceLeadClaim']
-    -> guarda el ID que devuelve (lo usa 3b). Se llama outputs del Create item: ID.
+ARREGLO en el flow, paso "Create item", en los campos Person usar expresion que
+mande null si viene vacio:
 
-3b. Copiar el Created By (Author) del original con HTTP:
-    Accion "Send an HTTP request to SharePoint":
-      Method: POST
-      Uri:
-        _api/web/lists(guid'052c84aa-6a91-469d-9b44-35d068acc422')/items(@{outputs('Create_item')?['body/ID']})/validateUpdateListItem
-      Headers:
-        Accept: application/json;odata=nometadata
-        Content-Type: application/json
-      Body:
-        {
-          "formValues": [
-            { "FieldName": "Author", "FieldValue": "[{'Key':'@{triggerBody()?['authorClaim']}'}]" }
-          ]
-        }
-    NOTA: si "Author" no deja escribirse, algunas listas exponen el creador como
-    "Created By" con otro internal name; si falla, dime el error y ajustamos.
-    (Assigned BD y FCE Lead ya se pusieron en 3a; si prefieres, tambien se pueden
-     setear aqui por HTTP con sus FieldName: Project_x0020_Contact y AssignedFCELead.)
+  Campo "Assigned FCE Lead or Account Owner Claims":
+    if(empty(triggerBody()?['fceLeadClaim']), null, triggerBody()?['fceLeadClaim'])
+
+  Campo "Assigned BD - Claims" (Project Contact):
+    if(empty(triggerBody()?['projectContactClaim']), null, triggerBody()?['projectContactClaim'])
+
+  (Opcional, si el Author tambien puede venir vacio, igual con authorClaim.)
+
+Con eso, si falta BD o FCE Lead, crea el request sin esa persona en vez de fallar.
 
 ============================================================
-PASO 4 - Quitar Codename del request ORIGINAL
+## REGLA DE NEGOCIO (confirmada)
 ============================================================
-Accion "Send an HTTP request to SharePoint":
-    Method: POST
-    Uri:
-      _api/web/lists(guid'052c84aa-6a91-469d-9b44-35d068acc422')/items(@{triggerBody()?['sourceId']})/validateUpdateListItem
-    Headers: Accept application/json;odata=nometadata ; Content-Type application/json
-    Body (RequestType sin Codename; remainingTypes viene "New DA;#Portal Creation"):
-      {
-        "formValues": [
-          { "FieldName": "RequestType", "FieldValue": "@{triggerBody()?['remainingTypes']}" }
-        ]
-      }
-    NOTA: si RequestType multichoice necesita otro formato para varios valores,
-    probar primero con "Update item" y el campo multi-select; si falla, ajustamos.
+- Codename  -> SIEMPRE en su propio request (se separa).
+- IFS NDA   -> SIEMPRE en su propio request (se separa).
+- New DA + Portal Creation -> se quedan JUNTOS (no se separan).
+- El boton "Separate request" aparece cuando hay Codename o IFS NDA mezclado con
+  otro servicio. Al darle: crea 1 request nuevo por cada standalone y deja el resto
+  (New DA + Portal, etc.) en el original.
 
 ============================================================
-PASO 5 - Response 200 (opcional) + Guardar + copiar URL del trigger
+## LIMPIEZA
 ============================================================
-Copia la URL del trigger y pegala en index.html:  CONFIG.createRequestUrl = '...'
-(o pasamela y la pongo + deploy).
-
-============================================================
-PROBAR
-============================================================
-- Request con Codename + New DA/Portal -> boton "Separate request" -> confirmar.
-- Se crea un request nuevo (solo Codename) con el MISMO Created By, Assigned BD y
-  FCE Lead que el original.
-- El original queda sin Codename.
-- En el siguiente Sync aparecen los dos por separado.
-
-
-
-
-
-https://default46c98d88e3444ed484964ed7712e25.5d.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/589245b526e14f92944fdaf82ae775b6/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=rOYFDRH4nYMNN-VVgfXai9ik1lGhX8iVb1xGxvygC08
-
-
-
-
-{
-    "host": {
-        "connectionReferenceName": "shared_sharepointonline",
-        "operationId": "HttpRequest"
-    },
-    "parameters": {
-        "dataset": "https://intel.sharepoint.com/sites/ifs-igo-requests",
-        "parameters/method": "POST",
-        "parameters/uri": "_api/web/lists(guid'052c84aa-6a91-469d-9b44-35d068acc422')/items(0)/validateUpdateListItem",
-        "parameters/headers": {
-            "Accept": "application/json;odata=nometadata",
-            "Content-Type": "application/json"
-        },
-        "parameters/body": "{\n    \"formValues\": [\n       { \"FieldName\": \"RequestType\", \"FieldValue\": \"New DA\" }\n     ]\n}"
-    }
-}{
-    "statusCode": 400,
-    "headers": {
-        "Cache-Control": "no-store, no-cache",
-        "Pragma": "no-cache",
-        "Set-Cookie": "ARRAffinity=ef9bdbeebd9e8fd1c371cb72cf507422b060ba0c9a7456117efdf038b6c44eb6;Path=/;HttpOnly;Secure;Domain=sharepointonline-ncus.azconn-ncus-001.p.azurewebsites.net,ARRAffinitySameSite=ef9bdbeebd9e8fd1c371cb72cf507422b060ba0c9a7456117efdf038b6c44eb6;Path=/;HttpOnly;SameSite=None;Secure;Domain=sharepointonline-ncus.azconn-ncus-001.p.azurewebsites.net",
-        "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
-        "x-ms-request-id": "294035a2-3058-f000-2b69-eed5fc2249c7",
-        "X-Content-Type-Options": "nosniff",
-        "X-Frame-Options": "DENY",
-        "x-ms-environment-id": "default-46c98d88-e344-4ed4-8496-4ed7712e255d",
-        "x-ms-tenant-id": "46c98d88-e344-4ed4-8496-4ed7712e255d",
-        "x-ms-subscription-id": "197bf86c-a8ec-4d89-9f88-cfbf4cdaab01",
-        "x-ms-dlp-re": "HttpRequest|False|2026-08-19T22:09:34.7182410+00:00",
-        "x-ms-dlp-gu": "-|-",
-        "x-ms-dlp-ef": "-|-/-|-|-|-|-",
-        "x-ms-mip-sl": "-|-|-|-",
-        "x-ms-au-creator-id": "2729280b-5169-4c3b-84ab-a3349cb8b8e2",
-        "Timing-Allow-Origin": "*",
-        "x-ms-apihub-cached-response": "true",
-        "x-ms-apihub-obo": "false",
-        "x-ms-plex-failed": "400",
-        "Date": "Thu, 27 Aug 2026 06:08:41 GMT",
-        "Content-Length": "510",
-        "Content-Type": "application/json",
-        "Expires": "-1"
-    },
-    "body": {
-        "status": 400,
-        "message": "{\"odata.error\":{\"code\":\"-2147024809, System.ArgumentException\",\"message\":{\"lang\":\"en-US\",\"value\":\"Item does not exist. It may have been deleted by another user.\"}}}\r\nclientRequestId: 19951a0e-1de9-4f60-b74e-8621a8e46e6c\r\nserviceRequestId: 294035a2-3058-f000-2b69-eed5fc2249c7",
-        "source": "https://intel.sharepoint.com/sites/ifs-igo-requests/_api/web/lists(guid'052c84aa-6a91-469d-9b44-35d068acc422')/items(0)/validateUpdateListItem",
-        "errors": []
-    }
-}ss
-
-
-
-
-
-
-
-{
-    "host": {
-        "connectionReferenceName": "shared_sharepointonline",
-        "operationId": "PostItem"
-    },
-    "parameters": {
-        "dataset": "https://intel.sharepoint.com/sites/ifs-igo-requests",
-        "table": "052c84aa-6a91-469d-9b44-35d068acc422",
-        "item/Title": "z",
-        "item/Priority/Value": "Medium",
-        "item/RequestType": [
-            {
-                "Value": "Code Name Request"
-            }
-        ],
-        "item/Details": "z",
-        "item/AssignedFCELead/Claims": "",
-        "item/Project_x0020_Contact": [
-            {
-                "Claims": ""
-            }
-        ]
-    }
-}
-
-
-{
-    "statusCode": 400,
-    "headers": {
-        "Cache-Control": "max-age=0, private",
-        "Vary": "Origin",
-        "X-FD-RouteKey": "intel",
-        "X-NetworkStatistics": "3,524039,601,18590,7697785,907536,907536,34619",
-        "X-MSEdge-Ref": "MIRA: 551f8128-4e7a-e73e-7747-9e682678a1cd SJ2P220CA0012 2026-08-27T06:46:03.592Z",
-        "X-1DSCollectorUrl": "https://mobile.events.data.microsoft.com/OneCollector/1.0/",
-        "IsOCDI": "0",
-        "Request-Id": "551f8128-4e7a-e73e-7747-9e682678a1cd",
-        "DATASERVICEVERSION": "3.0",
-        "X-NanoProxy": "1",
-        "SPRequestGuid": "d620c939-8d0c-4d4d-9556-12c389c1f49c",
-        "X-FD-RouteKeyApplicationEndpointList": "206-IPV4V6.CLUMP.DPRODMGD105.AA-RT.SHAREPOINT.COM",
-        "Content-Security-Policy": "frame-ancestors 'self' teams.microsoft.com *.teams.microsoft.com *.skype.com *.teams.microsoft.us local.teams.office.com teams.cloud.microsoft *.office365.com goals.cloud.microsoft *.powerapps.com *.powerbi.com *.yammer.com engage.cloud.microsoft word.cloud.microsoft excel.cloud.microsoft powerpoint.cloud.microsoft *.officeapps.live.com *.office.com *.microsoft365.com m365.cloud.microsoft *.cloud.microsoft *.stream.azure-test.net *.dynamics.com *.microsoft.com onedrive.live.com *.onedrive.live.com teams.microsoft.com *.teams.microsoft.com securebroker.sharepointonline.com;",
-        "MicrosoftSharePointTeamServices": "16.0.0.27612",
-        "MS-CV": "ojVCTKVwAPAraeeh4ydjHw.0",
-        "X-FEServer": "SJ2P220CA0012",
-        "X-MS-SPConnector": "1",
-        "SPClientServiceRequestDuration": "68",
-        "SPLogId": "4c4235a2-70a5-f000-2b69-e7a1e327631f",
-        "X-AriaCollectorURL": "https://browser.pipe.aria.microsoft.com/Collector/3.0/",
-        "X-SP-SERVERSTATE": "ReadOnly=0",
-        "X-DataBoundary": "NONE",
-        "X-BackEndHttpStatus": "400",
-        "X-Content-Type-Options": "nosniff",
-        "X-Frame-Options": "SAMEORIGIN",
-        "X-MS-InvokeApp": "1; RequireReadOnly",
-        "X-Proxy-BackendServerStatus": "400",
-        "X-Proxy-RoutingCorrectness": "1",
-        "X-SharePointHealthScore": "0",
-        "X-FirstHopCafeEFZ": "SJC",
-        "Alt-Svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
-        "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
-        "P3P": "CP=\"ALL IND DSP COR ADM CONo CUR CUSo IVAo IVDo PSA PSD TAI TELo OUR SAMo CNT COM INT NAV ONL PHY PRE PUR UNI\"",
-        "X-AspNet-Version": "4.0.30319",
-        "x-ms-environment-id": "default-46c98d88-e344-4ed4-8496-4ed7712e255d",
-        "x-ms-tenant-id": "46c98d88-e344-4ed4-8496-4ed7712e255d",
-        "x-ms-subscription-id": "197bf86c-a8ec-4d89-9f88-cfbf4cdaab01",
-        "x-ms-dlp-re": "postitem|False|2026-08-19T22:09:34.7182410+00:00",
-        "x-ms-dlp-gu": "-|-",
-        "x-ms-dlp-ef": "-|-/-|-|-|-|-",
-        "x-ms-mip-sl": "-|-|-|-",
-        "x-ms-au-creator-id": "2729280b-5169-4c3b-84ab-a3349cb8b8e2",
-        "Timing-Allow-Origin": "*",
-        "x-ms-apihub-cached-response": "true",
-        "x-ms-apihub-obo": "false",
-        "Date": "Thu, 27 Aug 2026 06:46:03 GMT",
-        "Content-Length": "193",
-        "Content-Type": "application/json",
-        "Expires": "Wed, 12 Aug 2026 06:46:03 GMT",
-        "Last-Modified": "Thu, 27 Aug 2026 06:46:03 GMT"
-    },
-    "body": {
-        "status": 400,
-        "message": "The specified user  could not be found.\r\nclientRequestId: d620c939-8d0c-4d4d-9556-12c389c1f49c\r\nserviceRequestId: 4c4235a2-70a5-f000-2b69-e7a1e327631f"
-    }
-}xxx
+Requests de prueba creados hoy (borrar en SharePoint cuando quieras):
+2713, 2714, 2715, 2716 (TEST ...).
