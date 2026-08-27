@@ -1,53 +1,29 @@
 ============================================================
-   BAJAR TODO EL REPO DASHBOARDS EN LA WINDOWS (clone limpio)
+   NOTA: el git ya quedo arreglado (credential.helper store).
+   Instructivos: dev/ARREGLAR-GIT-DEFINITIVO.txt y dev/PASAR-WINDOWS.txt (repo DEV)
 ============================================================
-TODO tu contenido YA esta en GitHub (6680 archivos: week2..week13, meeting
-notes, agendas, schedules). La Windows solo necesita clonarlo limpio.
-
-OJO CON EL TOKEN: tiene  1222  metido a proposito. BORRA esos 4 caracteres
-"1222" del token antes de correr el clone.
-
-------------------------------------------------------------
-PASO 1 - Abrir PowerShell y ir a donde quieras la carpeta:
-------------------------------------------------------------
-cd "C:\MEGA\Intel\2026"
-
-------------------------------------------------------------
-PASO 2 - Clonar (COPIA LA LINEA COMPLETA y BORRA el 1222 del token):
-------------------------------------------------------------
-git clone "https://jairgarciaintel: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6Eim@github.com/jairgarciaintel/dashboards-strategy-2026.git" Dashboards-2026
-
-------------------------------------------------------------
-PASO 3 - Entrar y verificar:
-------------------------------------------------------------
-cd Dashboards-2026
-dir
-dir dashboards-week12
-dir dashboards-week13
-
-   Deberias ver TODAS las carpetas week y sus archivos.
-   Abre ESTA carpeta (Dashboards-2026) en Kiro.
-
-------------------------------------------------------------
-SI FALLA
-------------------------------------------------------------
-- Pide usuario/contrasena o da 403 -> te falto borrar el 1222, o cortaste el token.
-  Vuelve a copiar la linea completa del PASO 2 y borra SOLO el 1222.
-- "already exists and is not empty" -> ya existe esa carpeta; usa otro nombre
-  al final (ej. Dashboards-2026b) o borra la carpeta vieja primero.
-
-------------------------------------------------------------
-QUE NO BAJA (y es normal)
-------------------------------------------------------------
-- PPTX gigantes (Gold Deck 556MB, Itzamna 110MB c/u): NO estan en GitHub
-  (pesan mas de 100MB, limite de GitHub). Esos van por OneDrive/correo si los
-  necesitas. Todo lo demas (HTML, MD, CSV, VTT) SI baja.
+NO poner el token aqui (repo publico -> GitHub Push Protection lo bloquea).
+El token va por MEGA o se teclea una vez con el helper store.
 
 ============================================================
-BORRAR este archivo despues de usarlo (tiene el token partido).
+   CONFIG REAL DEL FLOW "Update Fields" (paso PatchItem) - capturada
 ============================================================
+Asi quedo el paso que escribe en SharePoint (workflow 7c9ac8ba). OJO: el campo
+del Assigned To esta HARDCODEADO a jair.garcia, por eso SIEMPRE guarda a Jair.
+Hay que cambiarlo por el token dinamico que manda el tracker (assignedToClaim).
 
+Config capturada (PatchItem):
+    dataset: https://intel.sharepoint.com/sites/ifs-igo-requests
+    table:   052c84aa-6a91-469d-9b44-35d068acc422
+    id:      (el id del request)
+    item/iGOAdminOnly_x002d_AssignedTo/Claims : "i:0#.f|membership|jair.garcia@intel.com"  <-- HARDCODEADO (MAL)
+    item/DALink : null
+    item/Priority/Value : "Medium"
+    item/Project_x002f_PortalName : null
+    item/DA_x0020_Number : null
+    item/iGOAdminOnly_x002d_Contracttype/Value : "NTD"
 
+<<<<<<< HEAD
 
 {
     "host": {
@@ -92,3 +68,33 @@ NEW....
         "item/iGOAdminOnly_x002d_Contracttype/Value": "NTD"
     }
 }
+=======
+ARREGLO (Pendiente 2): en el flow, el campo
+    item/iGOAdminOnly_x002d_AssignedTo/Claims
+debe usar el DYNAMIC CONTENT del trigger  assignedToClaim
+(en vez del texto fijo "i:0#.f|membership|jair.garcia@intel.com").
+Asi guardara a quien se asigne desde el tracker (Jair, Jenn, etc.).
+Detalle en sync/FLOWS-1-2-3-INSTRUCCIONES.md (Pendiente 2).
+>>>>>>> e863a3f6d524480106c6e1cb420382128f5e85f0
+
+
+
+{
+    "host": {
+        "connectionReferenceName": "shared_sharepointonline",
+        "operationId": "PatchItem"
+    },
+    "parameters": {
+        "dataset": "https://intel.sharepoint.com/sites/ifs-igo-requests",
+        "table": "052c84aa-6a91-469d-9b44-35d068acc422",
+        "id": 2665,
+        "item/iGOAdminOnly_x002d_AssignedTo/Claims": "i:0#.f|membership|jair.garcia@intel.com",
+        "item/DALink": null,
+        "item/Priority/Value": "Medium",
+        "item/Project_x002f_PortalName": null,
+        "item/DA_x0020_Number": null,
+        "item/iGOAdminOnly_x002d_Contracttype/Value": "NTD"
+    }
+}
+
+
