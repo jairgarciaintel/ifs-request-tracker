@@ -139,3 +139,13 @@ Requests de prueba creados hoy (borrar en SharePoint cuando quieras):
     }
 }
 
+
+
+
+No dynamic content available
+Empty dynamic content iconThere is no content available
+Including dynamic content
+If available, dynamic content is automatically generated from the connectors and actions you choose for your flow.
+
+Dynamic content may also be added from other sources.
+Learn more about dynamic content.
