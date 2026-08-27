@@ -190,22 +190,25 @@ body{
       <option value="2-months">2 Months Ago</option>
       <option value="3-months">3 Months Ago</option>
     </select>
-    <select id="filter-type" onchange="renderRequests()">
-      <option value="all">All Types</option>
-      <option value="Portal Creation">Portal Creation</option>
-      <option value="New DA">New DA</option>
-      <option value="Codename">Codename</option>
-      <option value="WebView AGS Role">WebView AGS Role</option>
-      <option value="Portal Unencryption">Portal Unencryption</option>
-      <option value="IFS NDA">IFS NDA</option>
-      <option value="MP-NDA">MP-NDA</option>
-      <option value="MRUNDA">MRUNDA</option>
-      <option value="DA Edit">DA Edit</option>
-      <option value="COD">COD</option>
-      <option value="Secure Chamber">Secure Chamber</option>
-      <option value="DocuSign Request">DocuSign Request</option>
-      <option value="Redbook Release">Redbook Release</option>
-    </select>
+    <div id="type-multi" class="type-multi">
+      <button type="button" id="type-multi-btn" class="type-multi-btn" onclick="toggleTypeMenu(event)">All Types</button>
+      <div id="type-multi-menu" class="type-multi-menu">
+        <label><input type="checkbox" value="Portal Creation" onchange="onTypeCheckChange()"> Portal Creation</label>
+        <label><input type="checkbox" value="New DA" onchange="onTypeCheckChange()"> New DA</label>
+        <label><input type="checkbox" value="Codename" onchange="onTypeCheckChange()"> Codename</label>
+        <label><input type="checkbox" value="WebView AGS Role" onchange="onTypeCheckChange()"> WebView AGS Role</label>
+        <label><input type="checkbox" value="Portal Unencryption" onchange="onTypeCheckChange()"> Portal Unencryption</label>
+        <label><input type="checkbox" value="IFS NDA" onchange="onTypeCheckChange()"> IFS NDA</label>
+        <label><input type="checkbox" value="MP-NDA" onchange="onTypeCheckChange()"> MP-NDA</label>
+        <label><input type="checkbox" value="MRUNDA" onchange="onTypeCheckChange()"> MRUNDA</label>
+        <label><input type="checkbox" value="DA Edit" onchange="onTypeCheckChange()"> DA Edit</label>
+        <label><input type="checkbox" value="COD" onchange="onTypeCheckChange()"> COD</label>
+        <label><input type="checkbox" value="Secure Chamber" onchange="onTypeCheckChange()"> Secure Chamber</label>
+        <label><input type="checkbox" value="DocuSign Request" onchange="onTypeCheckChange()"> DocuSign Request</label>
+        <label><input type="checkbox" value="Redbook Release" onchange="onTypeCheckChange()"> Redbook Release</label>
+        <div class="type-multi-actions"><button type="button" onclick="clearTypeFilter()">Clear</button></div>
+      </div>
+    </div>
     <select id="filter-status" onchange="renderRequests()">
       <option value="all">All Statuses</option>
       <option value="not-started">Not Started</option>
@@ -275,6 +278,22 @@ body.light-mode .changelog-box{background:#fff;border-color:rgba(0,113,197,0.2);
 body.light-mode .changelog-head h3{color:#0071c5;}
 body.light-mode .cl-version h4{color:#0071c5;}
 body.light-mode .cl-version li{color:#334155;}
+/* Multi-select Type filter (checkboxes dropdown) */
+.type-multi{position:relative;display:inline-block;}
+.type-multi-btn{background:rgba(4,28,50,0.8);color:var(--light);border:1px solid rgba(78,200,240,0.2);padding:5px 28px 5px 10px;border-radius:6px;font-size:11px;font-family:'Satoshi',sans-serif;cursor:pointer;min-width:110px;text-align:left;position:relative;}
+.type-multi-btn::after{content:'\25BE';position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:9px;color:var(--cyan);}
+.type-multi-menu{display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:50;background:#08243d;border:1px solid rgba(78,200,240,0.3);border-radius:8px;padding:6px;min-width:210px;max-height:320px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,0.4);}
+.type-multi-menu.open{display:block;}
+.type-multi-menu label{display:flex;align-items:center;gap:8px;padding:6px 8px;font-size:12px;color:var(--light);cursor:pointer;border-radius:5px;white-space:nowrap;}
+.type-multi-menu label:hover{background:rgba(78,200,240,0.1);}
+.type-multi-menu input[type=checkbox]{accent-color:var(--cyan);width:14px;height:14px;cursor:pointer;}
+.type-multi-actions{border-top:1px solid rgba(255,255,255,0.1);margin-top:4px;padding-top:6px;text-align:right;}
+.type-multi-actions button{background:none;border:1px solid rgba(78,200,240,0.35);color:var(--cyan);font-size:11px;padding:3px 12px;border-radius:5px;cursor:pointer;}
+body.light-mode .type-multi-btn{background:#fff;color:#1a202c;border-color:rgba(0,113,197,0.2);}
+body.light-mode .type-multi-menu{background:#fff;border-color:rgba(0,113,197,0.25);}
+body.light-mode .type-multi-menu label{color:#1a202c;}
+body.light-mode .type-multi-menu label:hover{background:rgba(0,113,197,0.08);}
+body.light-mode .type-multi-actions button{color:#0071c5;border-color:rgba(0,113,197,0.3);}
 /* Separate-request button (Codename split) */
 .separate-row{margin:10px 0 4px;}
 .separate-btn{display:inline-flex;align-items:center;background:rgba(240,160,48,0.12);color:var(--amber);border:1px solid rgba(240,160,48,0.4);border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Satoshi',sans-serif;letter-spacing:0.2px;}
@@ -547,10 +566,11 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.46';
+const APP_VERSION = 'v1.8.47';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
+    ['v1.8.47', ['Type filter is now MULTI-SELECT: the "All Types" dropdown became a checkbox menu — pick several types and it shows requests matching ANY of them; pick one and it shows only that one; none = all. Clear button included.']],
     ['v1.8.46', ['Separate request now covers Codename AND IFS NDA (each must be on its own request; New DA + Portal Creation stay together). It also uses the EXACT SharePoint option names (requestTypeRaw) when rewriting RequestType, since the choices are case/word specific (e.g. "Portal creation", "Code Name Request"). NOTE: writing multiple remaining types (New DA + Portal) still under test on the flow side.']],
     ['v1.8.45', ['Separate request (Codename) is now LIVE: the "Create Request" flow is connected. Clicking "Separate request" on a Codename-bundled request creates a new Codename-only request (copying Assigned BD / people) and removes Codename from the original. Tested end-to-end.']],
     ['v1.8.44', ['Separate request (Codename): the tracker now also sends the original Created By (Author), Assigned BD and FCE Lead / Account Owner so the new Codename request keeps those three people identical to the original. Needs the Create Request flow (see sync).']],
@@ -2419,9 +2439,42 @@ function groupByID(requests) {
     return map;
 }
 
+// ---- Multi-select Type filter ----
+function getSelectedTypes() {
+    return Array.from(document.querySelectorAll('#type-multi-menu input[type=checkbox]:checked')).map(c => c.value);
+}
+function updateTypeBtnLabel() {
+    const sel = getSelectedTypes();
+    const btn = document.getElementById('type-multi-btn');
+    if (!btn) return;
+    if (sel.length === 0) btn.textContent = 'All Types';
+    else if (sel.length === 1) btn.textContent = sel[0];
+    else btn.textContent = sel.length + ' types';
+}
+function toggleTypeMenu(e) {
+    if (e) e.stopPropagation();
+    const menu = document.getElementById('type-multi-menu');
+    if (menu) menu.classList.toggle('open');
+}
+function onTypeCheckChange() {
+    updateTypeBtnLabel();
+    renderRequests();
+}
+function clearTypeFilter() {
+    document.querySelectorAll('#type-multi-menu input[type=checkbox]').forEach(c => c.checked = false);
+    updateTypeBtnLabel();
+    renderRequests();
+}
+// Close the type menu when clicking outside of it.
+document.addEventListener('click', function(ev){
+    const wrap = document.getElementById('type-multi');
+    const menu = document.getElementById('type-multi-menu');
+    if (menu && wrap && !wrap.contains(ev.target)) menu.classList.remove('open');
+});
+
 function renderRequests() {
     const container = document.getElementById('request-list');
-    const typeFilter = document.getElementById('filter-type').value;
+    const selectedTypes = getSelectedTypes(); // [] = all
     const search = document.getElementById('search-box').value.toLowerCase();
 
     // Filter only 2026 requests
@@ -2434,7 +2487,9 @@ function renderRequests() {
     // Time filter
     filtered = filterByTime(filtered);
 
-    if (typeFilter !== 'all') filtered = filtered.filter(r => r.requestType === typeFilter);
+    // Type filter: multi-select. Empty = all. Otherwise show requests whose group
+    // includes ANY of the selected types.
+    if (selectedTypes.length > 0) filtered = filtered.filter(r => selectedTypes.includes(r.requestType));
 
     // Assignee filter (iGO Admin Only - Assigned To -> r.assignedBD)
     const assigneeEl = document.getElementById('filter-assignee');
