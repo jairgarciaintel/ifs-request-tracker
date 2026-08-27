@@ -8,6 +8,8 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.47 — 2026-08-27
+- Filtro de tipos ahora es MULTI-SELECT: el dropdown "All Types" se volvio un menu de checkboxes. Seleccionas varios tipos y muestra los requests que tengan CUALQUIERA de ellos; seleccionas uno y muestra solo ese; ninguno = todos. Incluye boton Clear.
 ## v1.8.46 — 2026-08-27
 - Separate request ahora aplica a Codename Y a IFS NDA (cada uno debe ir en su propio request; New DA + Portal Creation se quedan juntos). El boton aparece cuando un standalone (Codename/IFS NDA) viene mezclado con otro servicio.
 - El tracker ahora usa los nombres EXACTOS de SharePoint (requestTypeRaw) al reescribir RequestType, porque las opciones son sensibles a mayusculas/palabras ("Portal creation", "Code Name Request", "DA edit"). Antes mandaba los normalizados y por eso el multi-valor se perdia.
