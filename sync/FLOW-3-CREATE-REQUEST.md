@@ -372,3 +372,31 @@ elegir "Enter custom value" y ahi meter el dynamic content requestType. Pero el
 Code view es lo mas seguro.
 
 Probar: separar un IFS NDA -> el request nuevo debe salir con RequestType = IFS NDA.
+
+
+
+{
+  "type": "OpenApiConnection",
+  "inputs": {
+    "parameters": {
+      "dataset": "https://intel.sharepoint.com/sites/ifs-igo-requests",
+      "table": "052c84aa-6a91-469d-9b44-35d068acc422",
+      "item/Title": "@triggerBody()?['customer']",
+      "item/Priority/Value": "Medium",
+      "item/RequestType": "@triggerBody()?['requestType']",
+      "item/Details": "@triggerBody()?['details']",
+      "item/AssignedFCELead/Claims": "@if(empty(triggerBody()?['fceLeadClaim']), null, triggerBody()?['fceLeadClaim'])",
+      "item/Project_x0020_Contact": [
+        {
+          "Claims": "@{if(empty(triggerBody()?['projectContactClaim']), null, triggerBody()?['projectContactClaim'])\r\n}"
+        }
+      ]
+    },
+    "host": {
+      "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+      "connection": "shared_sharepointonline",
+      "operationId": "PostItem"
+    }
+  },
+  "runAfter": {}
+}
