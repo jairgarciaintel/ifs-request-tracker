@@ -10,8 +10,18 @@ del tracker ya esta listo). Aqui esta cada uno con su estado y que falta hacer.
 >>> sync/FLOWS-1-2-3-INSTRUCCIONES.md
 
 ============================================================
-## 1) CIFRADO del correo de CODENAME  (Do Not Forward / Intel Confidential)
+## 1) CIFRADO del correo de CODENAME  ->>> RESUELTO (2026-08-26)
 ============================================================
+CERRADO: el flow de correos ya tiene la Condition (sensitivity is not equal to
+vacio). Rama Codename usa Sensitivity = "Intel Confidential\Intel Employees
+(Encrypted - IC)" ELEGIDA DEL DROPDOWN, rama normal sin etiqueta. El correo de
+Codename llega CIFRADO (solo empleados Intel). "Do Not Forward" NO se puede
+aplicar desde el flow (el conector solo ofrece etiquetas de sensibilidad, no el
+permiso RMS Do Not Forward); se decidio dejarlo con Intel Confidential Encrypted,
+que ya protege contra fuga fuera de Intel. Si algun dia se requiere el no-reenviar
+estricto, TI/Purview tendria que crear una etiqueta que lo combine.
+
+--- historico (el problema que era) ---
 ESTADO: el correo llega SIN cifrar.
 CAUSA CONFIRMADA: en el Run history, el flow SI recibe
     Sensitivity = "Intel Confidential\Intel Employees (Encrypted - IC)"
