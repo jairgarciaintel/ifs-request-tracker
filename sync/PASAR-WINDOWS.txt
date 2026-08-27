@@ -6,95 +6,39 @@ NO poner el token aqui (repo publico -> GitHub Push Protection lo bloquea).
 El token va por MEGA o se teclea una vez con el helper store.
 
 ============================================================
-   CONFIG REAL DEL FLOW "Update Fields" (paso PatchItem) - capturada
+   PENDIENTE 2 - ASSIGNED TO (flow Update Fields 7c9ac8ba)
 ============================================================
-Asi quedo el paso que escribe en SharePoint (workflow 7c9ac8ba). OJO: el campo
-del Assigned To esta HARDCODEADO a jair.garcia, por eso SIEMPRE guarda a Jair.
-Hay que cambiarlo por el token dinamico que manda el tracker (assignedToClaim).
+PROBLEMA (visto en la foto del flow):
+El campo "iGO Admin Only - Assigned To Claims" del paso "Update item" esta puesto
+con:
+    outputs('Get_item')?['body/iGOAdminOnly_x002d_AssignedTo/Claims']
+Eso RE-ESCRIBE el valor viejo que ya tenia el request (lo copia de Get item), por
+eso NUNCA cambia a quien asignas desde el tracker.
 
-Config capturada (PatchItem):
+ARREGLO:
+1. Abrir flow Update Fields -> Edit -> paso "Update item".
+2. Campo "iGO Admin Only - Assigned To Claims":
+   - Quitar (X) el token actual que viene de outputs('Get_item')...
+   - Poner el DYNAMIC CONTENT del TRIGGER:  assignedToClaim
+     (el que manda el tracker; NO el de Get item).
+3. Guardar.
+Con eso guardara a quien se asigne desde el tracker (Jair, Jenn, etc.).
+
+NOTA sobre desasignar: si assignedToClaim llega vacio, el campo quedaria vacio
+(desasignado). Si se quiere que al desasignar NO borre, se puede envolver en una
+expresion; por ahora dejarlo con el token directo y probar.
+
+------------------------------------------------------------
+Config capturada del PatchItem (referencia):
+------------------------------------------------------------
     dataset: https://intel.sharepoint.com/sites/ifs-igo-requests
     table:   052c84aa-6a91-469d-9b44-35d068acc422
-    id:      (el id del request)
-    item/iGOAdminOnly_x002d_AssignedTo/Claims : "i:0#.f|membership|jair.garcia@intel.com"  <-- HARDCODEADO (MAL)
-    item/DALink : null
+    id:      triggerBody id
+    item/iGOAdminOnly_x002d_AssignedTo/Claims : <-- usar dynamic content assignedToClaim
+    item/DALink : daLinkUrl
     item/Priority/Value : "Medium"
-    item/Project_x002f_PortalName : null
-    item/DA_x0020_Number : null
+    item/Project_x002f_PortalName : projectPortalName
+    item/DA_x0020_Number : daNumber
     item/iGOAdminOnly_x002d_Contracttype/Value : "NTD"
 
-<<<<<<< HEAD
-
-{
-    "host": {
-        "connectionReferenceName": "shared_sharepointonline",
-        "operationId": "PatchItem"
-    },
-    "parameters": {
-        "dataset": "https://intel.sharepoint.com/sites/ifs-igo-requests",
-        "table": "052c84aa-6a91-469d-9b44-35d068acc422",
-        "id": 2665,
-        "item/iGOAdminOnly_x002d_AssignedTo/Claims": "i:0#.f|membership|jair.garcia@intel.com",
-        "item/DALink": null,
-        "item/Priority/Value": "Medium",
-        "item/Project_x002f_PortalName": null,
-        "item/DA_x0020_Number": null,
-        "item/iGOAdminOnly_x002d_Contracttype/Value": "NTD"
-    }
-}
-
-
-
-
-
-
-NEW....
-
-
-{
-    "host": {
-        "connectionReferenceName": "shared_sharepointonline",
-        "operationId": "PatchItem"
-    },
-    "parameters": {
-        "dataset": "https://intel.sharepoint.com/sites/ifs-igo-requests",
-        "table": "052c84aa-6a91-469d-9b44-35d068acc422",
-        "id": 2665,
-        "item/iGOAdminOnly_x002d_AssignedTo/Claims": "i:0#.f|membership|jair.garcia@intel.com",
-        "item/DALink": null,
-        "item/Priority/Value": "Medium",
-        "item/Project_x002f_PortalName": null,
-        "item/DA_x0020_Number": null,
-        "item/iGOAdminOnly_x002d_Contracttype/Value": "NTD"
-    }
-}
-=======
-ARREGLO (Pendiente 2): en el flow, el campo
-    item/iGOAdminOnly_x002d_AssignedTo/Claims
-debe usar el DYNAMIC CONTENT del trigger  assignedToClaim
-(en vez del texto fijo "i:0#.f|membership|jair.garcia@intel.com").
-Asi guardara a quien se asigne desde el tracker (Jair, Jenn, etc.).
 Detalle en sync/FLOWS-1-2-3-INSTRUCCIONES.md (Pendiente 2).
->>>>>>> e863a3f6d524480106c6e1cb420382128f5e85f0
-
-
-
-{
-    "host": {
-        "connectionReferenceName": "shared_sharepointonline",
-        "operationId": "PatchItem"
-    },
-    "parameters": {
-        "dataset": "https://intel.sharepoint.com/sites/ifs-igo-requests",
-        "table": "052c84aa-6a91-469d-9b44-35d068acc422",
-        "id": 2665,
-        "item/iGOAdminOnly_x002d_AssignedTo/Claims": "i:0#.f|membership|jair.garcia@intel.com",
-        "item/DALink": null,
-        "item/Priority/Value": "Medium",
-        "item/Project_x002f_PortalName": null,
-        "item/DA_x0020_Number": null,
-        "item/iGOAdminOnly_x002d_Contracttype/Value": "NTD"
-    }
-}
-
-
