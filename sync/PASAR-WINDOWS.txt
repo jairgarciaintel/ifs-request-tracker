@@ -115,3 +115,200 @@ Detalle en sync/FLOWS-1-2-3-INSTRUCCIONES.md (Pendiente 2).
         "assignedToClaim": "i:0#.f|membership|jair.garcia@intel.com"
     }
 }
+
+
+
+
+
+
+{
+    "host": {
+        "connectionReferenceName": "shared_sharepointonline",
+        "operationId": "PatchItem"
+    },
+    "parameters": {
+        "dataset": "https://intel.sharepoint.com/sites/ifs-igo-requests",
+        "table": "052c84aa-6a91-469d-9b44-35d068acc422",
+        "id": 2712,
+        "item/iGOAdminOnly_x002d_AssignedTo/Claims": "i:0#.f|membership|jair.garcia@intel.com",
+        "item/DALink": null,
+        "item/Priority/Value": "Medium",
+        "item/Project_x002f_PortalName": null,
+        "item/DA_x0020_Number": null,
+        "item/iGOAdminOnly_x002d_Contracttype/Value": "NTD"
+    }
+}
+
+
+{
+    "statusCode": 200,
+    "headers": {
+        "Cache-Control": "max-age=0, private",
+        "Transfer-Encoding": "chunked",
+        "Vary": "Origin,Accept-Encoding",
+        "X-FD-RouteKey": "intel",
+        "X-NetworkStatistics": "0,16776960,86,21,2709158,8388352,8388352,24487",
+        "X-MSEdge-Ref": "MIRA: 693717e8-ce8b-dbaa-997a-d064f084e01c BY1P220CA0016 2026-08-27T04:46:39.298Z",
+        "X-1DSCollectorUrl": "https://mobile.events.data.microsoft.com/OneCollector/1.0/",
+        "IsOCDI": "0",
+        "Request-Id": "693717e8-ce8b-dbaa-997a-d064f084e01c",
+        "DATASERVICEVERSION": "3.0",
+        "X-NanoProxy": "1",
+        "SPRequestGuid": "b4e1b6f6-ae60-4954-a6a0-7c899b65eb29",
+        "X-FD-RouteKeyApplicationEndpointList": "206-IPV4V6.CLUMP.DPRODMGD105.AA-RT.SHAREPOINT.COM",
+        "Content-Security-Policy": "frame-ancestors 'self' teams.microsoft.com *.teams.microsoft.com *.skype.com *.teams.microsoft.us local.teams.office.com teams.cloud.microsoft *.office365.com goals.cloud.microsoft *.powerapps.com *.powerbi.com *.yammer.com engage.cloud.microsoft word.cloud.microsoft excel.cloud.microsoft powerpoint.cloud.microsoft *.officeapps.live.com *.office.com *.microsoft365.com m365.cloud.microsoft *.cloud.microsoft *.stream.azure-test.net *.dynamics.com *.microsoft.com onedrive.live.com *.onedrive.live.com teams.microsoft.com *.teams.microsoft.com securebroker.sharepointonline.com;",
+        "MicrosoftSharePointTeamServices": "16.0.0.27612",
+        "MS-CV": "ojU7d40QAPAraeV3ifh+AA.0",
+        "X-FEServer": "BY1P220CA0016",
+        "X-MS-SPConnector": "1",
+        "SPClientServiceRequestDuration": "85",
+        "SPLogId": "773b35a2-108d-f000-2b69-e57789f87e00",
+        "X-AriaCollectorURL": "https://browser.pipe.aria.microsoft.com/Collector/3.0/",
+        "X-SP-SERVERSTATE": "ReadOnly=0",
+        "X-DataBoundary": "NONE",
+        "X-BackEndHttpStatus": "200",
+        "X-Content-Type-Options": "nosniff",
+        "X-Frame-Options": "SAMEORIGIN",
+        "X-MS-InvokeApp": "1; RequireReadOnly",
+        "X-Proxy-BackendServerStatus": "200",
+        "X-Proxy-RoutingCorrectness": "1",
+        "X-SharePointHealthScore": "0",
+        "X-FirstHopCafeEFZ": "SJC",
+        "Alt-Svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+        "P3P": "CP=\"ALL IND DSP COR ADM CONo CUR CUSo IVAo IVDo PSA PSD TAI TELo OUR SAMo CNT COM INT NAV ONL PHY PRE PUR UNI\"",
+        "X-AspNet-Version": "4.0.30319",
+        "x-ms-environment-id": "default-46c98d88-e344-4ed4-8496-4ed7712e255d",
+        "x-ms-tenant-id": "46c98d88-e344-4ed4-8496-4ed7712e255d",
+        "x-ms-subscription-id": "197bf86c-a8ec-4d89-9f88-cfbf4cdaab01",
+        "x-ms-dlp-re": "getitem|False|2026-08-19T22:09:34.7182410+00:00",
+        "x-ms-dlp-gu": "-|-",
+        "x-ms-dlp-ef": "-|-/-|-|-|-|-",
+        "x-ms-mip-sl": "-|-|-|-",
+        "x-ms-au-creator-id": "2729280b-5169-4c3b-84ab-a3349cb8b8e2",
+        "Timing-Allow-Origin": "*",
+        "x-ms-apihub-cached-response": "false",
+        "x-ms-apihub-obo": "false",
+        "Date": "Thu, 27 Aug 2026 04:46:39 GMT",
+        "Content-Type": "application/json; charset=utf-8",
+        "Expires": "Wed, 12 Aug 2026 04:46:39 GMT",
+        "Last-Modified": "Thu, 27 Aug 2026 04:46:39 GMT",
+        "Content-Length": "4274"
+    },
+    "body": {
+        "@odata.etag": "\"3\"",
+        "ItemInternalId": "2712",
+        "ID": 2712,
+        "Title": "Ahead Computing Inc.",
+        "Created": "2026-08-26T22:00:26Z",
+        "TechNode": [],
+        "TechNode@odata.type": "#Collection(Microsoft.Azure.Connectors.SharePoint.SPListExpandedReference)",
+        "TechNode#Id": [],
+        "TechNode#Id@odata.type": "#Collection(Int64)",
+        "Author": {
+            "@odata.type": "#Microsoft.Azure.Connectors.SharePoint.SPListExpandedUser",
+            "Claims": "i:0#.f|membership|puneet.sawhney@intel.com",
+            "DisplayName": "Sawhney, Puneet",
+            "Email": "puneet.sawhney@intel.com",
+            "Picture": "https://intel.sharepoint.com/sites/ifs-igo-requests/_layouts/15/UserPhoto.aspx?Size=L&AccountName=puneet.sawhney@intel.com",
+            "Department": "14A ETO TECH MKTG & PLATFORM",
+            "JobTitle": "11954410"
+        },
+        "Author#Claims": "i:0#.f|membership|puneet.sawhney@intel.com",
+        "Priority": {
+            "@odata.type": "#Microsoft.Azure.Connectors.SharePoint.SPListExpandedReference",
+            "Id": 2,
+            "Value": "Medium"
+        },
+        "Priority#Id": 2,
+        "RequestType": [
+            {
+                "@odata.type": "#Microsoft.Azure.Connectors.SharePoint.SPListExpandedReference",
+                "Id": 0,
+                "Value": "IFS NDA"
+            }
+        ],
+        "RequestType@odata.type": "#Collection(Microsoft.Azure.Connectors.SharePoint.SPListExpandedReference)",
+        "RequestType#Id": [
+            0
+        ],
+        "RequestType#Id@odata.type": "#Collection(Int64)",
+        "Details": "Exploring potential new IP Alliance Partner and need a NDA put in place.",
+        "EngagementType": {
+            "@odata.type": "#Microsoft.Azure.Connectors.SharePoint.SPListExpandedReference",
+            "Id": 4,
+            "Value": "IP Alliance Partner"
+        },
+        "EngagementType#Id": 4,
+        "AssignedFCELead": {
+            "@odata.type": "#Microsoft.Azure.Connectors.SharePoint.SPListExpandedUser",
+            "Claims": "i:0#.f|membership|puneet.sawhney@intel.com",
+            "DisplayName": "Sawhney, Puneet",
+            "Email": "puneet.sawhney@intel.com",
+            "Picture": "https://intel.sharepoint.com/sites/ifs-igo-requests/_layouts/15/UserPhoto.aspx?Size=L&AccountName=puneet.sawhney@intel.com",
+            "Department": "14A ETO TECH MKTG & PLATFORM",
+            "JobTitle": "11954410"
+        },
+        "AssignedFCELead#Claims": "i:0#.f|membership|puneet.sawhney@intel.com",
+        "Editor": {
+            "@odata.type": "#Microsoft.Azure.Connectors.SharePoint.SPListExpandedUser",
+            "Claims": "i:0#.f|membership|jair.garcia@intel.com",
+            "DisplayName": "Garcia, Jair",
+            "Email": "jair.garcia@intel.com",
+            "Picture": "https://intel.sharepoint.com/sites/ifs-igo-requests/_layouts/15/UserPhoto.aspx?Size=L&AccountName=jair.garcia@intel.com",
+            "Department": "INTEGRATED CUSTOMER SOLUTIONS",
+            "JobTitle": "11571195"
+        },
+        "Editor#Claims": "i:0#.f|membership|jair.garcia@intel.com",
+        "IsRoomedProject": {
+            "@odata.type": "#Microsoft.Azure.Connectors.SharePoint.SPListExpandedReference",
+            "Id": 1,
+            "Value": "No"
+        },
+        "IsRoomedProject#Id": 1,
+        "Project_x0020_Contact": [
+            {
+                "@odata.type": "#Microsoft.Azure.Connectors.SharePoint.SPListExpandedUser",
+                "Claims": "i:0#.f|membership|puneet.sawhney@intel.com",
+                "DisplayName": "Sawhney, Puneet",
+                "Email": "puneet.sawhney@intel.com",
+                "Picture": "https://intel.sharepoint.com/sites/ifs-igo-requests/_layouts/15/UserPhoto.aspx?Size=L&AccountName=puneet.sawhney@intel.com",
+                "Department": "14A ETO TECH MKTG & PLATFORM",
+                "JobTitle": "11954410"
+            }
+        ],
+        "Project_x0020_Contact@odata.type": "#Collection(Microsoft.Azure.Connectors.SharePoint.SPListExpandedUser)",
+        "Project_x0020_Contact#Claims": [
+            "i:0#.f|membership|puneet.sawhney@intel.com"
+        ],
+        "Project_x0020_Contact#Claims@odata.type": "#Collection(String)",
+        "iGOAdminOnly_x002d_Contracttype": {
+            "@odata.type": "#Microsoft.Azure.Connectors.SharePoint.SPListExpandedReference",
+            "Id": 3,
+            "Value": "NTD"
+        },
+        "iGOAdminOnly_x002d_Contracttype#Id": 3,
+        "Modified": "2026-08-27T04:40:42Z",
+        "{Identifier}": "Lists%252fNew%2bDA%2bRequest%252f2712_.000",
+        "{IsFolder}": false,
+        "{Thumbnail}": {
+            "Large": null,
+            "Medium": null,
+            "Small": null
+        },
+        "{Link}": "https://intel.sharepoint.com/sites/ifs-igo-requests/_layouts/15/listform.aspx?PageType=4&ListId=052c84aa%2D6a91%2D469d%2D9b44%2D35d068acc422&ID=2712&ContentTypeID=0x0100F37EA9E070FDB147A8961682D0C6335200CDB1CB2B0187494798E496B0B8DB2F35",
+        "{Name}": "Ahead Computing Inc.",
+        "{FilenameWithExtension}": "Ahead Computing Inc.",
+        "{Path}": "Lists/New DA Request/",
+        "{FullPath}": "Lists/New DA Request/2712_.000",
+        "{ContentType}": {
+            "@odata.type": "#Microsoft.Azure.Connectors.SharePoint.SPListExpandedContentType",
+            "Id": "0x0100F37EA9E070FDB147A8961682D0C6335200CDB1CB2B0187494798E496B0B8DB2F35",
+            "Name": "Item"
+        },
+        "{ContentType}#Id": "0x0100F37EA9E070FDB147A8961682D0C6335200CDB1CB2B0187494798E496B0B8DB2F35",
+        "{HasAttachments}": true,
+        "{VersionNumber}": "3.0"
+    }
+}
+
