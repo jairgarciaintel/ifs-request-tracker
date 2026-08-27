@@ -547,10 +547,11 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.43';
+const APP_VERSION = 'v1.8.44';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
+    ['v1.8.44', ['Separate request (Codename): the tracker now also sends the original Created By (Author), Assigned BD and FCE Lead / Account Owner so the new Codename request keeps those three people identical to the original. Needs the Create Request flow (see sync).']],
     ['v1.8.43', ['New-ticket sound: the page now plays a chime when a brand-new request ID appears on refresh. A Sound/Muted toggle (bell icon) in the toolbar turns it on/off (remembered). Sound is synthesized in-browser, no audio file needed. (First click unlocks browser audio.)']],
     ['v1.8.42', ['MRUNDA is now a DISTINCT service from MP-NDA (no longer merged). Own type in cards, type filter and emails.']],
     ['v1.8.41', ['New Tech Node filter in the top toolbar: pick Intel 18A, Intel N-nodes, etc. to filter requests by technology (SharePoint TechNode field). Tech Node is also shown on each card.']],
@@ -2000,14 +2001,26 @@ async function separateCodename(id) {
 
     // Payload for the new Codename-only request. The flow creates the item and
     // should also update the original request to drop Codename from its RequestType.
+    // We copy the 3 people fields from the original so the new request keeps them
+    // IDENTICAL: Created By (Author), Assigned BD (Project Contact) and FCE Lead.
+    const claim = (email) => email ? ('i:0#.f|membership|' + email) : '';
+    const authorEmail = req0.requestorEmail || '';
+    const bdEmail = (req0.bdEmailList && req0.bdEmailList[0]) || '';
+    const fceEmail = (req0.fceLeadEmailList && req0.fceLeadEmailList[0]) || '';
     const payload = {
         sourceId: parseInt(id),
         customer: req0.customer || '',
         requestType: 'Codename',
         details: req0.details || '',
-        // People to carry over so the new request keeps context.
-        projectContactClaim: (req0.bdEmailList && req0.bdEmailList[0]) ? ('i:0#.f|membership|' + req0.bdEmailList[0]) : '',
-        fceLeadClaim: (req0.fceLeadEmailList && req0.fceLeadEmailList[0]) ? ('i:0#.f|membership|' + req0.fceLeadEmailList[0]) : '',
+        // Created By (Author) of the original — the new request must show the same creator.
+        authorEmail: authorEmail,
+        authorClaim: claim(authorEmail),
+        // Assigned BD (Project_x0020_Contact) copied as-is.
+        projectContactClaim: claim(bdEmail),
+        projectContactEmail: bdEmail,
+        // Assigned FCE Lead / Account Owner (AssignedFCELead) copied as-is.
+        fceLeadClaim: claim(fceEmail),
+        fceLeadEmail: fceEmail,
         // The remaining types the original request should keep (so the flow can
         // rewrite the original RequestType without Codename).
         remainingTypes: remainingTypes.join(';#')

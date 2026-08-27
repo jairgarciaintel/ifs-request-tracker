@@ -8,6 +8,8 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.44 — 2026-08-27
+- Separate request (Codename): el tracker ahora tambien manda del request original el Created By (Author), el Assigned BD (Project Contact) y el FCE Lead / Account Owner, para que el request nuevo de Codename conserve esos tres campos de personas identicos al original. Requiere el flow "Create Request" (instrucciones en sync).
 ## v1.8.43 — 2026-08-20
 - Sonido de nuevo ticket: la pagina suena una campanita cuando aparece un request nuevo (ID que no estaba) al refrescar. Toggle Sound/Muted (icono de campana SVG) en la barra para prender/apagar (se recuerda). El sonido se sintetiza en el navegador, no necesita archivo de audio. (El primer clic desbloquea el audio del navegador.)
 - El sonido de Outlook (cuando llega un correo del tracker) se configura en la regla de Outlook con "play a sound"; instrucciones en sync/Sonidos-y-regla-outlook.md.
