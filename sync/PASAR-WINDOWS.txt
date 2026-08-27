@@ -20,6 +20,14 @@ Confirmado en el Run history:
   (Jenn cuando se mando Jenn, Jair cuando se mando Jair).
 => SharePoint YA guarda el Assigned To correctamente.
 
-PENDIENTE que queda (Pendiente 4): que el flow de LECTURA "Get all requests"
-DEVUELVA la columna iGOAdminOnly_x002d_AssignedTo, para que el tracker la muestre
-tras Sync. Si no la trae, se ve vacio en la tarjeta aunque en SharePoint si este.
+CONFIRMADO END-TO-END (2026-08-27):
+- El flow de lectura SI devuelve iGOAdminOnly_x002d_AssignedTo (verificado leyendo
+  el 2712 directo: quedo "Glavan, Jenn").
+- En el TRACKER se ve correctamente el Assigned To (Jenn) tras Sync.
+- En SharePoint (la lista) NO se ve porque esa COLUMNA no esta en la vista, NO
+  porque este vacia. El dato SI esta guardado en el servidor.
+  Para verlo en SharePoint: abrir el item completo, o Show/hide columns y activar
+  "iGO Admin Only - Assigned To". (Cosmetico, no afecta el funcionamiento.)
+
+=> PENDIENTE 2 CERRADO. El Pendiente 4 (lectura) tambien queda confirmado OK para
+   este campo.
