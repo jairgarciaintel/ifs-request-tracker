@@ -172,3 +172,95 @@ https://default46c98d88e3444ed484964ed7712e25.5d.environment.api.powerplatform.c
         "errors": []
     }
 }ss
+
+
+
+
+
+
+
+{
+    "host": {
+        "connectionReferenceName": "shared_sharepointonline",
+        "operationId": "PostItem"
+    },
+    "parameters": {
+        "dataset": "https://intel.sharepoint.com/sites/ifs-igo-requests",
+        "table": "052c84aa-6a91-469d-9b44-35d068acc422",
+        "item/Title": "z",
+        "item/Priority/Value": "Medium",
+        "item/RequestType": [
+            {
+                "Value": "Code Name Request"
+            }
+        ],
+        "item/Details": "z",
+        "item/AssignedFCELead/Claims": "",
+        "item/Project_x0020_Contact": [
+            {
+                "Claims": ""
+            }
+        ]
+    }
+}
+
+
+{
+    "statusCode": 400,
+    "headers": {
+        "Cache-Control": "max-age=0, private",
+        "Vary": "Origin",
+        "X-FD-RouteKey": "intel",
+        "X-NetworkStatistics": "3,524039,601,18590,7697785,907536,907536,34619",
+        "X-MSEdge-Ref": "MIRA: 551f8128-4e7a-e73e-7747-9e682678a1cd SJ2P220CA0012 2026-08-27T06:46:03.592Z",
+        "X-1DSCollectorUrl": "https://mobile.events.data.microsoft.com/OneCollector/1.0/",
+        "IsOCDI": "0",
+        "Request-Id": "551f8128-4e7a-e73e-7747-9e682678a1cd",
+        "DATASERVICEVERSION": "3.0",
+        "X-NanoProxy": "1",
+        "SPRequestGuid": "d620c939-8d0c-4d4d-9556-12c389c1f49c",
+        "X-FD-RouteKeyApplicationEndpointList": "206-IPV4V6.CLUMP.DPRODMGD105.AA-RT.SHAREPOINT.COM",
+        "Content-Security-Policy": "frame-ancestors 'self' teams.microsoft.com *.teams.microsoft.com *.skype.com *.teams.microsoft.us local.teams.office.com teams.cloud.microsoft *.office365.com goals.cloud.microsoft *.powerapps.com *.powerbi.com *.yammer.com engage.cloud.microsoft word.cloud.microsoft excel.cloud.microsoft powerpoint.cloud.microsoft *.officeapps.live.com *.office.com *.microsoft365.com m365.cloud.microsoft *.cloud.microsoft *.stream.azure-test.net *.dynamics.com *.microsoft.com onedrive.live.com *.onedrive.live.com teams.microsoft.com *.teams.microsoft.com securebroker.sharepointonline.com;",
+        "MicrosoftSharePointTeamServices": "16.0.0.27612",
+        "MS-CV": "ojVCTKVwAPAraeeh4ydjHw.0",
+        "X-FEServer": "SJ2P220CA0012",
+        "X-MS-SPConnector": "1",
+        "SPClientServiceRequestDuration": "68",
+        "SPLogId": "4c4235a2-70a5-f000-2b69-e7a1e327631f",
+        "X-AriaCollectorURL": "https://browser.pipe.aria.microsoft.com/Collector/3.0/",
+        "X-SP-SERVERSTATE": "ReadOnly=0",
+        "X-DataBoundary": "NONE",
+        "X-BackEndHttpStatus": "400",
+        "X-Content-Type-Options": "nosniff",
+        "X-Frame-Options": "SAMEORIGIN",
+        "X-MS-InvokeApp": "1; RequireReadOnly",
+        "X-Proxy-BackendServerStatus": "400",
+        "X-Proxy-RoutingCorrectness": "1",
+        "X-SharePointHealthScore": "0",
+        "X-FirstHopCafeEFZ": "SJC",
+        "Alt-Svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+        "P3P": "CP=\"ALL IND DSP COR ADM CONo CUR CUSo IVAo IVDo PSA PSD TAI TELo OUR SAMo CNT COM INT NAV ONL PHY PRE PUR UNI\"",
+        "X-AspNet-Version": "4.0.30319",
+        "x-ms-environment-id": "default-46c98d88-e344-4ed4-8496-4ed7712e255d",
+        "x-ms-tenant-id": "46c98d88-e344-4ed4-8496-4ed7712e255d",
+        "x-ms-subscription-id": "197bf86c-a8ec-4d89-9f88-cfbf4cdaab01",
+        "x-ms-dlp-re": "postitem|False|2026-08-19T22:09:34.7182410+00:00",
+        "x-ms-dlp-gu": "-|-",
+        "x-ms-dlp-ef": "-|-/-|-|-|-|-",
+        "x-ms-mip-sl": "-|-|-|-",
+        "x-ms-au-creator-id": "2729280b-5169-4c3b-84ab-a3349cb8b8e2",
+        "Timing-Allow-Origin": "*",
+        "x-ms-apihub-cached-response": "true",
+        "x-ms-apihub-obo": "false",
+        "Date": "Thu, 27 Aug 2026 06:46:03 GMT",
+        "Content-Length": "193",
+        "Content-Type": "application/json",
+        "Expires": "Wed, 12 Aug 2026 06:46:03 GMT",
+        "Last-Modified": "Thu, 27 Aug 2026 06:46:03 GMT"
+    },
+    "body": {
+        "status": 400,
+        "message": "The specified user  could not be found.\r\nclientRequestId: d620c939-8d0c-4d4d-9556-12c389c1f49c\r\nserviceRequestId: 4c4235a2-70a5-f000-2b69-e7a1e327631f"
+    }
+}
