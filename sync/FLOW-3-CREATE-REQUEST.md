@@ -139,3 +139,20 @@ Requests de prueba creados hoy (borrar en SharePoint cuando quieras):
     }
 }
 
+
+
+============================================================
+## BUG ENCONTRADO (2026-08-27): Create item crea siempre "Code Name Request"
+============================================================
+Sintoma: al separar un IFS NDA, el request nuevo salio como Codename, no IFS NDA.
+Causa: en el flow, paso "Create item", el campo Request Type esta HARDCODEADO a
+       "Code Name Request" (Value - 1 fijo), ignora el token del tracker.
+El tracker SI manda el tipo correcto en el campo  requestType  (raw, ej. "IFS NDA").
+
+ARREGLO (flow "FS Tracker Create Request" -> Create item):
+1. Campo "Request Type" -> "Value - 1": borrar el texto fijo "Code Name Request".
+2. Poner el DYNAMIC CONTENT del trigger:  requestType
+   (asi usa lo que manda el tracker: IFS NDA, Codename, etc.)
+3. Guardar.
+
+Probar: separar un IFS NDA -> el request nuevo debe salir con RequestType = IFS NDA.
