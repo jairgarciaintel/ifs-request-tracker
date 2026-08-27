@@ -8,6 +8,10 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.49 — 2026-08-27
+- FAQ del chatbot ampliado: progress bar, age badges, notas, historial, export, dark mode, expand/collapse, paginacion, atajos, presencia/notificaciones, COD, DA Edit, MP-NDA/MRUNDA, sync, sort, version/changelog, report. En tracker y guia.
+- Guia: nuevo slide "Help Chatbot" y lista completa de status validos de SharePoint (agregados IT Request Submitted, On Hold, Canceled).
+- Blindaje del flow Separate documentado en sync/FLOW-3-CREATE-REQUEST.md (Soluciones A/B/C para requests sin Assigned BD; se limpiaron los marcadores de conflicto del archivo).
 ## v1.8.48 — 2026-08-27
 - Chatbot de ayuda (boton flotante abajo-derecha) en el tracker y en la guia. Responde dudas comunes (FAQ por palabras clave, sin IA externa ni costo) y tiene boton "Report it" que envia bugs/feature requests a jair.garcia@intel.com por el flow de correo existente. El asunto "[FS Tracker FEEDBACK]" NO lleva REQ., asi que llega al inbox (no a la carpeta del tracker). Los reportes se anexan en sync/FEATURE-REQUESTS.md.
 - Guia de usuario actualizada con todas las features nuevas (correos, Complete/COD/Codename, Assign, Separate, filtros multi-select/Tech Node, sonido). Imagenes img10-17 pendientes (se ocultan solas hasta que se agreguen).

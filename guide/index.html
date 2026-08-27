@@ -172,7 +172,7 @@ p,.body-text{font-size:clamp(0.9rem,1.6vw,1.2rem);color:var(--light);line-height
           <li><strong>Page → SharePoint</strong>: When you change the SharePoint Status dropdown, it updates the list</li>
         </ul>
         <h3 style="margin-top:1rem;">Valid SharePoint statuses:</h3>
-        <p><span class="pill pill-cyan">Info Requested</span> <span class="pill pill-cyan">Acknowledged</span> <span class="pill pill-amber">In Approval Loop</span> <span class="pill pill-amber">Out for Signature</span> <span class="pill pill-amber">WIP</span> <span class="pill pill-green">Complete</span></p>
+        <p><span class="pill pill-cyan">Info Requested</span> <span class="pill pill-cyan">Acknowledged</span> <span class="pill pill-amber">In Approval Loop</span> <span class="pill pill-amber">Out for Signature</span> <span class="pill pill-amber">WIP</span> <span class="pill pill-amber">IT Request Submitted</span> <span class="pill pill-green">Complete</span> <span class="pill pill-amber">On Hold</span> <span class="pill" style="background:rgba(204,0,0,0.1);color:#ff6b6b;border:1px solid rgba(204,0,0,0.3);">Canceled</span></p>
         <p style="margin-top:1rem;font-size:0.9rem;color:var(--light);">Internal steps (Configure AGS, etc.) do NOT update SharePoint — only the SharePoint Status dropdown does.</p>
       </div>
     </div>
@@ -366,6 +366,29 @@ p,.body-text{font-size:clamp(0.9rem,1.6vw,1.2rem);color:var(--light);line-height
   </div>
 </section>
 
+<!-- SLIDE 9B: Help Chatbot -->
+<section class="slide" style="background:radial-gradient(ellipse at 70% 30%,rgba(78,200,240,0.08),transparent 55%),var(--navy);">
+  <div class="circle c2" style="top:-6%;right:-6%;left:auto;"></div>
+  <img src="../Logo.png" alt="Intel Foundry" class="intel-logo"/>
+  <span class="confidential">Intel Confidential</span>
+  <div class="slide-content">
+    <h2>Help Chatbot</h2>
+    <div class="two-col">
+      <div>
+        <p>Both the tracker and this guide have a <strong>help chatbot</strong> — the round chat button in the bottom-right corner.</p>
+        <ul class="step-list">
+          <li><strong>Ask questions</strong> — type things like "how do emails work?" or "what is Test mode?" and it answers instantly. Suggested questions appear as chips.</li>
+          <li><strong>No AI cost, no setup</strong> — it answers from a built-in knowledge base of how the tracker works.</li>
+          <li><strong>Report a bug or feature</strong> — click <span class="pill pill-amber">Report it</span> at the bottom of the chat, type what you found or want, and hit Send.</li>
+          <li>The report is <strong>emailed to Jair</strong> for the next development round. It lands in the inbox (not the tracker-notifications folder), so nothing gets lost.</li>
+        </ul>
+        <p style="margin-top:0.8rem;color:var(--cyan);font-weight:600;">Use it any time you're stuck or have an idea to improve the tracker.</p>
+      </div>
+      <div><img src="img12.png" class="screenshot" alt="Help chatbot" onerror="this.style.display='none'"/></div>
+    </div>
+  </div>
+</section>
+
 <!-- SLIDE 10: Tips & Shortcuts -->
 <section class="slide" style="background:linear-gradient(160deg,var(--navy) 0%,var(--navy-mid) 50%,#0a2540 100%);">
   <div class="circle c1"></div><div class="circle c2"></div>
@@ -446,9 +469,25 @@ const HB_FAQ = [
   { k:['filter','filtro','type','tech node','buscar','search'], a:'Filters: Time, Type (multi-select), Assigned To, Tech Node, Status. Search matches customer, ID, DA number, DA link, portal or assignee.' },
   { k:['sound','sonido','chime','ticket'], a:'The bell icon toggles a chime when a brand-new request appears. Click once to unlock browser audio.' },
   { k:['status','sharepoint','sync'], a:'The SharePoint Status dropdown writes back to SharePoint. Data refreshes every 10 min or click Sync.' },
-  { k:['access','login','name','nombre','blocked'], a:'Only Jenn and Jair are authorized. Enter your name once. 3 wrong attempts = blocked 24h.' }
+  { k:['access','login','name','nombre','blocked'], a:'Only Jenn and Jair are authorized. Enter your name once. 3 wrong attempts = blocked 24h.' },
+  { k:['progress','progreso','bar','barra','percent','%'], a:'Each card shows a progress bar: 50% when In Progress and 100% when Complete.' },
+  { k:['age','edad','badge','days','dias','old','antiguo'], a:'Age badges: green under 7 days, amber 8-30 days, red over 30 days. Spot stale requests fast.' },
+  { k:['note','notes','nota','comment','comentario'], a:'Each request has a Notes box, saved and shared so Jenn and Jair both see it.' },
+  { k:['history','historial','change','cambios','who changed','quien cambio'], a:'Click the History icon to see who changed what and when. Each step also shows who changed it.' },
+  { k:['export','exportar','excel','csv','json','download','descargar'], a:'Export buttons in the toolbar download the current data as Excel or JSON.' },
+  { k:['dark','light','tema','theme','modo oscuro','mode'], a:'Toggle Dark/Light mode with the sun/moon button. Your choice is remembered.' },
+  { k:['expand','collapse','expandir','colapsar','all'], a:'Expand all / Collapse all open or close every card. Ctrl+E expands, Ctrl+W collapses.' },
+  { k:['pagination','pagina','page','50','next','previous'], a:'Results paginate 50 per page. Use the page arrows or left/right arrow keys.' },
+  { k:['shortcut','atajo','keyboard','teclado','ctrl'], a:'Shortcuts: Ctrl+E expand, Ctrl+W collapse, left/right arrows change page.' },
+  { k:['presence','presencia','open','abierto','other user','otro usuario'], a:'A presence indicator shows when the other user has a request open, plus a banner when they change something.' },
+  { k:['cod','send for signature','double'], a:'COD shares an Info Request + Route decision with DA Edit. Completing a COD asks for a double-confirmation.' },
+  { k:['da edit','edit','approval loop'], a:'DA Edit goes In Approval Loop then Add for Signature, sharing the routing decision with COD.' },
+  { k:['mp-nda','mrunda','multi-party','multi party','mpa'], a:'Multi-Party variants (MPA-IC, MPA-NDA, MP-NDA, MRUNDA, Multi-Party) are the same service, normalized to MP-NDA. MRUNDA shows separately in the type filter.' },
+  { k:['refresh','sync','update','actualizar','10 min'], a:'Data auto-syncs every 10 min. Click Sync to refresh now. Cmd+Shift+R if the page looks cached.' },
+  { k:['sort','ordenar','newest','oldest','unresolved'], a:'Sort by newest, oldest, or oldest unresolved first.' },
+  { k:['report','bug','feature','feedback','sugerencia'], a:"Use the 'Report it' link at the bottom of this chat to email a bug or feature to Jair." }
 ];
-const HB_SUGGEST=['How do I assign a request?','How do emails work?','What is Test mode?','How do I separate a Codename?'];
+const HB_SUGGEST=['How do I assign a request?','How do emails work?','What is Test mode?','How do I separate a Codename?','What do the age badges mean?','How do I export data?'];
 let hbReportMode=false;
 function hbToggle(){ const p=document.getElementById('hb-panel'); p.classList.toggle('open'); if(p.classList.contains('open') && !document.getElementById('hb-body').dataset.init){ hbBot("Hi! Ask me anything about using the FS Tracker, or report a bug/feature below."); hbChips(HB_SUGGEST); document.getElementById('hb-body').dataset.init='1'; } }
 function hbBubble(t,c){ const b=document.getElementById('hb-body'); const d=document.createElement('div'); d.className='hb-msg '+c; d.innerHTML=t; b.appendChild(d); b.scrollTop=b.scrollHeight; }

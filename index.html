@@ -234,9 +234,26 @@ const HB_FAQ = [
   { k:['sound','sonido','chime','ticket'], a:'The bell icon in the toolbar toggles a chime that plays when a brand-new request appears. Click it once to unlock browser audio.' },
   { k:['status','sharepoint','sync'], a:'The SharePoint Status dropdown inside each card writes back to SharePoint. Data refreshes from SharePoint every 10 min, or click <b>Sync</b> to refresh now.' },
   { k:['da link','dalink'], a:'When a request moves to In Approval Loop, a popup lets you paste the DA Link + DA number; it saves to SharePoint and shows on the card.' },
-  { k:['access','login','name','nombre','blocked'], a:'Only Jenn and Jair are authorized. Enter your name once. 3 wrong attempts = blocked 24h on that browser.' }
+  { k:['access','login','name','nombre','blocked'], a:'Only Jenn and Jair are authorized. Enter your name once. 3 wrong attempts = blocked 24h on that browser.' },
+  { k:['progress','progreso','bar','barra','percent','%'], a:'Each card shows a progress bar: 50% when the request is In Progress and 100% when Complete. It reflects how far along the request is.' },
+  { k:['age','edad','badge','days','dias','old','antiguo'], a:'Age badges color-code how old a request is: green under 7 days, amber 8-30 days, red over 30 days. Helps you spot stale requests fast.' },
+  { k:['note','notes','nota','comment','comentario'], a:'Every request has a Notes/comments box. Type a note and it is saved (shared via Firebase) so Jenn and Jair both see it.' },
+  { k:['history','historial','change','cambios','who changed','quien cambio'], a:'Click the History icon on a card to see the full change log: who changed what and when. Each step also shows who changed it next to the dropdown.' },
+  { k:['export','exportar','excel','csv','json','download','descargar'], a:'Use the Export buttons in the toolbar to download the current data as Excel or JSON.' },
+  { k:['dark','light','tema','theme','modo oscuro','mode'], a:'Toggle Dark/Light mode with the sun/moon button in the toolbar. Your choice is remembered on that browser.' },
+  { k:['expand','collapse','expandir','colapsar','all'], a:'Use Expand all / Collapse all to open or close every card at once. Shortcuts: Ctrl+E expands, Ctrl+W collapses.' },
+  { k:['pagination','pagina','page','50','next','previous'], a:'Results are paginated 50 per page. Use the page arrows at the bottom, or the left/right arrow keys, to move between pages.' },
+  { k:['shortcut','atajo','keyboard','teclado','ctrl'], a:'Keyboard shortcuts: Ctrl+E expand all, Ctrl+W collapse all, left/right arrows change page.' },
+  { k:['presence','presencia','open','abierto','other user','otro usuario'], a:'A presence indicator shows when the other user (Jenn or Jair) has a request open, and you get a banner notification when they change something (auto-dismisses in 8s).' },
+  { k:['cod','send for signature','double'], a:'COD requests share an Info Request + Route decision with DA Edit. Completing a COD asks for a double-confirmation instead of the portal popup.' },
+  { k:['da edit','edit','approval loop'], a:'DA Edit goes through In Approval Loop then Add for Signature, and shares the routing decision (diamond) with COD.' },
+  { k:['mp-nda','mrunda','multi-party','multi party','mpa'], a:'Multi-Party variants (MPA-IC, MPA-NDA, MP-NDA, MRUNDA, Multi-Party) are the same service; the tracker normalizes them and uses the MP-NDA email template. MRUNDA is shown separately in the type filter.' },
+  { k:['refresh','sync','update','actualizar','10 min'], a:'Data auto-syncs from SharePoint every 10 minutes. Click Sync to refresh immediately. Press Cmd+Shift+R if the page itself looks cached.' },
+  { k:['sort','ordenar','newest','oldest','unresolved'], a:'Sort options: newest first, oldest first, or oldest unresolved first (to tackle the most overdue open work).' },
+  { k:['version','changelog','what is new','novedades'], a:'The version number (top of the page) opens the changelog with everything new in each release.' },
+  { k:['report','bug','feature','feedback','sugerencia'], a:"Use the 'Report it' link at the bottom of this chat. Describe the bug or feature and it emails it to Jair for the next development round." }
 ];
-const HB_SUGGEST = ['How do I assign a request?','How do emails work?','What is Test mode?','How do I separate a Codename?','How do filters work?'];
+const HB_SUGGEST = ['How do I assign a request?','How do emails work?','What is Test mode?','How do I separate a Codename?','How do filters work?','What do the age badges mean?','How do I export data?'];
 let hbReportMode = false;
 function hbToggle(){ const p=document.getElementById('hb-panel'); p.classList.toggle('open'); if(p.classList.contains('open') && !document.getElementById('hb-body').dataset.init){ hbBot("Hi! I'm the FS Tracker helper. Ask me anything about using the tracker, or report a bug/feature below."); hbChips(HB_SUGGEST); document.getElementById('hb-body').dataset.init='1'; } }
 function hbBubble(text, cls){ const b=document.getElementById('hb-body'); const d=document.createElement('div'); d.className='hb-msg '+cls; d.innerHTML=text; b.appendChild(d); b.scrollTop=b.scrollHeight; }
@@ -666,10 +683,11 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.48';
+const APP_VERSION = 'v1.8.49';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
+    ['v1.8.49', ['Help chatbot FAQ expanded with many more answers (progress bar, age badges, notes, history, export, dark mode, expand/collapse, pagination, shortcuts, presence, COD, DA Edit, MP-NDA/MRUNDA, sync, sort). Added a Help Chatbot slide to the user guide and listed all valid SharePoint statuses. Documented the "Separate" flow hardening for requests with no Assigned BD in sync/FLOW-3-CREATE-REQUEST.md.']],
     ['v1.8.48', ['Help chatbot added (floating button, bottom-right) on the tracker and the user guide. It answers common questions (FAQ, no external AI) and has a "Report it" button that emails bugs/feature requests to Jair via the existing email flow. The report subject has no "REQ." so it lands in the inbox, not the tracker folder. Guide updated with all the new features.']],
     ['v1.8.47', ['Type filter is now MULTI-SELECT: the "All Types" dropdown became a checkbox menu — pick several types and it shows requests matching ANY of them; pick one and it shows only that one; none = all. Clear button included.']],
     ['v1.8.46', ['Separate request now covers Codename AND IFS NDA (each must be on its own request; New DA + Portal Creation stay together). It also uses the EXACT SharePoint option names (requestTypeRaw) when rewriting RequestType, since the choices are case/word specific (e.g. "Portal creation", "Code Name Request"). NOTE: writing multiple remaining types (New DA + Portal) still under test on the flow side.']],

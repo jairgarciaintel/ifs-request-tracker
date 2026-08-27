@@ -1,380 +1,117 @@
-# FLOW 3 - Create Request (Separate) - ESTADO
+# FLOW 3 - Create Request (Separate) - ESTADO Y BLINDAJE
 
 Flow "FS Tracker Create Request" (workflow 589245b5). Conectado en el tracker
-(CONFIG.createRequestUrl, v1.8.45+).
+(CONFIG.createRequestUrl, v1.8.45+). Se usa cuando das clic en "Separate request".
 
 ============================================================
-## FUNCIONA (probado 2026-08-27)
+## ESTADO: FUNCIONA
 ============================================================
-- Crea un request NUEVO con el servicio separado (Codename o IFS NDA).
-- Deja el request ORIGINAL con los tipos restantes, INCLUSO VARIOS
-  (ej. "New DA" + "Portal creation" juntos). El multi-valor SI funciona.
-- CLAVE: hay que usar los NOMBRES EXACTOS de SharePoint (case/word sensitive):
+- Crea un request NUEVO con el servicio separado (Codename o IFS NDA) con el
+  RequestType CORRECTO.
+- Copia Assigned BD (Project Contact) y FCE Lead del request original.
+- Deja el request ORIGINAL con los tipos restantes, incluso varios juntos
+  (ej. "New DA" + "Portal creation"). El multi-valor SI funciona.
+
+CLAVE ya resuelta:
+- RequestType usa expresion fx en "Value - 1":  triggerBody()?['requestType']
+  (el dropdown/dynamic content NO lo aceptaban; la EXPRESION fx SI).
+- Nombres EXACTOS de SharePoint (case/word sensitive):
     "New DA", "Portal creation" (c minuscula), "Code Name Request", "IFS NDA",
-    "DA edit", "WebView AGS role", "MRUNDA", "MP-NDA", etc.
-  El tracker ya manda requestTypeRaw (el nombre exacto), unidos por ;# .
-  Ejemplo remainingTypes que SI guardo los dos: "New DA;#Portal creation".
+    "DA edit", "WebView AGS role", "MRUNDA", "MP-NDA".
+  El tracker manda requestTypeRaw (nombre exacto). remainingTypes unidos por ;# .
 
 ============================================================
-## PENDIENTE / BLINDAR (importante)
+## BLINDAJE: request SIN Assigned BD (Project Contact vacio)
 ============================================================
-Si un request NO tiene BD (Project Contact) o FCE Lead, el claim llega VACIO ("")
-y el "Create item" TRUENA con:
+### El problema
+El tracker SIEMPRE manda los campos de persona, pero si el request no trae BD o
+FCE Lead, manda el claim como "" (string vacio). Entonces el "Create item" arma:
+
+    "item/Project_x0020_Contact": [ { "Claims": "" } ]
+
+y SharePoint truena con:
+
     status 400 - "The specified user could not be found."
-(visto cuando projectContactClaim / fceLeadClaim = "").
 
-ARREGLO en el flow, paso "Create item", en los campos Person usar expresion que
-mande null si viene vacio:
+Esto pasa porque un ARRAY con un objeto de Claims vacio NO es lo mismo que "sin
+persona": SharePoint intenta resolver el usuario "" y no existe.
 
-  Campo "Assigned FCE Lead or Account Owner Claims":
+### La regla de negocio (confirmada con el usuario)
+- COMPANY (Title) es el UNICO campo 100% obligatorio.
+- FCE Lead: es obligatorio en SharePoint (asterisco rojo), asi que casi siempre viene.
+- Assigned BD (Project Contact): NO es obligatorio -> ESTE es el que puede venir vacio.
+Por eso el blindaje importa sobre todo para Project Contact.
+
+------------------------------------------------------------
+### SOLUCION A (rapida, ya intentada con fx) - probar primero
+------------------------------------------------------------
+En el "Create item", en cada campo Person usar una expresion fx que mande null
+cuando el claim viene vacio:
+
+  Campo "Assigned FCE Lead or Account Owner - Claims":
     if(empty(triggerBody()?['fceLeadClaim']), null, triggerBody()?['fceLeadClaim'])
 
-  Campo "Assigned BD - Claims" (Project Contact):
+  Campo "Assigned BD / Project Contact - Claims":
     if(empty(triggerBody()?['projectContactClaim']), null, triggerBody()?['projectContactClaim'])
 
-  (Opcional, si el Author tambien puede venir vacio, igual con authorClaim.)
+OJO: Project Contact es multi-value (array). Si al meter la expresion en "Claims"
+el array sigue quedando como [ { "Claims": null } ], puede que SharePoint aun se
+queje. Si eso pasa, usar la SOLUCION B (es la robusta).
 
-Con eso, si falta BD o FCE Lead, crea el request sin esa persona en vez de fallar.
+------------------------------------------------------------
+### SOLUCION B (robusta, recomendada) - Condition antes del Create
+------------------------------------------------------------
+Idea: hacer DOS ramas segun venga o no el BD, para que el array de Project Contact
+exista SOLO cuando hay persona. Asi nunca mandas [{Claims:""}].
+
+Pasos en el flow "FS Tracker Create Request":
+
+1. Despues del trigger, agrega una accion "Condition".
+   - Condicion:  triggerBody()?['projectContactClaim']  is not equal to  (dejar vacio)
+     (en fx del lado izquierdo puedes poner: empty(triggerBody()?['projectContactClaim'])
+      y comparar  is equal to  false)
+
+2. Rama "If yes" (SI hay BD): pon un "Create item" que INCLUYA Project Contact:
+       item/Project_x0020_Contact  ->  Claims:  triggerBody()?['projectContactClaim']
+
+3. Rama "If no" (NO hay BD): pon otro "Create item" IGUAL pero SIN el campo
+   Project Contact (borralo del formulario, deja el campo Person vacio, no lo mandes).
+
+4. En AMBAS ramas, el FCE Lead usa la expresion fx de la Solucion A
+   (por si tambien llegara vacio):
+       if(empty(triggerBody()?['fceLeadClaim']), null, triggerBody()?['fceLeadClaim'])
+
+Con esto: si el request no trae BD, se crea igual (sin BD) en vez de fallar.
+
+------------------------------------------------------------
+### SOLUCION C (alternativa avanzada) - "Send an HTTP request to SharePoint"
+------------------------------------------------------------
+Sacar Project Contact del Create item y, solo si hay BD, hacer despues un
+"Send an HTTP request to SharePoint" (PATCH al item) para setear el campo.
+Mas control, pero mas trabajo. Solo si A y B no te convencen.
 
 ============================================================
-## REGLA DE NEGOCIO (confirmada)
+## PAYLOAD que manda el tracker (referencia)
 ============================================================
-- Codename  -> SIEMPRE en su propio request (se separa).
-- IFS NDA   -> SIEMPRE en su propio request (se separa).
-- New DA + Portal Creation -> se quedan JUNTOS (no se separan).
-- El boton "Separate request" aparece cuando hay Codename o IFS NDA mezclado con
-  otro servicio. Al darle: crea 1 request nuevo por cada standalone y deja el resto
-  (New DA + Portal, etc.) en el original.
-
-============================================================
-## LIMPIEZA
-============================================================
-Requests de prueba creados hoy (borrar en SharePoint cuando quieras):
-2713, 2714, 2715, 2716 (TEST ...).
-
-
-
 {
-    "host": {
-        "connectionReferenceName": "shared_sharepointonline",
-        "operationId": "PostItem"
-    },
-    "parameters": {
-        "dataset": "https://intel.sharepoint.com/sites/ifs-igo-requests",
-        "table": "052c84aa-6a91-469d-9b44-35d068acc422",
-        "item/Title": "TEST blindaje sin BD",
-        "item/Priority/Value": "Medium",
-        "item/RequestType": [
-            {
-                "Value": "Code Name Request"
-            }
-        ],
-        "item/Details": "prueba sin BD ni FCE",
-        "item/AssignedFCELead/Claims": null,
-        "item/Project_x0020_Contact": [
-            {
-                "Claims": ""
-            }
-        ]
-    }
+  "sourceId": <id original>,
+  "customer": "<Company>",
+  "requestType": "<tipo RAW, ej. IFS NDA>",
+  "details": "<detalles>",
+  "authorEmail": "<correo creador o ''>",
+  "authorClaim": "i:0#.f|membership|<correo>  o  ''",
+  "projectContactClaim": "i:0#.f|membership|<correo BD>  o  ''",   <- puede venir ''
+  "projectContactEmail": "<correo BD o ''>",
+  "fceLeadClaim": "i:0#.f|membership|<correo FCE>  o  ''",
+  "fceLeadEmail": "<correo FCE o ''>",
+  "remainingTypes": "New DA;#Portal creation"
 }
 
-{
-    "statusCode": 400,
-    "headers": {
-        "Cache-Control": "max-age=0, private",
-        "Vary": "Origin",
-        "X-FD-RouteKey": "intel",
-        "X-NetworkStatistics": "0,1048279,43,130,754777,2096896,2096896,28756",
-        "X-MSEdge-Ref": "MIRA: 2fe39426-6902-332e-95b1-b6fcfb165c1a SJ2PR07CA0016 2026-08-27T07:02:30.539Z",
-        "X-1DSCollectorUrl": "https://mobile.events.data.microsoft.com/OneCollector/1.0/",
-        "IsOCDI": "0",
-        "Request-Id": "2fe39426-6902-332e-95b1-b6fcfb165c1a",
-        "DATASERVICEVERSION": "3.0",
-        "X-NanoProxy": "1",
-        "SPRequestGuid": "80a3a91e-311c-42c2-91f3-57749cb1b32c",
-        "X-FD-RouteKeyApplicationEndpointList": "206-IPV4V6.CLUMP.DPRODMGD105.AA-RT.SHAREPOINT.COM",
-        "Content-Security-Policy": "frame-ancestors 'self' teams.microsoft.com *.teams.microsoft.com *.skype.com *.teams.microsoft.us local.teams.office.com teams.cloud.microsoft *.office365.com goals.cloud.microsoft *.powerapps.com *.powerbi.com *.yammer.com engage.cloud.microsoft word.cloud.microsoft excel.cloud.microsoft powerpoint.cloud.microsoft *.officeapps.live.com *.office.com *.microsoft365.com m365.cloud.microsoft *.cloud.microsoft *.stream.azure-test.net *.dynamics.com *.microsoft.com onedrive.live.com *.onedrive.live.com teams.microsoft.com *.teams.microsoft.com securebroker.sharepointonline.com;",
-        "MicrosoftSharePointTeamServices": "16.0.0.27612",
-        "MS-CV": "ojVDPZnAAPArae9tV9BhoQ.0",
-        "X-FEServer": "SJ2PR07CA0016",
-        "X-MS-SPConnector": "1",
-        "SPClientServiceRequestDuration": "50",
-        "SPLogId": "3d4335a2-c099-f000-2b69-ef6d57d061a1",
-        "X-AriaCollectorURL": "https://browser.pipe.aria.microsoft.com/Collector/3.0/",
-        "X-SP-SERVERSTATE": "ReadOnly=0",
-        "X-DataBoundary": "NONE",
-        "X-BackEndHttpStatus": "400",
-        "X-Content-Type-Options": "nosniff",
-        "X-Frame-Options": "SAMEORIGIN",
-        "X-MS-InvokeApp": "1; RequireReadOnly",
-        "X-Proxy-BackendServerStatus": "400",
-        "X-Proxy-RoutingCorrectness": "1",
-        "X-SharePointHealthScore": "1",
-        "X-FirstHopCafeEFZ": "SJC",
-        "Alt-Svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
-        "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
-        "P3P": "CP=\"ALL IND DSP COR ADM CONo CUR CUSo IVAo IVDo PSA PSD TAI TELo OUR SAMo CNT COM INT NAV ONL PHY PRE PUR UNI\"",
-        "X-AspNet-Version": "4.0.30319",
-        "x-ms-environment-id": "default-46c98d88-e344-4ed4-8496-4ed7712e255d",
-        "x-ms-tenant-id": "46c98d88-e344-4ed4-8496-4ed7712e255d",
-        "x-ms-subscription-id": "197bf86c-a8ec-4d89-9f88-cfbf4cdaab01",
-        "x-ms-dlp-re": "postitem|False|2026-08-19T22:09:34.7182410+00:00",
-        "x-ms-dlp-gu": "-|-",
-        "x-ms-dlp-ef": "-|-/-|-|-|-|-",
-        "x-ms-mip-sl": "-|-|-|-",
-        "x-ms-au-creator-id": "2729280b-5169-4c3b-84ab-a3349cb8b8e2",
-        "Timing-Allow-Origin": "*",
-        "x-ms-apihub-cached-response": "false",
-        "x-ms-apihub-obo": "false",
-        "Date": "Thu, 27 Aug 2026 07:02:30 GMT",
-        "Content-Length": "193",
-        "Content-Type": "application/json",
-        "Expires": "Wed, 12 Aug 2026 07:02:30 GMT",
-        "Last-Modified": "Thu, 27 Aug 2026 07:02:30 GMT"
-    },
-    "body": {
-        "status": 400,
-        "message": "The specified user  could not be found.\r\nclientRequestId: 80a3a91e-311c-42c2-91f3-57749cb1b32c\r\nserviceRequestId: 3d4335a2-c099-f000-2b69-ef6d57d061a1"
-    }
-}
-
-
-
-<<<<<<< HEAD
-
-No dynamic content available
-Empty dynamic content iconThere is no content available
-Including dynamic content
-If available, dynamic content is automatically generated from the connectors and actions you choose for your flow.
-
-Dynamic content may also be added from other sources.
-Learn more about dynamic content.
-=======
-============================================================
-## BUG ENCONTRADO (2026-08-27): Create item crea siempre "Code Name Request"
-============================================================
-Sintoma: al separar un IFS NDA, el request nuevo salio como Codename, no IFS NDA.
-Causa: en el flow, paso "Create item", el campo Request Type esta HARDCODEADO a
-       "Code Name Request" (Value - 1 fijo), ignora el token del tracker.
-El tracker SI manda el tipo correcto en el campo  requestType  (raw, ej. "IFS NDA").
-
-ARREGLO (flow "FS Tracker Create Request" -> Create item):
-1. Campo "Request Type" -> "Value - 1": borrar el texto fijo "Code Name Request".
-2. Poner el DYNAMIC CONTENT del trigger:  requestType
-   (asi usa lo que manda el tracker: IFS NDA, Codename, etc.)
-3. Guardar.
-
-Probar: separar un IFS NDA -> el request nuevo debe salir con RequestType = IFS NDA.
->>>>>>> 8e53e01adb7e5682bc835dff01203259fd05d53d
-
-
-{
-    "host": {
-        "connectionReferenceName": "shared_sharepointonline",
-        "operationId": "PostItem"
-    },
-    "parameters": {
-        "dataset": "https://intel.sharepoint.com/sites/ifs-igo-requests",
-        "table": "052c84aa-6a91-469d-9b44-35d068acc422",
-        "item/Title": "TEST IFS NDA type",
-        "item/Priority/Value": "Medium",
-        "item/RequestType": [
-            {
-                "Value": "Code Name Request"
-            }
-        ],
-        "item/Details": "verificar que crea IFS NDA",
-        "item/AssignedFCELead/Claims": "i:0#.f|membership|puneet.sawhney@intel.com",
-        "item/Project_x0020_Contact": [
-            {
-                "Claims": "i:0#.f|membership|jenn.glavan@intel.com"
-            }
-        ]
-    }
-}{
-    "statusCode": 201,
-    "headers": {
-        "Cache-Control": "max-age=0, private",
-        "Vary": "Origin",
-        "X-FD-RouteKey": "intel",
-        "X-NetworkStatistics": "3,523917,40,627,8423215,12736038,12736038,32812",
-        "X-MSEdge-Ref": "MIRA: 8fa561b7-ce29-e838-530f-ea8115f991bb BY1P220CA0020 2026-08-27T07:32:25.695Z",
-        "X-1DSCollectorUrl": "https://mobile.events.data.microsoft.com/OneCollector/1.0/",
-        "IsOCDI": "0",
-        "Request-Id": "8fa561b7-ce29-e838-530f-ea8115f991bb",
-        "DATASERVICEVERSION": "3.0",
-        "X-NanoProxy": "1",
-        "SPRequestGuid": "982aa47e-56ef-4c17-9a49-f3b516e51a50",
-        "X-FD-RouteKeyApplicationEndpointList": "206-IPV4V6.CLUMP.DPRODMGD105.AA-RT.SHAREPOINT.COM",
-        "Content-Security-Policy": "frame-ancestors 'self' teams.microsoft.com *.teams.microsoft.com *.skype.com *.teams.microsoft.us local.teams.office.com teams.cloud.microsoft *.office365.com goals.cloud.microsoft *.powerapps.com *.powerbi.com *.yammer.com engage.cloud.microsoft word.cloud.microsoft excel.cloud.microsoft powerpoint.cloud.microsoft *.officeapps.live.com *.office.com *.microsoft365.com m365.cloud.microsoft *.cloud.microsoft *.stream.azure-test.net *.dynamics.com *.microsoft.com onedrive.live.com *.onedrive.live.com teams.microsoft.com *.teams.microsoft.com securebroker.sharepointonline.com;",
-        "MicrosoftSharePointTeamServices": "16.0.0.27612",
-        "MS-CV": "ojVE897QAPArae2TYMOzSQ.0",
-        "X-FEServer": "BY1P220CA0020",
-        "X-MS-SPConnector": "1",
-        "SPClientServiceRequestDuration": "338",
-        "SPLogId": "f34435a2-d0de-f000-2b69-ed9360c3b349",
-        "X-AriaCollectorURL": "https://browser.pipe.aria.microsoft.com/Collector/3.0/",
-        "X-SP-SERVERSTATE": "ReadOnly=0",
-        "X-DataBoundary": "NONE",
-        "X-BackEndHttpStatus": "201",
-        "X-Content-Type-Options": "nosniff",
-        "X-Frame-Options": "SAMEORIGIN",
-        "X-MS-InvokeApp": "1; RequireReadOnly",
-        "X-Proxy-BackendServerStatus": "201",
-        "X-Proxy-RoutingCorrectness": "1",
-        "X-SharePointHealthScore": "3",
-        "X-FirstHopCafeEFZ": "SJC",
-        "Alt-Svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
-        "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
-        "P3P": "CP=\"ALL IND DSP COR ADM CONo CUR CUSo IVAo IVDo PSA PSD TAI TELo OUR SAMo CNT COM INT NAV ONL PHY PRE PUR UNI\"",
-        "X-AspNet-Version": "4.0.30319",
-        "x-ms-environment-id": "default-46c98d88-e344-4ed4-8496-4ed7712e255d",
-        "x-ms-tenant-id": "46c98d88-e344-4ed4-8496-4ed7712e255d",
-        "x-ms-subscription-id": "197bf86c-a8ec-4d89-9f88-cfbf4cdaab01",
-        "x-ms-dlp-re": "postitem|False|2026-08-19T22:09:34.7182410+00:00",
-        "x-ms-dlp-gu": "-|-",
-        "x-ms-dlp-ef": "-|-/-|-|-|-|-",
-        "x-ms-mip-sl": "-|-|-|-",
-        "x-ms-au-creator-id": "2729280b-5169-4c3b-84ab-a3349cb8b8e2",
-        "Timing-Allow-Origin": "*",
-        "x-ms-apihub-cached-response": "false",
-        "x-ms-apihub-obo": "false",
-        "Date": "Thu, 27 Aug 2026 07:32:25 GMT",
-        "Content-Length": "3903",
-        "Content-Type": "application/json; charset=utf-8",
-        "Expires": "Wed, 12 Aug 2026 07:32:25 GMT",
-        "Last-Modified": "Thu, 27 Aug 2026 07:32:25 GMT"
-    },
-    "body": {
-        "@odata.etag": "\"1\"",
-        "ItemInternalId": "2718",
-        "ID": 2718,
-        "Title": "TEST IFS NDA type",
-        "Created": "2026-08-27T07:32:26Z",
-        "TechNode": [],
-        "TechNode@odata.type": "#Collection(Microsoft.Azure.Connectors.SharePoint.SPListExpandedReference)",
-        "TechNode#Id": [],
-        "TechNode#Id@odata.type": "#Collection(Int64)",
-        "Author": {
-            "@odata.type": "#Microsoft.Azure.Connectors.SharePoint.SPListExpandedUser",
-            "Claims": "i:0#.f|membership|jair.garcia@intel.com",
-            "DisplayName": "Garcia, Jair",
-            "Email": "jair.garcia@intel.com",
-            "Picture": "https://intel.sharepoint.com/sites/ifs-igo-requests/_layouts/15/UserPhoto.aspx?Size=L&AccountName=jair.garcia@intel.com",
-            "Department": "INTEGRATED CUSTOMER SOLUTIONS",
-            "JobTitle": "11571195"
-        },
-        "Author#Claims": "i:0#.f|membership|jair.garcia@intel.com",
-        "Priority": {
-            "@odata.type": "#Microsoft.Azure.Connectors.SharePoint.SPListExpandedReference",
-            "Id": 2,
-            "Value": "Medium"
-        },
-        "Priority#Id": 2,
-        "RequestType": [
-            {
-                "@odata.type": "#Microsoft.Azure.Connectors.SharePoint.SPListExpandedReference",
-                "Id": 1,
-                "Value": "Code Name Request"
-            }
-        ],
-        "RequestType@odata.type": "#Collection(Microsoft.Azure.Connectors.SharePoint.SPListExpandedReference)",
-        "RequestType#Id": [
-            1
-        ],
-        "RequestType#Id@odata.type": "#Collection(Int64)",
-        "Details": "verificar que crea IFS NDA",
-        "AssignedFCELead": {
-            "@odata.type": "#Microsoft.Azure.Connectors.SharePoint.SPListExpandedUser",
-            "Claims": "i:0#.f|membership|puneet.sawhney@intel.com",
-            "DisplayName": "Sawhney, Puneet",
-            "Email": "puneet.sawhney@intel.com",
-            "Picture": "https://intel.sharepoint.com/sites/ifs-igo-requests/_layouts/15/UserPhoto.aspx?Size=L&AccountName=puneet.sawhney@intel.com",
-            "Department": "14A ETO TECH MKTG & PLATFORM",
-            "JobTitle": "11954410"
-        },
-        "AssignedFCELead#Claims": "i:0#.f|membership|puneet.sawhney@intel.com",
-        "Editor": {
-            "@odata.type": "#Microsoft.Azure.Connectors.SharePoint.SPListExpandedUser",
-            "Claims": "i:0#.f|membership|jair.garcia@intel.com",
-            "DisplayName": "Garcia, Jair",
-            "Email": "jair.garcia@intel.com",
-            "Picture": "https://intel.sharepoint.com/sites/ifs-igo-requests/_layouts/15/UserPhoto.aspx?Size=L&AccountName=jair.garcia@intel.com",
-            "Department": "INTEGRATED CUSTOMER SOLUTIONS",
-            "JobTitle": "11571195"
-        },
-        "Editor#Claims": "i:0#.f|membership|jair.garcia@intel.com",
-        "Project_x0020_Contact": [
-            {
-                "@odata.type": "#Microsoft.Azure.Connectors.SharePoint.SPListExpandedUser",
-                "Claims": "i:0#.f|membership|jenn.glavan@intel.com",
-                "DisplayName": "Glavan, Jenn",
-                "Email": "jenn.glavan@intel.com",
-                "Picture": "https://intel.sharepoint.com/sites/ifs-igo-requests/_layouts/15/UserPhoto.aspx?Size=L&AccountName=jenn.glavan@intel.com",
-                "Department": "INTEGRATED CUSTOMER SOLUTIONS",
-                "JobTitle": "10554118"
-            }
-        ],
-        "Project_x0020_Contact@odata.type": "#Collection(Microsoft.Azure.Connectors.SharePoint.SPListExpandedUser)",
-        "Project_x0020_Contact#Claims": [
-            "i:0#.f|membership|jenn.glavan@intel.com"
-        ],
-        "Project_x0020_Contact#Claims@odata.type": "#Collection(String)",
-        "iGOAdminOnly_x002d_Contracttype": {
-            "@odata.type": "#Microsoft.Azure.Connectors.SharePoint.SPListExpandedReference",
-            "Id": 3,
-            "Value": "NTD"
-        },
-        "iGOAdminOnly_x002d_Contracttype#Id": 3,
-        "Modified": "2026-08-27T07:32:26Z",
-        "{Identifier}": "Lists%252fNew%2bDA%2bRequest%252f2718_.000",
-        "{IsFolder}": false,
-        "{Thumbnail}": {
-            "Large": null,
-            "Medium": null,
-            "Small": null
-        },
-        "{Link}": "https://intel.sharepoint.com/sites/ifs-igo-requests/_layouts/15/listform.aspx?PageType=4&ListId=052c84aa%2D6a91%2D469d%2D9b44%2D35d068acc422&ID=2718&ContentTypeID=0x0100F37EA9E070FDB147A8961682D0C6335200CDB1CB2B0187494798E496B0B8DB2F35",
-        "{Name}": "TEST IFS NDA type",
-        "{FilenameWithExtension}": "TEST IFS NDA type",
-        "{Path}": "Lists/New DA Request/",
-        "{FullPath}": "Lists/New DA Request/2718_.000",
-        "{ContentType}": {
-            "@odata.type": "#Microsoft.Azure.Connectors.SharePoint.SPListExpandedContentType",
-            "Id": "0x0100F37EA9E070FDB147A8961682D0C6335200CDB1CB2B0187494798E496B0B8DB2F35",
-            "Name": "Item"
-        },
-        "{ContentType}#Id": "0x0100F37EA9E070FDB147A8961682D0C6335200CDB1CB2B0187494798E496B0B8DB2F35",
-        "{HasAttachments}": false,
-        "{VersionNumber}": "1.0"
-    }
-}
-
+Claim vacio = ""  ->  ese es el caso a blindar (empty() lo detecta).
 
 ============================================================
-## FIX confirmado: el dropdown Value NO tomo el token (sigue "Code Name Request")
+## INPUT DEL CREATE ITEM (como debe quedar) - Solucion A
 ============================================================
-El input del Create item sigue con:
-    "item/RequestType": [ { "Value": "Code Name Request" } ]
-aunque el tracker manda requestType="IFS NDA". El dropdown choice revierte el token.
-
-SOLUCION (usar Code view del Create item):
-1. Flow "FS Tracker Create Request" -> paso "Create item" -> pestana "Code view".
-2. Buscar:
-       "item/RequestType": [ { "Value": "Code Name Request" } ]
-3. Cambiar por:
-       "item/RequestType": [ { "Value": "@{triggerBody()?['requestType']}" } ]
-4. Guardar.
-
-Alternativa (si no usas Code view): en el dropdown "Value - 1" del Request Type,
-elegir "Enter custom value" y ahi meter el dynamic content requestType. Pero el
-Code view es lo mas seguro.
-
-Probar: separar un IFS NDA -> el request nuevo debe salir con RequestType = IFS NDA.
-
-
-
 {
   "type": "OpenApiConnection",
   "inputs": {
@@ -383,14 +120,10 @@ Probar: separar un IFS NDA -> el request nuevo debe salir con RequestType = IFS 
       "table": "052c84aa-6a91-469d-9b44-35d068acc422",
       "item/Title": "@triggerBody()?['customer']",
       "item/Priority/Value": "Medium",
-      "item/RequestType": "@triggerBody()?['requestType']",
+      "item/RequestType": [ { "Value": "@{triggerBody()?['requestType']}" } ],
       "item/Details": "@triggerBody()?['details']",
       "item/AssignedFCELead/Claims": "@if(empty(triggerBody()?['fceLeadClaim']), null, triggerBody()?['fceLeadClaim'])",
-      "item/Project_x0020_Contact": [
-        {
-          "Claims": "@{if(empty(triggerBody()?['projectContactClaim']), null, triggerBody()?['projectContactClaim'])\r\n}"
-        }
-      ]
+      "item/Project_x0020_Contact": "@if(empty(triggerBody()?['projectContactClaim']), null, json('[]'))"
     },
     "host": {
       "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
@@ -401,22 +134,22 @@ Probar: separar un IFS NDA -> el request nuevo debe salir con RequestType = IFS 
   "runAfter": {}
 }
 
+NOTA sobre Project Contact en la Solucion A:
+- Si el Code view es solo lectura en tu flow (ya nos paso), NO podras pegar esto.
+  En ese caso usa la Solucion B (Condition con dos Create item), que se hace
+  todo con la UI sin Code view.
 
 ============================================================
-## RESUELTO (2026-08-27): RequestType ya usa el tipo correcto
+## COMO PROBAR EL BLINDAJE
 ============================================================
-Fix final: en el Create item, campo Request Type -> "Value - 1" -> pestana fx
-(Expression) -> triggerBody()?['requestType']  (el dropdown/dynamic content NO lo
-aceptaba; el Code view era solo lectura; la EXPRESION fx en Value-1 SI funciono).
-Probado: separar IFS NDA creo el 2719 con Types ['IFS NDA'] (correcto).
+Prueba 1 (sin BD): en el tracker separa un Codename de un request que NO tenga
+  Assigned BD. Debe crear el request nuevo SIN error.
+Prueba 2 (con BD): separa uno que SI tenga BD. Debe copiar el BD normal.
+Prueba 3 (real): con un request real de produccion (casi siempre trae BD/FCE).
 
-ESTADO DEL FLOW 3 = FUNCIONA:
-- Crea request nuevo con el TIPO correcto (IFS NDA / Codename / etc.).
-- Copia Assigned BD (Project Contact) y FCE Lead.
-- Deja el original con los tipos restantes (incluso varios: New DA + Portal creation).
-- Boton cubre Codename e IFS NDA.
+Ver resultado en Power Automate > el flow > Run history (verde = ok, rojo = revisar).
 
-PENDIENTE MENOR: si un request NO trae Assigned BD (Project Contact vacio), el
-Create item puede truncar ("user could not be found") porque el array queda
-[{Claims:""}]. Los requests reales casi siempre traen BD, asi que es borde.
-Requests de prueba a borrar en SharePoint: 2713-2719 (TEST...).
+============================================================
+## LIMPIEZA
+============================================================
+Borrar en SharePoint los requests de prueba: 2713-2719 (empiezan con "TEST").
