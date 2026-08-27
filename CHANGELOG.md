@@ -8,6 +8,9 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.48 — 2026-08-27
+- Chatbot de ayuda (boton flotante abajo-derecha) en el tracker y en la guia. Responde dudas comunes (FAQ por palabras clave, sin IA externa ni costo) y tiene boton "Report it" que envia bugs/feature requests a jair.garcia@intel.com por el flow de correo existente. El asunto "[FS Tracker FEEDBACK]" NO lleva REQ., asi que llega al inbox (no a la carpeta del tracker). Los reportes se anexan en sync/FEATURE-REQUESTS.md.
+- Guia de usuario actualizada con todas las features nuevas (correos, Complete/COD/Codename, Assign, Separate, filtros multi-select/Tech Node, sonido). Imagenes img10-17 pendientes (se ocultan solas hasta que se agreguen).
 ## v1.8.47 — 2026-08-27
 - Filtro de tipos ahora es MULTI-SELECT: el dropdown "All Types" se volvio un menu de checkboxes. Seleccionas varios tipos y muestra los requests que tengan CUALQUIERA de ellos; seleccionas uno y muestra solo ese; ninguno = todos. Incluye boton Clear.
 ## v1.8.46 — 2026-08-27

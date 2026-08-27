@@ -400,6 +400,72 @@ p,.body-text{font-size:clamp(0.9rem,1.6vw,1.2rem);color:var(--light);line-height
 <nav class="nav-dots" id="nav-dots"></nav>
 <div class="slide-counter" id="slide-counter"></div>
 
+<!-- ============ HELP CHATBOT WIDGET ============ -->
+<style>
+#hb-fab{position:fixed;bottom:20px;right:60px;z-index:900;width:52px;height:52px;border-radius:50%;background:#001E50;border:1px solid rgba(78,200,240,0.5);color:#4ec8f0;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;}
+#hb-fab:hover{background:#0a2f66;}
+#hb-panel{position:fixed;bottom:84px;right:60px;z-index:901;width:360px;max-width:calc(100vw - 40px);height:520px;max-height:calc(100vh - 120px);background:#08243d;border:1px solid rgba(78,200,240,0.3);border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,0.5);display:none;flex-direction:column;overflow:hidden;font-family:'Satoshi',sans-serif;}
+#hb-panel.open{display:flex;}
+.hb-head{background:#001E50;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;}
+.hb-head strong{color:#fff;font-size:14px;}
+.hb-head .hb-x{background:none;border:none;color:rgba(255,255,255,0.6);font-size:22px;cursor:pointer;line-height:1;}
+.hb-body{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px;}
+.hb-msg{max-width:85%;padding:9px 12px;border-radius:12px;font-size:13px;line-height:1.5;}
+.hb-bot{background:rgba(78,200,240,0.12);color:#e8f4fb;align-self:flex-start;border:1px solid rgba(78,200,240,0.2);}
+.hb-user{background:#0071c5;color:#fff;align-self:flex-end;}
+.hb-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px;}
+.hb-chip{background:rgba(78,200,240,0.1);border:1px solid rgba(78,200,240,0.3);color:#4ec8f0;font-size:11px;padding:5px 10px;border-radius:14px;cursor:pointer;}
+.hb-chip:hover{background:rgba(78,200,240,0.22);}
+.hb-foot{border-top:1px solid rgba(255,255,255,0.1);padding:8px;display:flex;gap:6px;}
+.hb-foot input{flex:1;background:rgba(4,28,50,0.8);border:1px solid rgba(78,200,240,0.25);border-radius:8px;color:#fff;font-size:13px;padding:8px 10px;font-family:'Satoshi',sans-serif;}
+.hb-foot button{background:#0071c5;border:none;color:#fff;border-radius:8px;padding:0 14px;cursor:pointer;font-size:13px;}
+.hb-report{border-top:1px solid rgba(255,255,255,0.1);padding:8px 12px;font-size:11px;color:rgba(255,255,255,0.55);text-align:center;}
+.hb-report a{color:#4ec8f0;cursor:pointer;text-decoration:underline;}
+</style>
+<button id="hb-fab" onclick="hbToggle()" title="Help & feedback" aria-label="Help">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 20l1.4-4.2A8.5 8.5 0 1 1 21 11.5z"/></svg>
+</button>
+<div id="hb-panel">
+  <div class="hb-head"><strong>FS Tracker Help</strong><button class="hb-x" onclick="hbToggle()">&times;</button></div>
+  <div class="hb-body" id="hb-body"></div>
+  <div class="hb-foot">
+    <input id="hb-input" type="text" placeholder="Ask a question..." onkeydown="if(event.key==='Enter')hbSend()"/>
+    <button onclick="hbSend()">Send</button>
+  </div>
+  <div class="hb-report">Found a bug or want a feature? <a onclick="hbReport()">Report it</a></div>
+</div>
+<script>
+const HB_SEND_URL='https://default46c98d88e3444ed484964ed7712e25.5d.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/205f9f20a80543a2996515e52c0de68d/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=ExFcVZ5cJV8egXt3fO37KrzpQHsToznGKe4FG8g-i3Q';
+const HB_FAQ = [
+  { k:['assign','asignar','owner','who','quien'], a:'To assign a request: open the card, next to "Assigned To" click the <b>Assign</b> button, pick Jair or Jenn, and it writes to SharePoint. The owner also shows as a purple chip in the card header.' },
+  { k:['email','correo','mail','notif'], a:'Emails are sent automatically when you change the SharePoint Status (Acknowledged, Info Requested, Out for Signature, In Approval Loop, Complete). Control them with the <b>Auto emails</b> toggle (OFF = none) and <b>Test mode</b> toggle (ON = only Jair receives).' },
+  { k:['test mode','test','prueba'], a:'<b>Test mode</b> ON means every email goes ONLY to jair.garcia@intel.com. Turn it OFF to send to real customers.' },
+  { k:['complete','completar','portal name','da number'], a:'Set the status to <b>Complete</b>. A popup asks for Portal Name + DA Number. It emails the customer their portal is ready. COD shows a double-confirmation.' },
+  { k:['codename','code name'], a:'Completing a <b>Codename</b> request opens a popup to enter the codename. It emails it (encrypted, Intel-only) to the Assigned BD and FCE Lead.' },
+  { k:['separate','separar','split','bundle'], a:'When a request bundles <b>Codename</b> or <b>IFS NDA</b> with other services, a <b>Separate request</b> button appears. It creates a new request with only that service and keeps the rest.' },
+  { k:['filter','filtro','type','tech node','buscar','search'], a:'Filters: Time, Type (multi-select), Assigned To, Tech Node, Status. Search matches customer, ID, DA number, DA link, portal or assignee.' },
+  { k:['sound','sonido','chime','ticket'], a:'The bell icon toggles a chime when a brand-new request appears. Click once to unlock browser audio.' },
+  { k:['status','sharepoint','sync'], a:'The SharePoint Status dropdown writes back to SharePoint. Data refreshes every 10 min or click Sync.' },
+  { k:['access','login','name','nombre','blocked'], a:'Only Jenn and Jair are authorized. Enter your name once. 3 wrong attempts = blocked 24h.' }
+];
+const HB_SUGGEST=['How do I assign a request?','How do emails work?','What is Test mode?','How do I separate a Codename?'];
+let hbReportMode=false;
+function hbToggle(){ const p=document.getElementById('hb-panel'); p.classList.toggle('open'); if(p.classList.contains('open') && !document.getElementById('hb-body').dataset.init){ hbBot("Hi! Ask me anything about using the FS Tracker, or report a bug/feature below."); hbChips(HB_SUGGEST); document.getElementById('hb-body').dataset.init='1'; } }
+function hbBubble(t,c){ const b=document.getElementById('hb-body'); const d=document.createElement('div'); d.className='hb-msg '+c; d.innerHTML=t; b.appendChild(d); b.scrollTop=b.scrollHeight; }
+function hbBot(t){ hbBubble(t,'hb-bot'); }
+function hbUser(t){ hbBubble(t,'hb-user'); }
+function hbChips(list){ const b=document.getElementById('hb-body'); const w=document.createElement('div'); w.className='hb-chips'; list.forEach(q=>{ const c=document.createElement('span'); c.className='hb-chip'; c.textContent=q; c.onclick=()=>{ document.getElementById('hb-input').value=q; hbSend(); }; w.appendChild(c); }); b.appendChild(w); b.scrollTop=b.scrollHeight; }
+function hbAnswer(q){ const low=q.toLowerCase(); let best=null,score=0; HB_FAQ.forEach(f=>{ let s=0; f.k.forEach(k=>{ if(low.includes(k)) s++; }); if(s>score){score=s;best=f;} }); if(best&&score>0) return best.a; return "Not sure about that. Try rephrasing, or use <a style='color:#4ec8f0;cursor:pointer;text-decoration:underline' onclick='hbReport()'>Report it</a> to send it to Jair."; }
+function hbSend(){ const inp=document.getElementById('hb-input'); const q=inp.value.trim(); if(!q) return; inp.value=''; hbUser(q); if(hbReportMode){ hbSubmitReport(q); hbReportMode=false; return; } setTimeout(()=>hbBot(hbAnswer(q)),150); }
+function hbReport(){ hbReportMode=true; document.getElementById('hb-panel').classList.add('open'); hbBot("Describe the <b>bug</b> or <b>feature</b> below and hit Send. It'll be emailed to Jair for the next development round."); document.getElementById('hb-input').focus(); }
+async function hbSubmitReport(text){
+  const subject='[FS Tracker FEEDBACK] '+text.slice(0,60);
+  const bodyHtml='<div style="font-family:Arial,sans-serif;font-size:14px;color:#1a202c;"><h3 style="color:#001E50;">FS Tracker &mdash; Bug / Feature report</h3><p><b>Report:</b></p><p style="background:#f1f5f9;padding:12px;border-radius:8px;">'+text.replace(/</g,'&lt;')+'</p><p style="color:#6b7684;font-size:12px;">Sent from the FS Tracker guide chatbot.</p></div>';
+  try{ const res=await fetch(HB_SEND_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ to:'jair.garcia@intel.com', cc:'', subject, name:'Jair', id:'FEEDBACK', customer:'FS Tracker', bodyHtml, sensitivity:'' })}); if(res.ok) hbBot('Thanks! Your report was sent to Jair. \u2705'); else hbBot('Could not send (flow returned '+res.status+').'); }catch(e){ hbBot('Could not send: '+e.message); }
+}
+</script>
+<!-- ============ END HELP CHATBOT ============ -->
+
 <script>
 const slides = document.querySelectorAll('.slide');
 const dotsContainer = document.getElementById('nav-dots');
