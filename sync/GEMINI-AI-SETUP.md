@@ -44,6 +44,23 @@ La key NUNCA va en index.html (es publico en GitHub). Va escondida en el flow.
 - Puede que el tenant de Intel bloquee crear proyectos o habilitar APIs externas.
 - Si te topas con "permission denied" o similar, dimelo y vamos a plan B.
 
+### ERROR "you must select a parent organization folder / no organization"
+Esto pasa porque estas usando tu CUENTA DE INTEL: Intel tiene una organizacion
+que te obliga a crear el proyecto dentro de ella (y no te da permiso).
+
+SOLUCION 1 (recomendada): usar una cuenta PERSONAL de Gmail (no la de Intel).
+1. En Cloud Console, cierra sesion de la cuenta Intel.
+2. Entra con una cuenta @gmail.com personal (o crea una gratis solo para esto).
+3. Al crear el proyecto, en "Organization/Location" te saldra "No organization"
+   -> esa ES la opcion correcta (no es error), y AHI SI te deja crear el proyecto.
+4. Sigue igual: Enable "Generative Language API" -> crear API key.
+Es valido: la key solo sirve para que el chatbot responda dudas; no toca datos
+de Intel ni SharePoint.
+
+SOLUCION 2 (si no quieres usar Gmail personal): usar GROQ en vez de Gemini.
+Groq da API key gratis SIN proyecto, SIN organizacion y SIN tarjeta. Ver la
+seccion "PLAN B - GROQ" al final de este archivo.
+
 ============================================================
 ## PARTE 2 - Probar que Gemini responde (rapido, sin Power Automate)
 ============================================================
@@ -144,3 +161,48 @@ Opciones si el tenant bloquea la llamada:
 3. Quedarnos con el FAQ ampliado (lo actual) - cero costo, cero riesgo.
 
 Dime como sale la Parte 2 y 3 y seguimos.
+
+============================================================
+## PLAN B - GROQ (API key gratis, SIN proyecto ni organizacion ni tarjeta)
+============================================================
+Groq corre modelos Llama (rapidos) y da API gratis con solo registrarte. Ideal
+si Cloud Console te bloquea por la organizacion de Intel.
+
+### B.1 - Obtener la key de Groq
+1. Entra a  https://console.groq.com/
+2. Registrate (puedes usar Google o correo). No pide tarjeta.
+3. Menu "API Keys" -> "Create API Key" -> copia la key (empieza con  gsk_... ).
+
+### B.2 - Probar la key (opcional, rapido)
+curl "https://api.groq.com/openai/v1/chat/completions" \
+  -H "Authorization: Bearer TU_GROQ_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"llama-3.3-70b-versatile","messages":[{"role":"user","content":"Say hi in one sentence."}]}'
+- Si responde JSON con texto -> sirve.
+
+### B.3 - Flow de Power Automate para Groq
+Igual que la Parte 3, pero la accion HTTP cambia:
+- Method: POST
+- URI:  https://api.groq.com/openai/v1/chat/completions
+- Headers:
+    Authorization : Bearer TU_GROQ_KEY
+    Content-Type  : application/json
+- Body:
+  {
+    "model": "llama-3.3-70b-versatile",
+    "messages": [
+      { "role": "system", "content": "You are the FS Request Tracker help assistant. Answer briefly about how to use the tracker." },
+      { "role": "user", "content": "@{triggerBody()?['question']}" }
+    ]
+  }
+- Response Body:
+  {
+    "answer": "@{body('HTTP')?['choices']?[0]?['message']?['content']}"
+  }
+
+Pega la URL del trigger en AI_CHAT_URL (arriba) igual que con Gemini.
+
+### Nota
+Sea Gemini o Groq, el chatbot en la pagina se conecta IGUAL (manda {question},
+recibe {answer}). Solo cambia el flow por dentro. Asi que puedes elegir el que
+te deje tu red/permisos y yo conecto el chatbot al AI_CHAT_URL sin importar cual.
