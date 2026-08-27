@@ -547,10 +547,11 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.45';
+const APP_VERSION = 'v1.8.46';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
+    ['v1.8.46', ['Separate request now covers Codename AND IFS NDA (each must be on its own request; New DA + Portal Creation stay together). It also uses the EXACT SharePoint option names (requestTypeRaw) when rewriting RequestType, since the choices are case/word specific (e.g. "Portal creation", "Code Name Request"). NOTE: writing multiple remaining types (New DA + Portal) still under test on the flow side.']],
     ['v1.8.45', ['Separate request (Codename) is now LIVE: the "Create Request" flow is connected. Clicking "Separate request" on a Codename-bundled request creates a new Codename-only request (copying Assigned BD / people) and removes Codename from the original. Tested end-to-end.']],
     ['v1.8.44', ['Separate request (Codename): the tracker now also sends the original Created By (Author), Assigned BD and FCE Lead / Account Owner so the new Codename request keeps those three people identical to the original. Needs the Create Request flow (see sync).']],
     ['v1.8.43', ['New-ticket sound: the page now plays a chime when a brand-new request ID appears on refresh. A Sound/Muted toggle (bell icon) in the toolbar turns it on/off (remembered). Sound is synthesized in-browser, no audio file needed. (First click unlocks browser audio.)']],
@@ -1006,9 +1007,12 @@ async function fetchAndRender() {
                 types = rawType.split(';#');
             }
             types.forEach(t => {
-                const normalizedType = normalizeType(String(t).trim());
+                const raw = String(t).trim();
+                const normalizedType = normalizeType(raw);
                 if (normalizedType) {
-                    allRequests.push({ ...r, requestType: normalizedType });
+                    // Keep BOTH: normalizedType (pretty, for UI/logic) and requestTypeRaw
+                    // (the EXACT SharePoint option name, needed to write RequestType back).
+                    allRequests.push({ ...r, requestType: normalizedType, requestTypeRaw: raw });
                 }
             });
         });
@@ -1980,68 +1984,96 @@ async function confirmAssignModal(){
 // NEW SharePoint request (new ID) that only carries the Codename, and removes
 // Codename from the original. Needs a "Create Request" Power Automate flow
 // (CONFIG.createRequestUrl). See sync/Separate-request-flow.md.
+// Services that must ALWAYS be on their own request (separated out).
+// New DA + Portal Creation stay together; everything else stays with them.
+const STANDALONE_TYPES = ['Codename', 'IFS NDA'];
+
 async function separateCodename(id) {
     const reqs = allRequests.filter(r => String(r.id) === String(id));
     if (!reqs.length) return;
     const req0 = reqs[0];
-    const remainingTypes = reqs.map(r => r.requestType).filter(t => t !== 'Codename');
 
+    // Use the RAW SharePoint option names (exact), not the normalized ones, because
+    // SharePoint's RequestType choices are case/word specific (e.g. "Portal creation",
+    // "Code Name Request", "DA edit"). Writing normalized names would silently fail.
+    // Build a map: normalizedType -> rawType, and list of raw types present.
+    const rawByNorm = {};
+    reqs.forEach(r => { if (r.requestTypeRaw) rawByNorm[r.requestType] = r.requestTypeRaw; });
+    const allRawTypes = reqs.map(r => r.requestTypeRaw || r.requestType);
+
+    // Which services to split off (Codename, IFS NDA) that are present here.
+    const toSplit = reqs.filter(r => STANDALONE_TYPES.includes(r.requestType));
+    if (toSplit.length === 0) return; // nothing to separate
+
+    // What stays on the original = everything that is NOT a standalone type.
+    const remainingRaw = reqs
+        .filter(r => !STANDALONE_TYPES.includes(r.requestType))
+        .map(r => r.requestTypeRaw || r.requestType);
+
+    const splitNames = toSplit.map(r => r.requestType).join(', ');
     const ok = confirm(
         'Separate this request?\n\n' +
-        'A NEW request will be created for the Codename only (same customer & details).\n' +
-        'This request (#' + id + ') will keep: ' + (remainingTypes.join(', ') || 'the other services') + '.\n\n' +
+        'These will each move to their OWN new request: ' + splitNames + '.\n' +
+        'This request (#' + id + ') will keep: ' + (remainingRaw.join(', ') || '(nothing — it only had those services)') + '.\n\n' +
         'Continue?'
     );
     if (!ok) return;
 
     if (!CONFIG.createRequestUrl) {
-        alert('The "Create Request" flow is not configured yet (CONFIG.createRequestUrl is empty). See sync/Separate-request-flow.md to set it up.');
+        alert('The "Create Request" flow is not configured yet (CONFIG.createRequestUrl is empty).');
         return;
     }
 
-    // Payload for the new Codename-only request. The flow creates the item and
-    // should also update the original request to drop Codename from its RequestType.
-    // We copy the 3 people fields from the original so the new request keeps them
-    // IDENTICAL: Created By (Author), Assigned BD (Project Contact) and FCE Lead.
     const claim = (email) => email ? ('i:0#.f|membership|' + email) : '';
     const authorEmail = req0.requestorEmail || '';
     const bdEmail = (req0.bdEmailList && req0.bdEmailList[0]) || '';
     const fceEmail = (req0.fceLeadEmailList && req0.fceLeadEmailList[0]) || '';
-    const payload = {
-        sourceId: parseInt(id),
-        customer: req0.customer || '',
-        requestType: 'Codename',
-        details: req0.details || '',
-        // Created By (Author) of the original — the new request must show the same creator.
-        authorEmail: authorEmail,
-        authorClaim: claim(authorEmail),
-        // Assigned BD (Project_x0020_Contact) copied as-is.
-        projectContactClaim: claim(bdEmail),
-        projectContactEmail: bdEmail,
-        // Assigned FCE Lead / Account Owner (AssignedFCELead) copied as-is.
-        fceLeadClaim: claim(fceEmail),
-        fceLeadEmail: fceEmail,
-        // The remaining types the original request should keep (so the flow can
-        // rewrite the original RequestType without Codename).
-        remainingTypes: remainingTypes.join(';#')
-    };
 
-    try {
-        const res = await fetch(CONFIG.createRequestUrl, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-        if (res.ok) {
-            updateSync('Separated Codename from #' + id + ' into a new request');
-            logHistory(id, req0.customer || '', 'Separate', 'Codename', 'moved to a new request');
-            alert('Done. A new Codename request is being created in SharePoint.\nIt will appear on the next Sync (up to a few minutes).');
-        } else {
-            console.warn('Create-request flow returned ' + res.status);
-            alert('The separate request could not be created (flow returned ' + res.status + '). Check the flow.');
+    // The original ends with only the remaining types (New DA + Portal, etc.).
+    // SharePoint multi-choice via validateUpdateListItem expects values joined by ;#
+    // using the EXACT option names.
+    const remainingJoined = remainingRaw.join(';#');
+
+    let created = 0;
+    for (let i = 0; i < toSplit.length; i++) {
+        const svc = toSplit[i];
+        const payload = {
+            sourceId: parseInt(id),
+            customer: req0.customer || '',
+            // RAW type of the service being split off (exact SharePoint name).
+            requestType: svc.requestTypeRaw || svc.requestType,
+            details: req0.details || '',
+            authorEmail: authorEmail,
+            authorClaim: claim(authorEmail),
+            projectContactClaim: claim(bdEmail),
+            projectContactEmail: bdEmail,
+            fceLeadClaim: claim(fceEmail),
+            fceLeadEmail: fceEmail,
+            // Only the LAST call rewrites the original's RequestType to the remainder,
+            // so the original isn't overwritten mid-way. Earlier calls send the current
+            // full set (no change) to avoid clobbering before all splits are done.
+            remainingTypes: (i === toSplit.length - 1) ? remainingJoined : allRawTypes.join(';#')
+        };
+        try {
+            const res = await fetch(CONFIG.createRequestUrl, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (res.ok) { created++; }
+            else { console.warn('Create-request flow returned ' + res.status + ' for ' + svc.requestType); }
+        } catch (e) {
+            console.warn('Separate request failed for ' + svc.requestType + ':', e.message);
         }
-    } catch (e) {
-        console.warn('Separate request failed:', e.message);
-        alert('The separate request failed: ' + e.message);
+    }
+
+    if (created > 0) {
+        updateSync('Separated ' + created + ' service(s) from #' + id + ' into new request(s)');
+        logHistory(id, req0.customer || '', 'Separate', splitNames, 'moved to their own request(s)');
+        alert('Done. ' + created + ' new request(s) created (one per service: ' + splitNames + ').\n' +
+              'This request keeps: ' + (remainingRaw.join(', ') || '(none)') + '.\n' +
+              'They will appear on the next Sync.');
+    } else {
+        alert('Nothing was created (the flow returned errors). Check the flow Run history.');
     }
 }
 
@@ -2740,11 +2772,18 @@ function renderGroupCard(id, reqs) {
     // "Separate request" button: shown when a single request bundles Codename together
     // with New DA / Portal Creation. Clicking it creates a NEW SharePoint request with
     // only the Codename, and removes Codename from this one.
+    // Standalone services (Codename, IFS NDA) must each be on their own request.
+    // Show the Separate button when at least one standalone type is bundled with
+    // any other (different) service.
+    const STANDALONE = ['Codename', 'IFS NDA'];
     const typeSet = knownReqs.map(r => r.requestType);
-    const hasCodename = typeSet.includes('Codename');
-    const hasNewDaOrPortal = typeSet.includes('New DA') || typeSet.includes('Portal Creation') || typeSet.includes('Portal Addition');
-    const separateBtn = (hasCodename && hasNewDaOrPortal)
-        ? `<div class="separate-row"><button class="separate-btn" onclick="event.stopPropagation();separateCodename('${id}')"><svg width="13" height="13" viewBox="0 0 16 16" style="margin-right:6px;vertical-align:-2px;"><path d="M5,2 L5,14 M11,2 L11,14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-dasharray="2 2"/></svg>Separate request &mdash; move Codename to its own request</button></div>`
+    const standalonePresent = typeSet.filter(t => STANDALONE.includes(t));
+    const uniqueTypes = Array.from(new Set(typeSet));
+    // Bundled if there's a standalone type AND the request has more than one distinct type.
+    const needsSeparation = standalonePresent.length > 0 && uniqueTypes.length > 1;
+    const splitLabel = Array.from(new Set(standalonePresent)).join(' + ');
+    const separateBtn = needsSeparation
+        ? `<div class="separate-row"><button class="separate-btn" onclick="event.stopPropagation();separateCodename('${id}')"><svg width="13" height="13" viewBox="0 0 16 16" style="margin-right:6px;vertical-align:-2px;"><path d="M5,2 L5,14 M11,2 L11,14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-dasharray="2 2"/></svg>Separate request &mdash; move ${splitLabel} to its own request</button></div>`
         : '';
 
     // Handle COD/DA Edit combo: shared info request + route selector ABOVE the sections

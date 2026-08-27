@@ -8,6 +8,10 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.46 — 2026-08-27
+- Separate request ahora aplica a Codename Y a IFS NDA (cada uno debe ir en su propio request; New DA + Portal Creation se quedan juntos). El boton aparece cuando un standalone (Codename/IFS NDA) viene mezclado con otro servicio.
+- El tracker ahora usa los nombres EXACTOS de SharePoint (requestTypeRaw) al reescribir RequestType, porque las opciones son sensibles a mayusculas/palabras ("Portal creation", "Code Name Request", "DA edit"). Antes mandaba los normalizados y por eso el multi-valor se perdia.
+- PENDIENTE: escribir VARIOS tipos restantes (New DA + Portal) en el paso 4 del flow aun se pierde (solo guarda uno). Falta ver el output del paso 4 para el formato correcto del multi-choice.
 ## v1.8.45 — 2026-08-27
 - Separate request (Codename) YA ESTA ACTIVO: se conecto el flow "Create Request" (CONFIG.createRequestUrl). Al dar clic en "Separate request" en un request con Codename + New DA/Portal, crea un request nuevo solo con Codename (copiando Assigned BD y demas personas) y le quita el Codename al original. Probado end-to-end (2713/2714).
 ## v1.8.44 — 2026-08-27
