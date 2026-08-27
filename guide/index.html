@@ -122,8 +122,10 @@ p,.body-text{font-size:clamp(0.9rem,1.6vw,1.2rem);color:var(--light);line-height
           <li><strong>Customer</strong> — Company name</li>
           <li><strong>Colored badges</strong> — Service types (Portal Creation, New DA, COD, etc.)</li>
           <li><strong>Status badge</strong> — Current SharePoint status (italic, right side)</li>
+          <li><strong>Owner chip</strong> — purple chip with who it's assigned to</li>
           <li><strong>Age badge</strong> — Days since created <span class="pill pill-green">3d</span> <span class="pill pill-amber">15d</span> <span class="pill" style="background:rgba(204,0,0,0.1);color:#ff6b6b;border:1px solid rgba(204,0,0,0.3);">45d</span></li>
           <li><strong>Progress bar</strong> — Green line below = % of steps completed</li>
+          <li>Inside: <strong>Tech Node, Assigned To/BD/FCE Lead, Portal Name, DA Link, DA Number</strong></li>
           <li><strong>Click to expand</strong> — opens all the internal steps</li>
         </ul>
       </div>
@@ -188,15 +190,130 @@ p,.body-text{font-size:clamp(0.9rem,1.6vw,1.2rem);color:var(--light);line-height
       <div>
         <ul class="step-list">
           <li><strong>Time filter</strong> — All 2026 / This Month / Last Month / 2-3 months ago</li>
-          <li><strong>Type filter</strong> — Portal Creation, New DA, Codename, COD, etc.</li>
+          <li><strong>Type filter</strong> <span class="pill pill-cyan">multi-select</span> — a checkbox menu. Pick several types and it shows requests matching <strong>any</strong> of them; pick one for just that type; none = all.</li>
+          <li><strong>Assigned To filter</strong> — see only requests assigned to a person (or Unassigned)</li>
+          <li><strong>Tech Node filter</strong> — filter by technology (Intel 18A, etc.)</li>
           <li><strong>Status filter</strong> — Not Started, In Progress, Complete, Failed</li>
-          <li><strong>Search box</strong> — type any customer name or ID number</li>
+          <li><strong>Search box</strong> — customer, ID, <strong>DA number</strong>, DA link, portal name or assignee</li>
           <li><strong>Sort</strong> — Newest First / Oldest First / Oldest Unresolved</li>
         </ul>
         <h3 style="margin-top:1rem;">Stat Pills (clickable!)</h3>
-        <p>Click the colored numbers to filter. Click multiple to combine (e.g., WIP + New). Click "total" to reset.</p>
+        <p>Click the colored numbers to filter: WIP, Done, New, <span class="pill pill-cyan">ack</span>, <span class="pill" style="background:rgba(204,0,0,0.1);color:#ff6b6b;border:1px solid rgba(204,0,0,0.3);">canceled</span>. Click multiple to combine. Click "total" to reset.</p>
       </div>
-      <div><img src="img4.png" class="screenshot" alt="Filters"/><img src="img5.png" class="screenshot" alt="Stats" style="margin-top:1rem;"/></div>
+      <div><img src="img4.png" class="screenshot" alt="Filters" onerror="this.style.display='none'"/><img src="img11.png" class="screenshot" alt="Multi-select type filter" style="margin-top:1rem;" onerror="this.style.display='none'"/><img src="img5.png" class="screenshot" alt="Stats" style="margin-top:1rem;" onerror="this.style.display='none'"/></div>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 7B: Automatic Customer Emails -->
+<section class="slide" style="background:radial-gradient(ellipse at 70% 30%,rgba(78,200,240,0.08),transparent 55%),var(--navy);">
+  <div class="circle c1" style="left:-10%;right:auto;bottom:-8%;top:auto;"></div>
+  <img src="../Logo.png" alt="Intel Foundry" class="intel-logo"/>
+  <span class="confidential">Intel Confidential</span>
+  <div class="slide-content">
+    <h2>Automatic Customer Emails</h2>
+    <div class="two-col">
+      <div>
+        <p>When you change the <strong>SharePoint Status</strong>, the tracker can email the customer automatically with a branded Intel Foundry message:</p>
+        <ul class="step-list">
+          <li><strong>Acknowledged</strong> — request received + SLA table</li>
+          <li><strong>Info Requested</strong> — asks for the templates needed per service type</li>
+          <li><strong>Out for Signature</strong> — notice it's out for signature</li>
+          <li><strong>In Approval Loop</strong> — notice with the ~2–4 day SLA</li>
+          <li><strong>Complete</strong> — celebration message (per service type)</li>
+        </ul>
+        <h3 style="margin-top:1rem;">Two safety toggles in the header</h3>
+        <p><span class="pill pill-cyan">Auto emails</span> ON/OFF — when OFF, nothing is sent to anyone.</p>
+        <p><span class="pill pill-amber">Test mode</span> ON/OFF — when ON, every email goes ONLY to Jair (no customer, no CC). Turn OFF for real sending.</p>
+      </div>
+      <div><img src="img10.png" class="screenshot" alt="Header toggles" onerror="this.style.display='none'"/><img src="img17.png" class="screenshot" alt="Email sample" style="margin-top:1rem;" onerror="this.style.display='none'"/></div>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 7C: Completing a Request (Complete / COD / Codename) -->
+<section class="slide" style="background:linear-gradient(170deg,#0a2540,var(--navy));">
+  <div class="circle c2" style="top:15%;left:auto;right:-5%;"></div>
+  <img src="../Logo.png" alt="Intel Foundry" class="intel-logo"/>
+  <span class="confidential">Intel Confidential</span>
+  <div class="slide-content">
+    <h2>Completing a Request</h2>
+    <div class="two-col">
+      <div>
+        <p>Set the SharePoint Status to <span class="pill pill-green">Complete</span> and a popup appears depending on the service type:</p>
+        <ul class="step-list">
+          <li><strong>Portal / New DA</strong> — asks for Portal Name + DA Number (auto-fills from a previous request of the same customer if it exists), then emails the customer their portal is ready and to apply for the AGS WebView Access.</li>
+          <li><strong>IFS NDA / MP-NDA / MRUNDA</strong> — tells the customer the document is signed and they can start the relationship.</li>
+          <li><strong>COD</strong> — a double-confirmation popup (no portal name); the notice CCs Birthe Dallmer and James Matayabas Jr.</li>
+        </ul>
+        <p style="margin-top:0.8rem;color:var(--cyan);font-weight:600;">Completing marks the progress bar to 100% instantly — no reload.</p>
+      </div>
+      <div><img src="img16.png" class="screenshot" alt="Complete popup" onerror="this.style.display='none'"/></div>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 7D: Codename (encrypted notice) -->
+<section class="slide" style="background:radial-gradient(ellipse at 30% 70%,rgba(0,113,197,0.1),transparent 55%),var(--navy);">
+  <div class="circle c1" style="right:-8%;left:auto;"></div>
+  <img src="../Logo.png" alt="Intel Foundry" class="intel-logo"/>
+  <span class="confidential">Intel Confidential</span>
+  <div class="slide-content">
+    <h2>Codename Requests</h2>
+    <div class="two-col">
+      <div>
+        <p>When you complete a <strong>Codename</strong> request, a popup asks for the codename to assign to the company.</p>
+        <ul class="step-list">
+          <li>The codename notice is emailed to the <strong>Assigned BD</strong> and the <strong>FCE Lead / Account Owner</strong>.</li>
+          <li>The email is sent <strong>encrypted</strong> (Intel Confidential — Intel employees only), so it can't leak outside Intel.</li>
+          <li>The popup pre-shows who will receive it before you send.</li>
+        </ul>
+      </div>
+      <div><img src="img16.png" class="screenshot" alt="Codename popup" onerror="this.style.display='none'"/></div>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 7E: Assigning requests + people fields -->
+<section class="slide" style="background:linear-gradient(160deg,var(--navy),#0a2540);">
+  <div class="circle c2" style="top:-8%;left:-6%;right:auto;"></div>
+  <img src="../Logo.png" alt="Intel Foundry" class="intel-logo"/>
+  <span class="confidential">Intel Confidential</span>
+  <div class="slide-content">
+    <h2>Assigning Requests</h2>
+    <div class="two-col">
+      <div><img src="img13.png" class="screenshot" alt="People fields on the card" onerror="this.style.display='none'"/><img src="img14.png" class="screenshot" alt="Assign popup" style="margin-top:1rem;" onerror="this.style.display='none'"/></div>
+      <div>
+        <p>Each card shows three people fields from SharePoint:</p>
+        <ul class="step-list">
+          <li><strong>Assigned To</strong> — the iGO Admin owner. <span class="pill pill-cyan">editable</span> Click <strong>Assign</strong> to set Jair or Jenn; it writes to SharePoint.</li>
+          <li><strong>Assigned BD</strong> — read-only (Project Contact)</li>
+          <li><strong>FCE Lead / Account Owner</strong> — read-only</li>
+        </ul>
+        <p style="margin-top:0.8rem;">The owner also shows as a purple chip in the card header, so you can see who's on each request without opening it.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 7F: Separate request (Codename / IFS NDA) -->
+<section class="slide" style="background:linear-gradient(170deg,#0a2540,var(--navy));">
+  <div class="circle c1" style="left:-10%;right:auto;top:25%;"></div>
+  <img src="../Logo.png" alt="Intel Foundry" class="intel-logo"/>
+  <span class="confidential">Intel Confidential</span>
+  <div class="slide-content">
+    <h2>Separate Request</h2>
+    <div class="two-col">
+      <div>
+        <p><strong>Codename</strong> and <strong>IFS NDA</strong> must each live on their own request. When one of them comes bundled with other services, a <span class="pill pill-amber">Separate request</span> button appears inside the card.</p>
+        <ul class="step-list">
+          <li>Click it and confirm.</li>
+          <li>It creates a <strong>new request</strong> in SharePoint with only that service (Codename or IFS NDA), copying the Assigned BD and FCE Lead.</li>
+          <li>The original request keeps the rest (e.g. New DA + Portal Creation stay together).</li>
+          <li>Both appear separated on the next Sync.</li>
+        </ul>
+      </div>
+      <div><img src="img15.png" class="screenshot" alt="Separate request button" onerror="this.style.display='none'"/></div>
     </div>
   </div>
 </section>
@@ -261,6 +378,7 @@ p,.body-text{font-size:clamp(0.9rem,1.6vw,1.2rem);color:var(--light);line-height
       <div>
         <ul class="step-list">
           <li><strong>Sync button</strong> — refresh data from SharePoint immediately</li>
+          <li><strong>Sound toggle</strong> <span class="pill pill-cyan">new</span> — a bell icon; plays a chime when a brand-new request appears. Click once to unlock browser audio.</li>
           <li><strong>Excel button</strong> — download everything as .xlsx</li>
           <li><strong>JSON button</strong> — download raw data</li>
           <li><strong>Expand/Collapse All</strong> — open or close all cards at once</li>
@@ -268,7 +386,7 @@ p,.body-text{font-size:clamp(0.9rem,1.6vw,1.2rem);color:var(--light);line-height
           <li><strong>Ctrl+E</strong> — expand all (keyboard)</li>
           <li><strong>Ctrl+W</strong> — collapse all (keyboard)</li>
           <li><strong>← →</strong> — navigate pages</li>
-          <li><strong>Notes field</strong> — add comments, IT ticket numbers, or reminders to any request. Click the text area at the bottom of each card and type.</li>
+          <li><strong>Notes field</strong> — add comments, IT ticket numbers, or reminders to any request.</li>
         </ul>
         <h3 style="margin-top:1rem;">Remember:</h3>
         <p style="color:var(--cyan);font-weight:600;">This does NOT replace SharePoint. It's our internal tracking layer on top of it. SharePoint remains the official record.</p>
@@ -302,6 +420,14 @@ const observer = new IntersectionObserver(entries => {
   });
 },{threshold:0.5});
 slides.forEach(s => observer.observe(s));
+
+// Hide any screenshot that fails to load (e.g. new imgNN.png not added yet),
+// so the guide never shows a broken-image icon.
+document.querySelectorAll('img.screenshot').forEach(img => {
+  img.addEventListener('error', () => { img.style.display = 'none'; });
+  // If already failed before this ran:
+  if (img.complete && img.naturalWidth === 0) img.style.display = 'none';
+});
 </script>
 
 </body>
