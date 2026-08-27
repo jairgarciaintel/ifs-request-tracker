@@ -40,8 +40,16 @@ Detalle completo: sync/DoNotForward-setup.md
 PROBAR: Test mode ON -> completar Codename -> debe llegar CIFRADO.
 
 ============================================================
-## 2) ASSIGNED TO -> escribir en SharePoint (campo Person iGO Admin)
+## 2) ASSIGNED TO -> escribir en SharePoint  ->>> RESUELTO (2026-08-27)
 ============================================================
+CERRADO: en el flow Update Fields, el campo "iGO Admin Only - Assigned To Claims"
+se cambio de outputs('Get_item')... a la expresion  triggerBody()?['assignedToClaim'].
+Confirmado en Run history (statusCode 200) y en el output el campo quedo con quien
+se asigna (probado con Jenn y con Jair). SharePoint ya guarda el Assigned To bien.
+NOTA: si en el tracker no se ve tras Sync, es el Pendiente 4 (el flow de LECTURA
+"Get all requests" debe devolver la columna iGOAdminOnly_x002d_AssignedTo).
+
+--- historico (el problema que era) ---
 ESTADO: al asignar desde el tracker, la tarjeta cambia al instante, pero NO
 persiste en SharePoint (el campo Person no se llena).
 DATO: el tracker manda bien assignedToEmail y assignedToClaim
