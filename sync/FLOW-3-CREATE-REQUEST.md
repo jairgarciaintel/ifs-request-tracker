@@ -113,3 +113,10 @@ PROBAR
   FCE Lead que el original.
 - El original queda sin Codename.
 - En el siguiente Sync aparecen los dos por separado.
+
+
+
+
+
+https://default46c98d88e3444ed484964ed7712e25.5d.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/589245b526e14f92944fdaf82ae775b6/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=rOYFDRH4nYMNN-VVgfXai9ik1lGhX8iVb1xGxvygC08
+
