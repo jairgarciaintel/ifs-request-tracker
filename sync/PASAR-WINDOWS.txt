@@ -42,3 +42,25 @@ Config capturada del PatchItem (referencia):
     item/iGOAdminOnly_x002d_Contracttype/Value : "NTD"
 
 Detalle en sync/FLOWS-1-2-3-INSTRUCCIONES.md (Pendiente 2).
+
+
+
+{
+    "host": {
+        "connectionReferenceName": "shared_sharepointonline",
+        "operationId": "PatchItem"
+    },
+    "parameters": {
+        "dataset": "https://intel.sharepoint.com/sites/ifs-igo-requests",
+        "table": "052c84aa-6a91-469d-9b44-35d068acc422",
+        "id": 2712,
+        "item/iGOAdminOnly_x002d_AssignedTo/Claims": null,
+        "item/DALink": null,
+        "item/Priority/Value": "Medium",
+        "item/Project_x002f_PortalName": null,
+        "item/DA_x0020_Number": null,
+        "item/iGOAdminOnly_x002d_Contracttype/Value": "NTD"
+    }
+
+
+    
