@@ -8,6 +8,8 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.50 — 2026-08-27
+- Los correos de Complete ahora dicen QUE servicio se completo, justo despues del customer (ej. "REQ. 2683 - Customer - COD"). Aplica a COD y a todos los tipos. El servicio tambien se agrega al asunto del correo.
 ## v1.8.49 — 2026-08-27
 - FAQ del chatbot ampliado: progress bar, age badges, notas, historial, export, dark mode, expand/collapse, paginacion, atajos, presencia/notificaciones, COD, DA Edit, MP-NDA/MRUNDA, sync, sort, version/changelog, report. En tracker y guia.
 - Guia: nuevo slide "Help Chatbot" y lista completa de status validos de SharePoint (agregados IT Request Submitted, On Hold, Canceled).

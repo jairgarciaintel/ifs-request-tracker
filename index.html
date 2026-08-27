@@ -683,10 +683,11 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.49';
+const APP_VERSION = 'v1.8.50';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
+    ['v1.8.50', ['Completion emails now state WHICH service was completed, shown right after the customer name (e.g. "REQ. 2683 - Customer - COD"). Applies to COD and every completion type. The completed service is also added to the email subject.']],
     ['v1.8.49', ['Help chatbot FAQ expanded with many more answers (progress bar, age badges, notes, history, export, dark mode, expand/collapse, pagination, shortcuts, presence, COD, DA Edit, MP-NDA/MRUNDA, sync, sort). Added a Help Chatbot slide to the user guide and listed all valid SharePoint statuses. Documented the "Separate" flow hardening for requests with no Assigned BD in sync/FLOW-3-CREATE-REQUEST.md.']],
     ['v1.8.48', ['Help chatbot added (floating button, bottom-right) on the tracker and the user guide. It answers common questions (FAQ, no external AI) and has a "Report it" button that emails bugs/feature requests to Jair via the existing email flow. The report subject has no "REQ." so it lands in the inbox, not the tracker folder. Guide updated with all the new features.']],
     ['v1.8.47', ['Type filter is now MULTI-SELECT: the "All Types" dropdown became a checkbox menu — pick several types and it shows requests matching ANY of them; pick one and it shows only that one; none = all. Clear button included.']],
@@ -1673,8 +1674,17 @@ function buildCompleteEmailHtml(name, id, customer, portalName, daNumber, types)
     else if (isIfsNda) subline = 'Your NDA is fully signed.';
     else if (isMpNda) subline = 'Your Multi-Party NDA is fully signed.';
 
+    // Human-readable list of the service(s) that were completed (e.g. "COD",
+    // "Portal Creation", or "New DA & Portal Creation"). Shown after the customer.
+    const svcList = types.filter(t => t && t !== 'Unknown');
+    let svcLabel = '';
+    if (svcList.length === 1) svcLabel = svcList[0];
+    else if (svcList.length === 2) svcLabel = svcList.join(' &amp; ');
+    else if (svcList.length > 2) svcLabel = svcList.slice(0, -1).join(', ') + ' &amp; ' + svcList[svcList.length - 1];
+    const svcSuffix = svcLabel ? ` &mdash; <strong style="color:#001E50;">${svcLabel}</strong>` : '';
+
     // Intro paragraph varies by type
-    let intro = `Great news &mdash; your request (<strong>REQ. ${id} &mdash; ${customer}</strong>) has been <strong style="color:#001E50;">Completed</strong>.`;
+    let intro = `Great news &mdash; your request (<strong>REQ. ${id} &mdash; ${customer}</strong>${svcSuffix}) has been <strong style="color:#001E50;">Completed</strong>.`;
     if (isPortal) intro += ` Your portal is fully set up and ready to use.`;
     else if (isIfsNda) intro += ` The document has been signed &mdash; you can start building the business relationship with the customer.`;
     else if (isMpNda) intro += ` The document has been signed &mdash; you can start building the relationship between these two customers.`;
@@ -1723,7 +1733,8 @@ async function openCompleteEmail(id, portalName, daNumber) {
     const name = emailGreetingName(req0.requestor || req0.requestorEmail);
     const customer = req0.customer || 'your request';
     const types = reqs.filter(r => r.requestType !== 'Unknown').map(r => r.requestType);
-    const subject = `REQ. ${id} - ${customer} - Completed`;
+    const svcForSubject = types.length ? ' - ' + types.join(' & ') : '';
+    const subject = `REQ. ${id} - ${customer}${svcForSubject} - Completed`;
     const bodyHtml = buildCompleteEmailHtml(name, id, customer, portalName, daNumber, types);
     // COD requests copy the two extra recipients
     const isCod = types.includes('COD');
