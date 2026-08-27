@@ -547,10 +547,11 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.44';
+const APP_VERSION = 'v1.8.45';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
+    ['v1.8.45', ['Separate request (Codename) is now LIVE: the "Create Request" flow is connected. Clicking "Separate request" on a Codename-bundled request creates a new Codename-only request (copying Assigned BD / people) and removes Codename from the original. Tested end-to-end.']],
     ['v1.8.44', ['Separate request (Codename): the tracker now also sends the original Created By (Author), Assigned BD and FCE Lead / Account Owner so the new Codename request keeps those three people identical to the original. Needs the Create Request flow (see sync).']],
     ['v1.8.43', ['New-ticket sound: the page now plays a chime when a brand-new request ID appears on refresh. A Sound/Muted toggle (bell icon) in the toolbar turns it on/off (remembered). Sound is synthesized in-browser, no audio file needed. (First click unlocks browser audio.)']],
     ['v1.8.42', ['MRUNDA is now a DISTINCT service from MP-NDA (no longer merged). Own type in cards, type filter and emails.']],
@@ -675,8 +676,7 @@ const CONFIG = {
     updateFieldsUrl: 'https://default46c98d88e3444ed484964ed7712e25.5d.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/7c9ac8ba2e8444d7b015d4e959911ee0/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=U3Xr-ZBNXcQLEYdpMu7i5VSBiU506SxGSB7zQlKTroo',
 
     // Power Automate: create a NEW SharePoint request (used by "Separate request").
-    // Paste the flow trigger URL here once the "Create Request" flow exists.
-    createRequestUrl: ''
+    createRequestUrl: 'https://default46c98d88e3444ed484964ed7712e25.5d.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/589245b526e14f92944fdaf82ae775b6/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=rOYFDRH4nYMNN-VVgfXai9ik1lGhX8iVb1xGxvygC08'
 };
 
 // ============================================================

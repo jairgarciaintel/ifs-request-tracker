@@ -8,6 +8,8 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.45 — 2026-08-27
+- Separate request (Codename) YA ESTA ACTIVO: se conecto el flow "Create Request" (CONFIG.createRequestUrl). Al dar clic en "Separate request" en un request con Codename + New DA/Portal, crea un request nuevo solo con Codename (copiando Assigned BD y demas personas) y le quita el Codename al original. Probado end-to-end (2713/2714).
 ## v1.8.44 — 2026-08-27
 - Separate request (Codename): el tracker ahora tambien manda del request original el Created By (Author), el Assigned BD (Project Contact) y el FCE Lead / Account Owner, para que el request nuevo de Codename conserve esos tres campos de personas identicos al original. Requiere el flow "Create Request" (instrucciones en sync).
 ## v1.8.43 — 2026-08-20
