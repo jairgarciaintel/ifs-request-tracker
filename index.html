@@ -683,10 +683,11 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.51';
+const APP_VERSION = 'v1.8.52';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
+    ['v1.8.52', ['More status changes now email the customer with the standard template: Add for Signature, IT Request Submitted, On Hold and Canceled — in addition to the ones already covered (Acknowledged, Info Requested, In Approval Loop, Out for Signature, Complete). All require the Auto emails toggle ON. If a status email does not arrive, check the Power Automate Outlook connection (Connections > Fix connection).']],
     ['v1.8.51', ['The DA Link popup (In Approval Loop) now shows ONLY for Portal Creation and New DA requests — the stage where the DA is created. Other request types no longer get the popup. Both DA Link (URL) and DA Number are now required so they always get recorded in SharePoint.']],
     ['v1.8.50', ['Completion emails now state WHICH service was completed, shown right after the customer name (e.g. "REQ. 2683 - Customer - COD"). Applies to COD and every completion type. The completed service is also added to the email subject.']],
     ['v1.8.49', ['Help chatbot FAQ expanded with many more answers (progress bar, age badges, notes, history, export, dark mode, expand/collapse, pagination, shortcuts, presence, COD, DA Edit, MP-NDA/MRUNDA, sync, sort). Added a Help Chatbot slide to the user guide and listed all valid SharePoint statuses. Documented the "Separate" flow hardening for requests with no Assigned BD in sync/FLOW-3-CREATE-REQUEST.md.']],
@@ -1455,8 +1456,16 @@ async function changeSpStatus(id, newStatus, selectEl) {
             openInfoRequestEmail(id);
         } else if (st === 'out for signature') {
             openOutForSignatureEmail(id);
+        } else if (st === 'add for signature') {
+            openAddForSignatureEmail(id);
         } else if (st === 'in approval loop') {
             openInApprovalLoopEmail(id);
+        } else if (st === 'it request submitted') {
+            openItRequestSubmittedEmail(id);
+        } else if (st === 'on hold') {
+            openOnHoldEmail(id);
+        } else if (st === 'canceled' || st === 'cancelled') {
+            openCanceledEmail(id);
         }
         // Complete email is sent from confirmCompleteModal(), gated there too.
     }
@@ -1654,6 +1663,105 @@ async function openInApprovalLoopEmail(id) {
     const subject = `REQ. ${id} - ${customer} - In Approval Loop`;
     const bodyHtml = buildInApprovalLoopEmailHtml(name, id, customer);
     await sendTrackerEmail(id, subject, bodyHtml, name, customer, 'In Approval Loop email');
+}
+
+// ---- Add for Signature ----
+function buildAddForSignatureEmailHtml(name, id, customer) {
+    const inner = `<tr><td style="padding:34px;color:#1a202c;font-size:18px;line-height:1.7;">`
+        + `<p style="margin:0 0 18px;font-size:18px;">Dear <strong>${name}</strong>,</p>`
+        + `<p style="margin:0 0 18px;font-size:18px;">Your request (<strong>REQ. ${id} &mdash; ${customer}</strong>) has been <strong style="color:#001E50;">Added for Signature</strong>.</p>`
+        + `<p style="margin:0 0 24px;font-size:18px;">The document is now in the signing stage. Once all parties sign, we will move it to the next step.</p>`
+        + `<div style="background:#f5f9fc;border:1px solid #e2e8f0;border-radius:8px;padding:16px 18px;margin-bottom:8px;">`
+        + `<div style="font-size:15px;color:#6b7684;">Estimated time</div>`
+        + `<div style="font-size:18px;font-weight:700;color:#001E50;">Depends on Customer &middot; Avg 48&ndash;56 hrs</div>`
+        + `</div>`
+        + `<p style="margin:16px 0 0;font-size:15px;color:#6b7684;font-style:italic;">Note: this stage depends on external signers and the customer, so timing can vary.</p>`
+        + `<p style="margin:26px 0 0;font-size:18px;">Thank you for your patience.</p>`
+        + `<p style="margin:20px 0 0;font-size:18px;">Best regards,<br><strong style="color:#041c32;">FS DA OPS</strong> &middot; Intel Foundry Services</p>`
+        + `</td></tr>`;
+    return wrapEmail(inner, 40);
+}
+async function openAddForSignatureEmail(id) {
+    const reqs = allRequests.filter(r => String(r.id) === String(id));
+    if (!reqs.length) return;
+    const req0 = reqs[0];
+    const name = emailGreetingName(req0.requestor || req0.requestorEmail);
+    const customer = req0.customer || 'your request';
+    const subject = `REQ. ${id} - ${customer} - Add for Signature`;
+    const bodyHtml = buildAddForSignatureEmailHtml(name, id, customer);
+    await sendTrackerEmail(id, subject, bodyHtml, name, customer, 'Add for Signature email');
+}
+
+// ---- IT Request Submitted ----
+function buildItRequestSubmittedEmailHtml(name, id, customer) {
+    const inner = `<tr><td style="padding:34px;color:#1a202c;font-size:18px;line-height:1.7;">`
+        + `<p style="margin:0 0 18px;font-size:18px;">Dear <strong>${name}</strong>,</p>`
+        + `<p style="margin:0 0 18px;font-size:18px;">Your request (<strong>REQ. ${id} &mdash; ${customer}</strong>) has been <strong style="color:#001E50;">Submitted to IT</strong> for processing.</p>`
+        + `<p style="margin:0 0 24px;font-size:18px;">The IT team is now working on the technical setup. We will keep you updated as it progresses.</p>`
+        + `<div style="background:#f5f9fc;border:1px solid #e2e8f0;border-radius:8px;padding:16px 18px;margin-bottom:8px;">`
+        + `<div style="font-size:15px;color:#6b7684;">Estimated time</div>`
+        + `<div style="font-size:18px;font-weight:700;color:#001E50;">Depends on IT processing</div>`
+        + `</div>`
+        + `<p style="margin:16px 0 0;font-size:15px;color:#6b7684;font-style:italic;">Note: this stage depends on IT, so timing can vary.</p>`
+        + `<p style="margin:26px 0 0;font-size:18px;">Thank you for your patience.</p>`
+        + `<p style="margin:20px 0 0;font-size:18px;">Best regards,<br><strong style="color:#041c32;">FS DA OPS</strong> &middot; Intel Foundry Services</p>`
+        + `</td></tr>`;
+    return wrapEmail(inner, 40);
+}
+async function openItRequestSubmittedEmail(id) {
+    const reqs = allRequests.filter(r => String(r.id) === String(id));
+    if (!reqs.length) return;
+    const req0 = reqs[0];
+    const name = emailGreetingName(req0.requestor || req0.requestorEmail);
+    const customer = req0.customer || 'your request';
+    const subject = `REQ. ${id} - ${customer} - IT Request Submitted`;
+    const bodyHtml = buildItRequestSubmittedEmailHtml(name, id, customer);
+    await sendTrackerEmail(id, subject, bodyHtml, name, customer, 'IT Request Submitted email');
+}
+
+// ---- On Hold ----
+function buildOnHoldEmailHtml(name, id, customer) {
+    const inner = `<tr><td style="padding:34px;color:#1a202c;font-size:18px;line-height:1.7;">`
+        + `<p style="margin:0 0 18px;font-size:18px;">Dear <strong>${name}</strong>,</p>`
+        + `<p style="margin:0 0 18px;font-size:18px;">Your request (<strong>REQ. ${id} &mdash; ${customer}</strong>) has been placed <strong style="color:#001E50;">On Hold</strong>.</p>`
+        + `<p style="margin:0 0 24px;font-size:18px;">We have temporarily paused this request. We will reach out if we need anything from you, and we will resume as soon as possible.</p>`
+        + `<p style="margin:16px 0 0;font-size:15px;color:#6b7684;font-style:italic;">If you have any questions in the meantime, please reply to this email.</p>`
+        + `<p style="margin:26px 0 0;font-size:18px;">Thank you for your understanding.</p>`
+        + `<p style="margin:20px 0 0;font-size:18px;">Best regards,<br><strong style="color:#041c32;">FS DA OPS</strong> &middot; Intel Foundry Services</p>`
+        + `</td></tr>`;
+    return wrapEmail(inner, 40);
+}
+async function openOnHoldEmail(id) {
+    const reqs = allRequests.filter(r => String(r.id) === String(id));
+    if (!reqs.length) return;
+    const req0 = reqs[0];
+    const name = emailGreetingName(req0.requestor || req0.requestorEmail);
+    const customer = req0.customer || 'your request';
+    const subject = `REQ. ${id} - ${customer} - On Hold`;
+    const bodyHtml = buildOnHoldEmailHtml(name, id, customer);
+    await sendTrackerEmail(id, subject, bodyHtml, name, customer, 'On Hold email');
+}
+
+// ---- Canceled ----
+function buildCanceledEmailHtml(name, id, customer) {
+    const inner = `<tr><td style="padding:34px;color:#1a202c;font-size:18px;line-height:1.7;">`
+        + `<p style="margin:0 0 18px;font-size:18px;">Dear <strong>${name}</strong>,</p>`
+        + `<p style="margin:0 0 18px;font-size:18px;">Your request (<strong>REQ. ${id} &mdash; ${customer}</strong>) has been <strong style="color:#001E50;">Canceled</strong>.</p>`
+        + `<p style="margin:0 0 24px;font-size:18px;">This request will no longer be processed. If this was not expected or you would like to reopen it, please reply to this email and we will help you.</p>`
+        + `<p style="margin:26px 0 0;font-size:18px;">Thank you.</p>`
+        + `<p style="margin:20px 0 0;font-size:18px;">Best regards,<br><strong style="color:#041c32;">FS DA OPS</strong> &middot; Intel Foundry Services</p>`
+        + `</td></tr>`;
+    return wrapEmail(inner, 40);
+}
+async function openCanceledEmail(id) {
+    const reqs = allRequests.filter(r => String(r.id) === String(id));
+    if (!reqs.length) return;
+    const req0 = reqs[0];
+    const name = emailGreetingName(req0.requestor || req0.requestorEmail);
+    const customer = req0.customer || 'your request';
+    const subject = `REQ. ${id} - ${customer} - Canceled`;
+    const bodyHtml = buildCanceledEmailHtml(name, id, customer);
+    await sendTrackerEmail(id, subject, bodyHtml, name, customer, 'Canceled email');
 }
 
 // Build the "Complete" celebration email — sparkles + portal name + DA number.

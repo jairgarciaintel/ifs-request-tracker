@@ -8,6 +8,10 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.52 — 2026-08-27
+- Mas cambios de status ahora mandan correo al cliente con el template estandar: Add for Signature, IT Request Submitted, On Hold y Canceled (ademas de los que ya existian: Acknowledged, Info Requested, In Approval Loop, Out for Signature, Complete).
+- Todos requieren el toggle "Auto emails" en ON. Si un correo de status no llega, revisar la conexion de Outlook en Power Automate (Connections > Fix connection).
+
 ## v1.8.51 — 2026-08-27
 - El popup de DA Link (al pasar a In Approval Loop) ahora SOLO aparece para Portal Creation y New DA — la etapa donde se crea el DA. Los demas tipos ya no lo muestran.
 - Ahora el DA Link (URL) y el DA Number son AMBOS obligatorios en ese popup, para que siempre queden registrados en SharePoint.
