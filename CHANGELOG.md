@@ -8,6 +8,9 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.54 — 2026-08-27
+- El logo del footer ahora es una version recortada y con fondo TRANSPARENTE (sin cuadro blanco) del logo inline de Intel Foundry, mostrado mas grande (200px). Generado con make_logo_transparent.py.
+
 ## v1.8.53 — 2026-08-27
 - El footer de los correos ahora usa el logo oficial "intel foundry" inline (negro) en vez del logo cuadrado chico, mas grande y limpio sobre el footer claro.
 
