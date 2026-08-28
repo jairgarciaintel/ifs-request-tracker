@@ -8,6 +8,9 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.53 — 2026-08-27
+- El footer de los correos ahora usa el logo oficial "intel foundry" inline (negro) en vez del logo cuadrado chico, mas grande y limpio sobre el footer claro.
+
 ## v1.8.52 — 2026-08-27
 - Mas cambios de status ahora mandan correo al cliente con el template estandar: Add for Signature, IT Request Submitted, On Hold y Canceled (ademas de los que ya existian: Acknowledged, Info Requested, In Approval Loop, Out for Signature, Complete).
 - Todos requieren el toggle "Auto emails" en ON. Si un correo de status no llega, revisar la conexion de Outlook en Power Automate (Connections > Fix connection).
