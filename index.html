@@ -103,12 +103,12 @@ body{
       <button class="changelog-close" onclick="hideDaLinkModal()">&times;</button>
     </div>
     <div class="changelog-content">
-      <p class="complete-modal-hint">This request just moved to <strong>In Approval Loop</strong>. Paste the DA Link here and it gets saved straight to SharePoint. Internal only &mdash; the customer is not notified about this.</p>
+      <p class="complete-modal-hint">This <strong>Portal Creation / New DA</strong> request just moved to <strong>In Approval Loop</strong> &mdash; this is the stage where the DA is created. Enter the <strong>DA Link</strong> and <strong>DA Number</strong> so they get recorded in SharePoint. Internal only &mdash; the customer is not notified about this.</p>
       <label class="complete-field-label">DA Link (URL)</label>
       <input type="text" id="dalink-url-input" class="complete-field-input" placeholder="https://intel.sharepoint.com/...">
-      <label class="complete-field-label">DA Number (Alternative Text, optional)</label>
-      <input type="text" id="dalink-number-input" class="complete-field-input" placeholder="e.g. 16654">
-      <div id="dalink-modal-warn" class="complete-modal-warn">Please enter the DA Link URL.</div>
+      <label class="complete-field-label">DA Number</label>
+      <input type="text" id="dalink-number-input" class="complete-field-input" placeholder="e.g. 15056">
+      <div id="dalink-modal-warn" class="complete-modal-warn">Please enter both the DA Link URL and the DA Number.</div>
       <div class="complete-modal-actions">
         <button class="btn btn-secondary" onclick="hideDaLinkModal()">Skip</button>
         <button class="btn btn-primary" onclick="confirmDaLinkModal()">Save to SharePoint</button>
@@ -683,10 +683,11 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.50';
+const APP_VERSION = 'v1.8.51';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
+    ['v1.8.51', ['The DA Link popup (In Approval Loop) now shows ONLY for Portal Creation and New DA requests — the stage where the DA is created. Other request types no longer get the popup. Both DA Link (URL) and DA Number are now required so they always get recorded in SharePoint.']],
     ['v1.8.50', ['Completion emails now state WHICH service was completed, shown right after the customer name (e.g. "REQ. 2683 - Customer - COD"). Applies to COD and every completion type. The completed service is also added to the email subject.']],
     ['v1.8.49', ['Help chatbot FAQ expanded with many more answers (progress bar, age badges, notes, history, export, dark mode, expand/collapse, pagination, shortcuts, presence, COD, DA Edit, MP-NDA/MRUNDA, sync, sort). Added a Help Chatbot slide to the user guide and listed all valid SharePoint statuses. Documented the "Separate" flow hardening for requests with no Assigned BD in sync/FLOW-3-CREATE-REQUEST.md.']],
     ['v1.8.48', ['Help chatbot added (floating button, bottom-right) on the tracker and the user guide. It answers common questions (FAQ, no external AI) and has a "Report it" button that emails bugs/feature requests to Jair via the existing email flow. The report subject has no "REQ." so it lands in the inbox, not the tracker folder. Guide updated with all the new features.']],
@@ -1429,7 +1430,13 @@ async function changeSpStatus(id, newStatus, selectEl) {
     const st = String(newStatus).toLowerCase();
     // Internal popups: always shown, independent of the customer-email toggle.
     if (st === 'in approval loop') {
-        openDaLinkModal(id);
+        // Only Portal Creation / New DA generate the DA at this stage, so only
+        // those ask for the DA Link + DA Number. Other types skip the popup.
+        const grp = allRequests.filter(r => String(r.id) === String(id));
+        const isPortalOrDA = grp.some(r => r.requestType === 'Portal Creation' || r.requestType === 'New DA');
+        if (isPortalOrDA) {
+            openDaLinkModal(id);
+        }
     } else if (st === 'complete') {
         // Codename requests get their own popup (assign a codename, notify the BD).
         const grp = allRequests.filter(r => String(r.id) === String(id));
@@ -1772,7 +1779,9 @@ async function confirmDaLinkModal(){
     if (!id) return;
     const daLinkUrl = document.getElementById('dalink-url-input').value.trim();
     const daLinkText = document.getElementById('dalink-number-input').value.trim();
-    if (!daLinkUrl) {
+    // At this stage the DA is created, so both the DA Link and DA Number must be
+    // recorded. Require both before saving.
+    if (!daLinkUrl || !daLinkText) {
         const warn = document.getElementById('dalink-modal-warn');
         if (warn) warn.style.display = 'block';
         return;

@@ -8,6 +8,10 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.51 — 2026-08-27
+- El popup de DA Link (al pasar a In Approval Loop) ahora SOLO aparece para Portal Creation y New DA — la etapa donde se crea el DA. Los demas tipos ya no lo muestran.
+- Ahora el DA Link (URL) y el DA Number son AMBOS obligatorios en ese popup, para que siempre queden registrados en SharePoint.
+
 ## v1.8.50 — 2026-08-27
 - Los correos de Complete ahora dicen QUE servicio se completo, justo despues del customer (ej. "REQ. 2683 - Customer - COD"). Aplica a COD y a todos los tipos. El servicio tambien se agrega al asunto del correo.
 ## v1.8.49 — 2026-08-27
