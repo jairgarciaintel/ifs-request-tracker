@@ -8,6 +8,9 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.55 — 2026-08-27
+- Se quito el correo de status "Add for Signature" (ese status no existe en SharePoint). Los correos de status ahora cubren: Acknowledged, Info Requested, In Approval Loop, Out for Signature, IT Request Submitted, On Hold, Canceled y Complete.
+
 ## v1.8.54 — 2026-08-27
 - El logo del footer ahora es una version recortada y con fondo TRANSPARENTE (sin cuadro blanco) del logo inline de Intel Foundry, mostrado mas grande (200px). Generado con make_logo_transparent.py.
 
