@@ -8,6 +8,10 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.57 — 2026-09-01
+- Arreglado el estiramiento infinito de las graficas de Indicators: cada grafica ahora vive en un contenedor de altura fija (300px), asi se ven bien con el zoom de la pagina y ya no hay scroll infinito hacia abajo.
+- Se quitaron los emojis de los Automation Highlights y se reemplazaron por iconos SVG inline (dashboard, correo, workflow).
+
 ## v1.8.56 — 2026-09-01
 - Nueva tab "Indicators" arriba (tabs estilo Excel), junto a "FS DA Requests": es el reporte mensual de DA Ops.
 - Incluye: 3 Automation Highlights (en ingles), tarjetas KPI (Total Received, Completed, Open, Avg 1st Ack SLA, Avg Total SLA) y 4 graficas en vivo:

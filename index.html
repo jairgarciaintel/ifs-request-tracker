@@ -392,17 +392,17 @@ async function hbSubmitReport(text){
     <p class="ind-subtitle">Key developments in DA Ops tooling — FY26</p>
     <div class="ind-cards-row">
       <div class="ind-card">
-        <div class="ind-card-icon">📊</div>
+        <div class="ind-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2.5"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="9" x2="9" y2="21"/><path d="M12.5 13.5l2 2 3-3.5"/></svg></div>
         <h3>FS Request Tracker</h3>
         <p>Real-time SharePoint request tracking with Firebase sync, automated email notifications for 8 status stages, presence indicators, and shared notes between team members.</p>
       </div>
       <div class="ind-card">
-        <div class="ind-card-icon">📧</div>
+        <div class="ind-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3.5 6.5l8.5 6 8.5-6"/></svg></div>
         <h3>Status Email Automation</h3>
         <p>Automated customer communications triggered on status change — from Acknowledged through Complete — using Power Automate flows with branded Intel Foundry HTML templates.</p>
       </div>
       <div class="ind-card">
-        <div class="ind-card-icon">⚡</div>
+        <div class="ind-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4.5 13.5H11L10 22l8.5-11.5H12L13 2z"/></svg></div>
         <h3>Workflow Orchestration</h3>
         <p>End-to-end request lifecycle: sub-step tracking per request type, conditional DA Link capture, DA number routing, SharePoint write-back, and Excel/JSON export for reporting.</p>
       </div>
@@ -422,22 +422,22 @@ async function hbSubmitReport(text){
   <div class="ind-section ind-charts-grid">
     <div class="ind-chart-box" id="chart-volume-box">
       <h3 class="ind-chart-title">Requests Received vs Completed — By Month (FY26)</h3>
-      <canvas id="chart-volume" height="260"></canvas>
+      <div class="ind-canvas-wrap"><canvas id="chart-volume"></canvas></div>
     </div>
     <div class="ind-chart-box" id="chart-status-box">
       <h3 class="ind-chart-title">Current Status Distribution</h3>
-      <canvas id="chart-status" height="260"></canvas>
+      <div class="ind-canvas-wrap"><canvas id="chart-status"></canvas></div>
     </div>
   </div>
   <div class="ind-section ind-charts-grid">
     <div class="ind-chart-box" id="chart-sla-box">
       <h3 class="ind-chart-title">SLA Performance — By Month</h3>
       <p class="ind-chart-note">1st Acknowledge SLA (Created → Acknowledged) &nbsp;|&nbsp; Total SLA (Acknowledged → Next Stage)</p>
-      <canvas id="chart-sla" height="260"></canvas>
+      <div class="ind-canvas-wrap"><canvas id="chart-sla"></canvas></div>
     </div>
     <div class="ind-chart-box" id="chart-types-box">
       <h3 class="ind-chart-title">Requests by Type</h3>
-      <canvas id="chart-types" height="260"></canvas>
+      <div class="ind-canvas-wrap"><canvas id="chart-types"></canvas></div>
     </div>
   </div>
 
@@ -465,7 +465,8 @@ async function hbSubmitReport(text){
 .ind-cards-row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
 .ind-card{background:linear-gradient(160deg,rgba(13,49,88,0.55),rgba(4,28,50,0.55));border:1px solid rgba(78,200,240,0.18);border-radius:16px;padding:20px;transition:transform .2s,border-color .2s;}
 .ind-card:hover{transform:translateY(-3px);border-color:rgba(78,200,240,0.45);}
-.ind-card-icon{font-size:26px;margin-bottom:10px;}
+.ind-card-icon{margin-bottom:12px;color:var(--cyan);}
+.ind-card-icon svg{width:30px;height:30px;display:block;}
 .ind-card h3{font-family:'Cabinet Grotesk',sans-serif;font-size:1.05rem;color:var(--cyan);margin-bottom:8px;}
 .ind-card p{font-size:12.5px;line-height:1.55;color:rgba(255,255,255,0.72);}
 
@@ -478,7 +479,8 @@ async function hbSubmitReport(text){
 .ind-chart-box{background:linear-gradient(160deg,rgba(13,49,88,0.4),rgba(4,28,50,0.5));border:1px solid rgba(78,200,240,0.16);border-radius:16px;padding:18px 18px 14px;}
 .ind-chart-title{font-family:'Cabinet Grotesk',sans-serif;font-size:1rem;font-weight:700;color:#fff;margin-bottom:4px;}
 .ind-chart-note{font-size:10.5px;color:rgba(255,255,255,0.4);margin-bottom:12px;}
-.ind-chart-box canvas{max-width:100%;}
+.ind-canvas-wrap{position:relative;height:300px;width:100%;}
+.ind-canvas-wrap canvas{position:absolute;top:0;left:0;width:100%!important;height:100%!important;}
 .ind-footer{font-size:11px;color:rgba(255,255,255,0.35);text-align:center;margin-top:8px;}
 @media(max-width:900px){.ind-cards-row,.ind-kpi-row,.ind-charts-grid{grid-template-columns:1fr;}}
 
@@ -490,6 +492,7 @@ body.light-mode .ind-h2,body.light-mode .ind-card h3,body.light-mode .ind-chart-
 body.light-mode .ind-card,body.light-mode .ind-kpi,body.light-mode .ind-chart-box{background:rgba(255,255,255,0.7);border-color:rgba(0,113,197,0.15);}
 body.light-mode .ind-card h3{color:#0071c5;}
 body.light-mode .ind-card p{color:#334155;}
+body.light-mode .ind-card-icon{color:#0071c5;}
 body.light-mode .ind-kpi-val{color:#0071c5;}
 body.light-mode .ind-kpi-label{color:#64748b;}
 .header-title h1{font-family:'Cabinet Grotesk',sans-serif;font-size:1.3rem;font-weight:700;}
@@ -803,10 +806,11 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.56';
+const APP_VERSION = 'v1.8.57';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
+    ['v1.8.57', ['Fixed the Indicators charts that were stretching down infinitely: each chart now sits in a fixed-height container (300px) so they render correctly with the page zoom. Replaced the emoji icons in the Automation Highlights with clean inline SVG icons (no emojis).']],
     ['v1.8.56', ['New "Indicators" tab at the top (Excel-style tabs): a monthly DA Ops report next to the FS DA Requests view. Includes 3 automation highlights, KPI cards (total received, completed, open, avg 1st Ack SLA, avg Total SLA), and 4 live charts: Received vs Completed by month (with quarter swimlane dividers), current Status distribution, SLA performance by month (1st Ack SLA = Created to Acknowledged, Total SLA = Acknowledged to next stage), and Requests by Type. All computed live from SharePoint data + Firebase status history.']],
     ['v1.8.55', ['Removed the "Add for Signature" status email (that status does not exist). Status emails now cover: Acknowledged, Info Requested, In Approval Loop, Out for Signature, IT Request Submitted, On Hold, Canceled and Complete.']],
     ['v1.8.54', ['Email footer logo now uses a trimmed, transparent-background version of the Intel Foundry inline logo (no white box), shown bigger (200px) so it looks clean on the light footer. Generated by make_logo_transparent.py.']],
