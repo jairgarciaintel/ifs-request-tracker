@@ -8,6 +8,15 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.56 — 2026-09-01
+- Nueva tab "Indicators" arriba (tabs estilo Excel), junto a "FS DA Requests": es el reporte mensual de DA Ops.
+- Incluye: 3 Automation Highlights (en ingles), tarjetas KPI (Total Received, Completed, Open, Avg 1st Ack SLA, Avg Total SLA) y 4 graficas en vivo:
+  - Received vs Completed por mes (con divisores de swimlane por trimestre Q1-Q4).
+  - Current Status Distribution (dona).
+  - SLA Performance por mes: 1st Ack SLA (Created -> Acknowledged) y Total SLA (Acknowledged -> siguiente stage: In Approval Loop / Out for Signature / IT Request Submitted / Complete).
+  - Requests by Type (barra horizontal).
+- Todo se calcula en vivo desde los datos de SharePoint + el historial de status en Firebase. Se agrego Chart.js 4.4.1.
+
 ## v1.8.55 — 2026-08-27
 - Se quito el correo de status "Add for Signature" (ese status no existe en SharePoint). Los correos de status ahora cubren: Acknowledged, Info Requested, In Approval Loop, Out for Signature, IT Request Submitted, On Hold, Canceled y Complete.
 

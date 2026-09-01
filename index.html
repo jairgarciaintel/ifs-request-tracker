@@ -6,6 +6,7 @@
 <title>FS Request Tracker — DA Ops</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23041c32'/><rect x='2' y='2' width='28' height='28' rx='5' fill='none' stroke='%234ec8f0' stroke-width='1.5'/><text x='5' y='22' font-size='15' font-family='Arial,sans-serif' fill='%234ec8f0' font-weight='bold'>FS</text></svg>">
 <link href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@700,400&f[]=satoshi@400,700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 html,body{height:100%;overflow-x:hidden;}
@@ -85,6 +86,18 @@ body{
     <button class="btn btn-secondary" onclick="exportJSON()"><svg width="14" height="14"><use href="#icon-export"/></svg> JSON</button>
   </div>
 </header>
+
+<!-- ============ TOP TABS (Excel-style) ============ -->
+<div class="tabbar" id="tabbar">
+  <button class="tab-btn active" id="tab-requests" onclick="switchTab('requests')">
+    <svg width="14" height="14" viewBox="0 0 16 16" style="margin-right:6px;vertical-align:-2px"><rect x="2" y="3" width="12" height="10" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.3"/><line x1="2" y1="6.5" x2="14" y2="6.5" stroke="currentColor" stroke-width="1.1"/><line x1="6" y1="6.5" x2="6" y2="13" stroke="currentColor" stroke-width="1.1"/></svg>
+    FS DA Requests
+  </button>
+  <button class="tab-btn" id="tab-indicators" onclick="switchTab('indicators')">
+    <svg width="14" height="14" viewBox="0 0 16 16" style="margin-right:6px;vertical-align:-2px"><line x1="2.5" y1="13.5" x2="13.5" y2="13.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><rect x="3" y="8" width="2.4" height="5" rx="0.6" fill="currentColor"/><rect x="6.8" y="5" width="2.4" height="8" rx="0.6" fill="currentColor"/><rect x="10.6" y="2.5" width="2.4" height="10.5" rx="0.6" fill="currentColor"/></svg>
+    Indicators
+  </button>
+</div>
 
 <div id="changelog-modal" class="changelog-overlay" onclick="hideChangelog(event)">
   <div class="changelog-box">
@@ -298,6 +311,7 @@ async function hbSubmitReport(text){
 </script>
 <!-- ============ END HELP CHATBOT ============ -->
 
+<div id="view-requests">
 <div class="toolbar">
   <div class="filters">
     <select id="filter-time" onchange="renderRequests()">
@@ -367,11 +381,117 @@ async function hbSubmitReport(text){
 <main id="request-list" class="request-list">
   <div class="empty-state"><h3>Loading...</h3></div>
 </main>
+</div><!-- /view-requests -->
+
+<!-- ============ INDICATORS VIEW ============ -->
+<div id="view-indicators" style="display:none;">
+
+  <!-- Highlights (3 automation highlights) -->
+  <div class="ind-section ind-highlights">
+    <h2 class="ind-h2">Automation Highlights</h2>
+    <p class="ind-subtitle">Key developments in DA Ops tooling — FY26</p>
+    <div class="ind-cards-row">
+      <div class="ind-card">
+        <div class="ind-card-icon">📊</div>
+        <h3>FS Request Tracker</h3>
+        <p>Real-time SharePoint request tracking with Firebase sync, automated email notifications for 8 status stages, presence indicators, and shared notes between team members.</p>
+      </div>
+      <div class="ind-card">
+        <div class="ind-card-icon">📧</div>
+        <h3>Status Email Automation</h3>
+        <p>Automated customer communications triggered on status change — from Acknowledged through Complete — using Power Automate flows with branded Intel Foundry HTML templates.</p>
+      </div>
+      <div class="ind-card">
+        <div class="ind-card-icon">⚡</div>
+        <h3>Workflow Orchestration</h3>
+        <p>End-to-end request lifecycle: sub-step tracking per request type, conditional DA Link capture, DA number routing, SharePoint write-back, and Excel/JSON export for reporting.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPIs summary row -->
+  <div class="ind-section ind-kpi-row" id="ind-kpis">
+    <div class="ind-kpi"><span class="ind-kpi-val" id="kpi-total">—</span><span class="ind-kpi-label">Total Received</span></div>
+    <div class="ind-kpi"><span class="ind-kpi-val" id="kpi-closed">—</span><span class="ind-kpi-label">Completed</span></div>
+    <div class="ind-kpi"><span class="ind-kpi-val" id="kpi-open">—</span><span class="ind-kpi-label">Open / In Progress</span></div>
+    <div class="ind-kpi"><span class="ind-kpi-val" id="kpi-sla1">—</span><span class="ind-kpi-label">Avg 1st Ack SLA</span></div>
+    <div class="ind-kpi"><span class="ind-kpi-val" id="kpi-sla2">—</span><span class="ind-kpi-label">Avg Total SLA</span></div>
+  </div>
+
+  <!-- Charts -->
+  <div class="ind-section ind-charts-grid">
+    <div class="ind-chart-box" id="chart-volume-box">
+      <h3 class="ind-chart-title">Requests Received vs Completed — By Month (FY26)</h3>
+      <canvas id="chart-volume" height="260"></canvas>
+    </div>
+    <div class="ind-chart-box" id="chart-status-box">
+      <h3 class="ind-chart-title">Current Status Distribution</h3>
+      <canvas id="chart-status" height="260"></canvas>
+    </div>
+  </div>
+  <div class="ind-section ind-charts-grid">
+    <div class="ind-chart-box" id="chart-sla-box">
+      <h3 class="ind-chart-title">SLA Performance — By Month</h3>
+      <p class="ind-chart-note">1st Acknowledge SLA (Created → Acknowledged) &nbsp;|&nbsp; Total SLA (Acknowledged → Next Stage)</p>
+      <canvas id="chart-sla" height="260"></canvas>
+    </div>
+    <div class="ind-chart-box" id="chart-types-box">
+      <h3 class="ind-chart-title">Requests by Type</h3>
+      <canvas id="chart-types" height="260"></canvas>
+    </div>
+  </div>
+
+  <p class="ind-footer">Data sourced from SharePoint "New DA Request" list + Firebase tracking history. Updated live.</p>
+</div><!-- /view-indicators -->
 
 <style>
 .header{padding:16px 32px;display:flex;align-items:center;justify-content:space-between;background:rgba(0,30,80,0.95);border-bottom:1px solid rgba(78,200,240,0.15);backdrop-filter:blur(10px);position:sticky;top:0;z-index:100;}
 .header-left{display:flex;align-items:center;gap:16px;}
 .logo{height:68px;width:auto;}
+
+/* ====== TOP TABS (Excel-style) ====== */
+.tabbar{display:flex;gap:4px;padding:0 32px;background:rgba(0,30,80,0.6);border-bottom:1px solid rgba(78,200,240,0.15);position:sticky;top:0;z-index:99;}
+.tab-btn{display:inline-flex;align-items:center;font-family:'Cabinet Grotesk',sans-serif;font-size:13px;font-weight:700;color:rgba(255,255,255,0.55);background:rgba(255,255,255,0.03);border:1px solid rgba(78,200,240,0.12);border-bottom:none;border-radius:10px 10px 0 0;padding:11px 22px;margin-top:6px;cursor:pointer;transition:all .18s;letter-spacing:.2px;}
+.tab-btn:hover{color:#fff;background:rgba(78,200,240,0.08);}
+.tab-btn.active{color:var(--cyan);background:linear-gradient(180deg,rgba(78,200,240,0.16),rgba(4,28,50,0.4));border-color:rgba(78,200,240,0.4);box-shadow:0 -2px 12px rgba(78,200,240,0.12);}
+.tab-btn.active::after{content:'';position:absolute;}
+
+/* ====== INDICATORS VIEW ====== */
+#view-indicators{padding:24px 32px 60px;max-width:1400px;margin:0 auto;}
+.ind-section{margin-bottom:26px;}
+.ind-h2{font-family:'Cabinet Grotesk',sans-serif;font-size:1.5rem;font-weight:700;color:#fff;margin-bottom:4px;}
+.ind-h2 .accent{color:var(--cyan);}
+.ind-subtitle{font-size:12px;color:rgba(255,255,255,0.45);margin-bottom:16px;}
+.ind-cards-row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+.ind-card{background:linear-gradient(160deg,rgba(13,49,88,0.55),rgba(4,28,50,0.55));border:1px solid rgba(78,200,240,0.18);border-radius:16px;padding:20px;transition:transform .2s,border-color .2s;}
+.ind-card:hover{transform:translateY(-3px);border-color:rgba(78,200,240,0.45);}
+.ind-card-icon{font-size:26px;margin-bottom:10px;}
+.ind-card h3{font-family:'Cabinet Grotesk',sans-serif;font-size:1.05rem;color:var(--cyan);margin-bottom:8px;}
+.ind-card p{font-size:12.5px;line-height:1.55;color:rgba(255,255,255,0.72);}
+
+.ind-kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;}
+.ind-kpi{background:rgba(0,30,80,0.5);border:1px solid rgba(78,200,240,0.16);border-radius:14px;padding:16px 14px;text-align:center;}
+.ind-kpi-val{display:block;font-family:'Cabinet Grotesk',sans-serif;font-size:1.9rem;font-weight:700;color:var(--cyan);line-height:1;}
+.ind-kpi-label{display:block;font-size:11px;color:rgba(255,255,255,0.55);margin-top:8px;text-transform:uppercase;letter-spacing:.5px;}
+
+.ind-charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+.ind-chart-box{background:linear-gradient(160deg,rgba(13,49,88,0.4),rgba(4,28,50,0.5));border:1px solid rgba(78,200,240,0.16);border-radius:16px;padding:18px 18px 14px;}
+.ind-chart-title{font-family:'Cabinet Grotesk',sans-serif;font-size:1rem;font-weight:700;color:#fff;margin-bottom:4px;}
+.ind-chart-note{font-size:10.5px;color:rgba(255,255,255,0.4);margin-bottom:12px;}
+.ind-chart-box canvas{max-width:100%;}
+.ind-footer{font-size:11px;color:rgba(255,255,255,0.35);text-align:center;margin-top:8px;}
+@media(max-width:900px){.ind-cards-row,.ind-kpi-row,.ind-charts-grid{grid-template-columns:1fr;}}
+
+/* light mode */
+body.light-mode .tabbar{background:rgba(255,255,255,0.7);border-color:rgba(0,113,197,0.15);}
+body.light-mode .tab-btn{color:#64748b;background:rgba(0,0,0,0.02);border-color:rgba(0,113,197,0.12);}
+body.light-mode .tab-btn.active{color:#0071c5;background:linear-gradient(180deg,rgba(0,113,197,0.1),rgba(255,255,255,0.5));border-color:rgba(0,113,197,0.35);}
+body.light-mode .ind-h2,body.light-mode .ind-card h3,body.light-mode .ind-chart-title{color:#1a202c;}
+body.light-mode .ind-card,body.light-mode .ind-kpi,body.light-mode .ind-chart-box{background:rgba(255,255,255,0.7);border-color:rgba(0,113,197,0.15);}
+body.light-mode .ind-card h3{color:#0071c5;}
+body.light-mode .ind-card p{color:#334155;}
+body.light-mode .ind-kpi-val{color:#0071c5;}
+body.light-mode .ind-kpi-label{color:#64748b;}
 .header-title h1{font-family:'Cabinet Grotesk',sans-serif;font-size:1.3rem;font-weight:700;}
 .header-title h1 .accent{color:var(--cyan);}
 .header-title .meta{font-size:11px;color:rgba(255,255,255,0.4);margin-top:2px;}
@@ -683,10 +803,11 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.55';
+const APP_VERSION = 'v1.8.56';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
+    ['v1.8.56', ['New "Indicators" tab at the top (Excel-style tabs): a monthly DA Ops report next to the FS DA Requests view. Includes 3 automation highlights, KPI cards (total received, completed, open, avg 1st Ack SLA, avg Total SLA), and 4 live charts: Received vs Completed by month (with quarter swimlane dividers), current Status distribution, SLA performance by month (1st Ack SLA = Created to Acknowledged, Total SLA = Acknowledged to next stage), and Requests by Type. All computed live from SharePoint data + Firebase status history.']],
     ['v1.8.55', ['Removed the "Add for Signature" status email (that status does not exist). Status emails now cover: Acknowledged, Info Requested, In Approval Loop, Out for Signature, IT Request Submitted, On Hold, Canceled and Complete.']],
     ['v1.8.54', ['Email footer logo now uses a trimmed, transparent-background version of the Intel Foundry inline logo (no white box), shown bigger (200px) so it looks clean on the light footer. Generated by make_logo_transparent.py.']],
     ['v1.8.53', ['Email footer now uses the official Intel Foundry inline logo (black) instead of the small square logo, shown larger and cleaner on the light footer.']],
@@ -3708,6 +3829,256 @@ function toggleTheme() {
 // Apply saved theme
 if (localStorage.getItem('fs-theme') === 'light') document.body.classList.add('light-mode');
 document.addEventListener('DOMContentLoaded', updateHeaderLogo);
+
+// ============================================================
+// INDICATORS / MONTHLY REPORT
+// ============================================================
+let indicatorsLoaded = false;
+let indCharts = {};
+
+function switchTab(tab){
+    const isInd = tab === 'indicators';
+    document.getElementById('view-requests').style.display = isInd ? 'none' : '';
+    document.getElementById('view-indicators').style.display = isInd ? 'block' : 'none';
+    document.getElementById('tab-requests').classList.toggle('active', !isInd);
+    document.getElementById('tab-indicators').classList.toggle('active', isInd);
+    if (isInd) renderIndicators();
+}
+
+// Month keys FY26 (Jan..Dec 2026)
+const IND_MONTHS = ['2026-01','2026-02','2026-03','2026-04','2026-05','2026-06','2026-07','2026-08','2026-09','2026-10','2026-11','2026-12'];
+const IND_MONTH_LABELS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+// Quarter boundaries (index in IND_MONTHS where a new quarter starts, for swimline dividers)
+const IND_QUARTER_STARTS = [0,3,6,9]; // Q1,Q2,Q3,Q4
+
+function monthKey(dateStr){
+    if(!dateStr) return null;
+    const d = new Date(dateStr);
+    if(isNaN(d)) return null;
+    return d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0');
+}
+function fmtHours(h){
+    if(h==null||isNaN(h)) return '—';
+    if(h < 48) return h.toFixed(1)+'h';
+    return (h/24).toFixed(1)+'d';
+}
+
+// Build SLA + volume metrics from Firebase history + allRequests
+async function computeIndicatorMetrics(){
+    // 1. Load full history
+    let history = [];
+    try{
+        const res = await fetch(`${FIREBASE_DB}/history.json`);
+        if(res.ok){
+            const data = await res.json();
+            history = data ? (Array.isArray(data) ? data : Object.values(data)) : [];
+        }
+    }catch(e){ console.warn('history load failed', e); }
+
+    // 2. Received per month (from allRequests.created)
+    const received = {}, closed = {};
+    IND_MONTHS.forEach(m=>{received[m]=0;closed[m]=0;});
+    allRequests.forEach(r=>{
+        const mk = monthKey(r.created);
+        if(mk && received[mk]!=null) received[mk]++;
+    });
+
+    // 3. Status-change timeline per request (step === 'Status')
+    // Group status events by requestId, sorted by time
+    const statusEvents = {}; // id -> [{value, t}]
+    history.filter(h=>h.step==='Status' && h.requestId).forEach(h=>{
+        (statusEvents[h.requestId] = statusEvents[h.requestId]||[]).push({value:(h.value||'').trim(), t:new Date(h.timestamp).getTime()});
+    });
+    Object.values(statusEvents).forEach(arr=>arr.sort((a,b)=>a.t-b.t));
+
+    // created time lookup
+    const createdOf = {};
+    allRequests.forEach(r=>{ if(r.created){ const t=new Date(r.created).getTime(); if(!isNaN(t)) createdOf[String(r.id)]=t; } });
+
+    // 4. SLA calc
+    // 1st Ack SLA = created -> first "Acknowledged"
+    // Total SLA = first "Acknowledged" -> first NEXT stage (In Approval Loop / Out for Signature / IT Request Submitted / Complete)
+    const NEXT_STAGES = ['In Approval Loop','Out for Signature','IT Request Submitted','Complete'];
+    const sla1ByMonth = {}, sla2ByMonth = {};
+    IND_MONTHS.forEach(m=>{sla1ByMonth[m]=[];sla2ByMonth[m]=[];});
+
+    Object.keys(statusEvents).forEach(id=>{
+        const arr = statusEvents[id];
+        const created = createdOf[String(id)];
+        const firstAck = arr.find(e=>e.value==='Acknowledged');
+        // 1st Ack SLA
+        if(firstAck && created){
+            const hrs = (firstAck.t - created)/3600000;
+            const mk = monthKey(new Date(firstAck.t).toISOString());
+            if(hrs>=0 && mk && sla1ByMonth[mk]) sla1ByMonth[mk].push(hrs);
+        }
+        // Total SLA: ack -> next stage
+        if(firstAck){
+            const next = arr.find(e=>e.t>firstAck.t && NEXT_STAGES.includes(e.value));
+            if(next){
+                const hrs = (next.t - firstAck.t)/3600000;
+                const mk = monthKey(new Date(next.t).toISOString());
+                if(hrs>=0 && mk && sla2ByMonth[mk]) sla2ByMonth[mk].push(hrs);
+            }
+        }
+        // Closed per month (first Complete)
+        const firstComplete = arr.find(e=>e.value==='Complete');
+        if(firstComplete){
+            const mk = monthKey(new Date(firstComplete.t).toISOString());
+            if(mk && closed[mk]!=null) closed[mk]++;
+        }
+    });
+
+    const avg = a => a.length ? a.reduce((s,x)=>s+x,0)/a.length : null;
+    const sla1Avg = IND_MONTHS.map(m=>{const v=avg(sla1ByMonth[m]); return v==null?null:+(v).toFixed(2);});
+    const sla2Avg = IND_MONTHS.map(m=>{const v=avg(sla2ByMonth[m]); return v==null?null:+(v).toFixed(2);});
+
+    // 5. Current status distribution (from allRequests)
+    const STATUS_ORDER = ['Info Requested','Acknowledged','In Approval Loop','Out for Signature','WIP','IT Request Submitted','On Hold','Complete','Canceled'];
+    const statusDist = {};
+    STATUS_ORDER.forEach(s=>statusDist[s]=0);
+    let other=0;
+    allRequests.forEach(r=>{
+        const s=(r.status||'').trim();
+        if(statusDist[s]!=null) statusDist[s]++;
+        else if(s) other++;
+    });
+
+    // 6. Requests by type
+    const typeDist = {};
+    allRequests.forEach(r=>{ const t=r.requestType||'Other'; typeDist[t]=(typeDist[t]||0)+1; });
+
+    // Overall KPIs
+    const allSla1 = [].concat(...IND_MONTHS.map(m=>sla1ByMonth[m]));
+    const allSla2 = [].concat(...IND_MONTHS.map(m=>sla2ByMonth[m]));
+    const totalReceived = allRequests.length;
+    const totalClosed = allRequests.filter(r=>(r.status||'').trim()==='Complete').length;
+    const totalOpen = allRequests.filter(r=>{const s=(r.status||'').trim();return s && s!=='Complete' && s!=='Canceled';}).length;
+
+    return {
+        received: IND_MONTHS.map(m=>received[m]),
+        closed: IND_MONTHS.map(m=>closed[m]),
+        sla1Avg, sla2Avg,
+        statusDist, STATUS_ORDER, other,
+        typeDist,
+        kpis:{
+            total: totalReceived,
+            closed: totalClosed,
+            open: totalOpen,
+            sla1: fmtHours(avg(allSla1)),
+            sla2: fmtHours(avg(allSla2))
+        }
+    };
+}
+
+// Chart.js global styling
+function indChartDefaults(){
+    const light = document.body.classList.contains('light-mode');
+    return {
+        grid: light ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)',
+        tick: light ? '#334155' : 'rgba(255,255,255,0.7)',
+        title: light ? '#1a202c' : '#fff'
+    };
+}
+
+// Draw quarter divider lines on a bar/line chart (swimlanes)
+const quarterDividerPlugin = {
+    id:'quarterDividers',
+    afterDraw(chart){
+        if(!chart.config.options.plugins.quarterDividers || !chart.config.options.plugins.quarterDividers.show) return;
+        const {ctx,chartArea:{top,bottom},scales:{x}} = chart;
+        const light = document.body.classList.contains('light-mode');
+        ctx.save();
+        ctx.strokeStyle = light ? 'rgba(0,113,197,0.25)' : 'rgba(78,200,240,0.28)';
+        ctx.lineWidth = 1; ctx.setLineDash([4,4]);
+        [3,6,9].forEach(i=>{
+            const xPos = x.getPixelForValue(i) - (x.getPixelForValue(1)-x.getPixelForValue(0))/2;
+            ctx.beginPath(); ctx.moveTo(xPos,top); ctx.lineTo(xPos,bottom); ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.fillStyle = light ? 'rgba(0,113,197,0.5)' : 'rgba(78,200,240,0.5)';
+            ctx.font = '10px Satoshi';
+            const q = i===3?'Q2':i===6?'Q3':'Q4';
+            ctx.fillText(q, xPos+4, top+12);
+            ctx.setLineDash([4,4]);
+        });
+        // Q1 label
+        ctx.fillStyle = light ? 'rgba(0,113,197,0.5)' : 'rgba(78,200,240,0.5)';
+        ctx.font = '10px Satoshi';
+        ctx.fillText('Q1', x.getPixelForValue(0)-(x.getPixelForValue(1)-x.getPixelForValue(0))/2+4, top+12);
+        ctx.restore();
+    }
+};
+if(window.Chart) Chart.register(quarterDividerPlugin);
+
+async function renderIndicators(){
+    if(typeof Chart === 'undefined'){ console.warn('Chart.js not loaded yet'); return; }
+    const m = await computeIndicatorMetrics();
+    const d = indChartDefaults();
+
+    // KPIs
+    document.getElementById('kpi-total').textContent = m.kpis.total;
+    document.getElementById('kpi-closed').textContent = m.kpis.closed;
+    document.getElementById('kpi-open').textContent = m.kpis.open;
+    document.getElementById('kpi-sla1').textContent = m.kpis.sla1;
+    document.getElementById('kpi-sla2').textContent = m.kpis.sla2;
+
+    // destroy old charts
+    Object.values(indCharts).forEach(c=>{try{c.destroy()}catch(e){}});
+    indCharts = {};
+
+    const commonScales = {
+        x:{grid:{color:d.grid},ticks:{color:d.tick,font:{size:10}}},
+        y:{grid:{color:d.grid},ticks:{color:d.tick,font:{size:10}},beginAtZero:true}
+    };
+    const legendCfg = {labels:{color:d.tick,font:{size:11},boxWidth:12}};
+
+    // 1. Volume: received vs closed (bar) with quarter dividers
+    indCharts.volume = new Chart(document.getElementById('chart-volume'),{
+        type:'bar',
+        data:{labels:IND_MONTH_LABELS,datasets:[
+            {label:'Received',data:m.received,backgroundColor:'rgba(78,200,240,0.75)',borderRadius:4},
+            {label:'Completed',data:m.closed,backgroundColor:'rgba(107,203,119,0.75)',borderRadius:4}
+        ]},
+        options:{responsive:true,maintainAspectRatio:false,
+            plugins:{legend:legendCfg,quarterDividers:{show:true}},
+            scales:commonScales}
+    });
+
+    // 2. Status distribution (doughnut)
+    const stLabels = m.STATUS_ORDER.filter(s=>m.statusDist[s]>0);
+    const stData = stLabels.map(s=>m.statusDist[s]);
+    const stColors = {'Info Requested':'#8b93a7','Acknowledged':'#4ec8f0','In Approval Loop':'#f0a030','Out for Signature':'#b57edc','WIP':'#0071c5','IT Request Submitted':'#e07b3a','On Hold':'#c0c0c0','Complete':'#6bcb77','Canceled':'#cc5555'};
+    indCharts.status = new Chart(document.getElementById('chart-status'),{
+        type:'doughnut',
+        data:{labels:stLabels,datasets:[{data:stData,backgroundColor:stLabels.map(s=>stColors[s]||'#888'),borderColor:'rgba(4,28,50,0.6)',borderWidth:2}]},
+        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:d.tick,font:{size:11},boxWidth:12,padding:8}}}}
+    });
+
+    // 3. SLA line (2 lines) with quarter dividers
+    indCharts.sla = new Chart(document.getElementById('chart-sla'),{
+        type:'line',
+        data:{labels:IND_MONTH_LABELS,datasets:[
+            {label:'1st Ack SLA (h)',data:m.sla1Avg,borderColor:'#4ec8f0',backgroundColor:'rgba(78,200,240,0.15)',tension:0.3,spanGaps:true,pointRadius:4,pointBackgroundColor:'#4ec8f0'},
+            {label:'Total SLA (h)',data:m.sla2Avg,borderColor:'#f0a030',backgroundColor:'rgba(240,160,48,0.12)',tension:0.3,spanGaps:true,pointRadius:4,pointBackgroundColor:'#f0a030'}
+        ]},
+        options:{responsive:true,maintainAspectRatio:false,
+            plugins:{legend:legendCfg,quarterDividers:{show:true},
+                tooltip:{callbacks:{label:c=>c.dataset.label+': '+(c.parsed.y==null?'no data':c.parsed.y+'h')}}},
+            scales:{x:commonScales.x,y:{...commonScales.y,title:{display:true,text:'Hours',color:d.tick,font:{size:10}}}}}
+    });
+
+    // 4. Requests by type (horizontal bar)
+    const typeEntries = Object.entries(m.typeDist).sort((a,b)=>b[1]-a[1]);
+    indCharts.types = new Chart(document.getElementById('chart-types'),{
+        type:'bar',
+        data:{labels:typeEntries.map(e=>e[0]),datasets:[{label:'Requests',data:typeEntries.map(e=>e[1]),backgroundColor:'rgba(0,113,197,0.7)',borderRadius:4}]},
+        options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+            plugins:{legend:{display:false}},
+            scales:{x:{...commonScales.x,beginAtZero:true},y:{grid:{display:false},ticks:{color:d.tick,font:{size:10}}}}}
+    });
+
+    indicatorsLoaded = true;
+}
 
 // ============================================================
 // INIT
