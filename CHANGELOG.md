@@ -8,6 +8,14 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.59 — 2026-09-01
+- SLAs de Indicators renombrados y reenfocados:
+  - "Ticket Triage SLA" = tiempo desde que se crea el ticket hasta que lo tomamos (Acknowledged).
+  - "2nd SLA" = tiempo desde que se toma hasta el siguiente estado (In Approval Loop / Out for Signature / IT Request Submitted / Complete).
+- "Completed by Month" ahora tambien jala de SharePoint: los meses pasados (Feb-Jul) se llenan con la fecha de cada ticket completado, combinado con el evento exacto de Firebase donde existe, en vez de mostrar solo agosto.
+- "Received by Month" ya viene 100% de las fechas Created de SharePoint para todo el año.
+- Nota: SharePoint (via el connector) no expone el timeline completo de cambios de estado por ticket; los tiempos de SLA solo son exactos desde que empezamos a registrar en Firebase (agosto). Los meses viejos de "Completed" usan la fecha de modificacion del ticket como aproximacion.
+
 ## v1.8.58 — 2026-09-01
 - Tab Indicators: nueva tira "Completed by Month" con los completados de cada mes del FY26 (no solo agosto).
 - Filtro de mostrar/ocultar arriba del doughnut "Current Status Distribution": un checkbox por estado con su color y conteo. Complete y Canceled vienen destildados por defecto para que la grafica arranque en los estados activos; se redibuja al instante al tildar/destildar.

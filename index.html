@@ -414,8 +414,8 @@ async function hbSubmitReport(text){
     <div class="ind-kpi"><span class="ind-kpi-val" id="kpi-total">—</span><span class="ind-kpi-label">Total Received</span></div>
     <div class="ind-kpi"><span class="ind-kpi-val" id="kpi-closed">—</span><span class="ind-kpi-label">Completed</span></div>
     <div class="ind-kpi"><span class="ind-kpi-val" id="kpi-open">—</span><span class="ind-kpi-label">Open / In Progress</span></div>
-    <div class="ind-kpi"><span class="ind-kpi-val" id="kpi-sla1">—</span><span class="ind-kpi-label">Avg 1st Ack SLA</span></div>
-    <div class="ind-kpi"><span class="ind-kpi-val" id="kpi-sla2">—</span><span class="ind-kpi-label">Avg Total SLA</span></div>
+    <div class="ind-kpi"><span class="ind-kpi-val" id="kpi-triage">—</span><span class="ind-kpi-label">Avg Ticket Triage SLA</span></div>
+    <div class="ind-kpi"><span class="ind-kpi-val" id="kpi-sla2">—</span><span class="ind-kpi-label">Avg 2nd SLA</span></div>
   </div>
 
   <!-- Completed per month strip -->
@@ -439,7 +439,7 @@ async function hbSubmitReport(text){
   <div class="ind-section ind-charts-grid">
     <div class="ind-chart-box" id="chart-sla-box">
       <h3 class="ind-chart-title">SLA Performance — By Month</h3>
-      <p class="ind-chart-note">1st Acknowledge SLA (Created → Acknowledged) &nbsp;|&nbsp; Total SLA (Acknowledged → Next Stage)</p>
+      <p class="ind-chart-note">Ticket Triage SLA (Created → Ticket picked up) &nbsp;|&nbsp; 2nd SLA (Picked up → Next Stage)</p>
       <div class="ind-canvas-wrap"><canvas id="chart-sla"></canvas></div>
     </div>
     <div class="ind-chart-box" id="chart-types-box">
@@ -834,10 +834,11 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.58';
+const APP_VERSION = 'v1.8.59';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
+    ['v1.8.59', ['Indicators SLAs renamed and refocused: "Ticket Triage SLA" = time from ticket Created until we pick it up (Acknowledged), and "2nd SLA" = time from pick-up to the next stage (In Approval Loop / Out for Signature / IT Request Submitted / Complete). Completed-by-month now pulls from SharePoint too: past months (Feb-Jul) are populated using each completed ticket\u2019s date, combined with the exact Firebase completion event where available, instead of showing only August. Received-by-month already comes 100% from SharePoint Created dates for the whole year.']],
     ['v1.8.58', ['Indicators tab: added a "Completed by Month" strip showing completions for every month of FY26 (not just August). Added a show/hide filter above the Current Status Distribution doughnut — one checkbox per status with its color and count; Complete and Canceled are unchecked by default so the chart starts on the active stages, and it redraws instantly when you toggle any status. Added a full-width "Requests by Customer" chart (top 15 by volume).']],
     ['v1.8.57', ['Fixed the Indicators charts that were stretching down infinitely: each chart now sits in a fixed-height container (300px) so they render correctly with the page zoom. Replaced the emoji icons in the Automation Highlights with clean inline SVG icons (no emojis).']],
     ['v1.8.56', ['New "Indicators" tab at the top (Excel-style tabs): a monthly DA Ops report next to the FS DA Requests view. Includes 3 automation highlights, KPI cards (total received, completed, open, avg 1st Ack SLA, avg Total SLA), and 4 live charts: Received vs Completed by month (with quarter swimlane dividers), current Status distribution, SLA performance by month (1st Ack SLA = Created to Acknowledged, Total SLA = Acknowledged to next stage), and Requests by Type. All computed live from SharePoint data + Firebase status history.']],
@@ -1249,6 +1250,8 @@ async function fetchAndRender() {
                             requestor: item.Author ? (item.Author.DisplayName || item.Author.Title || '') : (item.Created_x0020_By || ''),
                             requestorEmail: requestorEmail,
                             created: item.Created || '',
+                            modified: item.Modified || '',
+                            dateFullInfo: item.iGOAdminOnly_x002d_DateFullInfo || item['iGOAdminOnly_x002d_DateFullInfo'] || '',
                             status: status,
                             techNode: techNode,
                             projectName: item.Project_x002f_PortalName || '',
@@ -3928,42 +3931,67 @@ async function computeIndicatorMetrics(){
     const createdOf = {};
     allRequests.forEach(r=>{ if(r.created){ const t=new Date(r.created).getTime(); if(!isNaN(t)) createdOf[String(r.id)]=t; } });
 
-    // 4. SLA calc
-    // 1st Ack SLA = created -> first "Acknowledged"
-    // Total SLA = first "Acknowledged" -> first NEXT stage (In Approval Loop / Out for Signature / IT Request Submitted / Complete)
+    // modified time lookup + set of completed IDs (from current SharePoint status)
+    const modifiedOf = {};
+    const completedIds = new Set();
+    allRequests.forEach(r=>{
+        if(r.modified){ const t=new Date(r.modified).getTime(); if(!isNaN(t)) modifiedOf[String(r.id)]=t; }
+        if((r.status||'').trim()==='Complete') completedIds.add(String(r.id));
+    });
+
+    // 4. SLA calc  (computed from Firebase status history — the only reliable per-ticket timeline)
+    // TRIAGE SLA  = Created -> the moment we PICK UP the ticket (first "Acknowledged", or the
+    //               first status change away from the initial "Info Requested"/blank state).
+    // 2nd SLA     = pick-up (Acknowledged) -> first NEXT stage
+    //               (In Approval Loop / Out for Signature / IT Request Submitted / Complete).
     const NEXT_STAGES = ['In Approval Loop','Out for Signature','IT Request Submitted','Complete'];
-    const sla1ByMonth = {}, sla2ByMonth = {};
-    IND_MONTHS.forEach(m=>{sla1ByMonth[m]=[];sla2ByMonth[m]=[];});
+    const triageByMonth = {}, sla2ByMonth = {};
+    IND_MONTHS.forEach(m=>{triageByMonth[m]=[];sla2ByMonth[m]=[];});
 
     Object.keys(statusEvents).forEach(id=>{
         const arr = statusEvents[id];
         const created = createdOf[String(id)];
-        const firstAck = arr.find(e=>e.value==='Acknowledged');
-        // 1st Ack SLA
-        if(firstAck && created){
-            const hrs = (firstAck.t - created)/3600000;
-            const mk = monthKey(new Date(firstAck.t).toISOString());
-            if(hrs>=0 && mk && sla1ByMonth[mk]) sla1ByMonth[mk].push(hrs);
+        // pick-up = first "Acknowledged"; fallback = first status event that is not "Info Requested"
+        let pickUp = arr.find(e=>e.value==='Acknowledged');
+        if(!pickUp) pickUp = arr.find(e=>e.value && e.value!=='Info Requested');
+        // TRIAGE SLA
+        if(pickUp && created){
+            const hrs = (pickUp.t - created)/3600000;
+            const mk = monthKey(new Date(pickUp.t).toISOString());
+            if(hrs>=0 && mk && triageByMonth[mk]) triageByMonth[mk].push(hrs);
         }
-        // Total SLA: ack -> next stage
-        if(firstAck){
-            const next = arr.find(e=>e.t>firstAck.t && NEXT_STAGES.includes(e.value));
+        // 2nd SLA: pick-up -> next stage
+        if(pickUp){
+            const next = arr.find(e=>e.t>pickUp.t && NEXT_STAGES.includes(e.value));
             if(next){
-                const hrs = (next.t - firstAck.t)/3600000;
+                const hrs = (next.t - pickUp.t)/3600000;
                 const mk = monthKey(new Date(next.t).toISOString());
                 if(hrs>=0 && mk && sla2ByMonth[mk]) sla2ByMonth[mk].push(hrs);
             }
         }
-        // Closed per month (first Complete)
-        const firstComplete = arr.find(e=>e.value==='Complete');
+    });
+
+    // 4b. CLOSED per month — combine sources so PAST MONTHS are populated, not only August:
+    //   - Preferred: the real "Complete" event from Firebase history (exact date).
+    //   - Fallback: for tickets currently Complete in SharePoint with no Firebase event,
+    //     use SharePoint's Modified date as an approximation of when it was closed.
+    const closedFromFb = new Set();
+    Object.keys(statusEvents).forEach(id=>{
+        const firstComplete = statusEvents[id].find(e=>e.value==='Complete');
         if(firstComplete){
             const mk = monthKey(new Date(firstComplete.t).toISOString());
-            if(mk && closed[mk]!=null) closed[mk]++;
+            if(mk && closed[mk]!=null){ closed[mk]++; closedFromFb.add(String(id)); }
         }
+    });
+    // Fallback for the rest of completed tickets (no Firebase event yet)
+    completedIds.forEach(id=>{
+        if(closedFromFb.has(id)) return;
+        const t = modifiedOf[id];
+        if(t){ const mk = monthKey(new Date(t).toISOString()); if(mk && closed[mk]!=null) closed[mk]++; }
     });
 
     const avg = a => a.length ? a.reduce((s,x)=>s+x,0)/a.length : null;
-    const sla1Avg = IND_MONTHS.map(m=>{const v=avg(sla1ByMonth[m]); return v==null?null:+(v).toFixed(2);});
+    const triageAvg = IND_MONTHS.map(m=>{const v=avg(triageByMonth[m]); return v==null?null:+(v).toFixed(2);});
     const sla2Avg = IND_MONTHS.map(m=>{const v=avg(sla2ByMonth[m]); return v==null?null:+(v).toFixed(2);});
 
     // 5. Current status distribution (from allRequests)
@@ -3989,7 +4017,7 @@ async function computeIndicatorMetrics(){
     const closedByMonth = IND_MONTHS.map((mk,i)=>({ key:mk, label:IND_MONTH_LABELS[i], count:closed[mk]||0 }));
 
     // Overall KPIs
-    const allSla1 = [].concat(...IND_MONTHS.map(m=>sla1ByMonth[m]));
+    const allTriage = [].concat(...IND_MONTHS.map(m=>triageByMonth[m]));
     const allSla2 = [].concat(...IND_MONTHS.map(m=>sla2ByMonth[m]));
     const totalReceived = allRequests.length;
     const totalClosed = allRequests.filter(r=>(r.status||'').trim()==='Complete').length;
@@ -3998,7 +4026,7 @@ async function computeIndicatorMetrics(){
     return {
         received: IND_MONTHS.map(m=>received[m]),
         closed: IND_MONTHS.map(m=>closed[m]),
-        sla1Avg, sla2Avg,
+        triageAvg, sla2Avg,
         statusDist, STATUS_ORDER, other,
         typeDist,
         customerDist,
@@ -4007,7 +4035,7 @@ async function computeIndicatorMetrics(){
             total: totalReceived,
             closed: totalClosed,
             open: totalOpen,
-            sla1: fmtHours(avg(allSla1)),
+            triage: fmtHours(avg(allTriage)),
             sla2: fmtHours(avg(allSla2))
         }
     };
@@ -4061,7 +4089,7 @@ async function renderIndicators(){
     document.getElementById('kpi-total').textContent = m.kpis.total;
     document.getElementById('kpi-closed').textContent = m.kpis.closed;
     document.getElementById('kpi-open').textContent = m.kpis.open;
-    document.getElementById('kpi-sla1').textContent = m.kpis.sla1;
+    document.getElementById('kpi-triage').textContent = m.kpis.triage;
     document.getElementById('kpi-sla2').textContent = m.kpis.sla2;
 
     // destroy old charts
@@ -4129,8 +4157,8 @@ async function renderIndicators(){
     indCharts.sla = new Chart(document.getElementById('chart-sla'),{
         type:'line',
         data:{labels:IND_MONTH_LABELS,datasets:[
-            {label:'1st Ack SLA (h)',data:m.sla1Avg,borderColor:'#4ec8f0',backgroundColor:'rgba(78,200,240,0.15)',tension:0.3,spanGaps:true,pointRadius:4,pointBackgroundColor:'#4ec8f0'},
-            {label:'Total SLA (h)',data:m.sla2Avg,borderColor:'#f0a030',backgroundColor:'rgba(240,160,48,0.12)',tension:0.3,spanGaps:true,pointRadius:4,pointBackgroundColor:'#f0a030'}
+            {label:'Ticket Triage SLA (h)',data:m.triageAvg,borderColor:'#4ec8f0',backgroundColor:'rgba(78,200,240,0.15)',tension:0.3,spanGaps:true,pointRadius:4,pointBackgroundColor:'#4ec8f0'},
+            {label:'2nd SLA (h)',data:m.sla2Avg,borderColor:'#f0a030',backgroundColor:'rgba(240,160,48,0.12)',tension:0.3,spanGaps:true,pointRadius:4,pointBackgroundColor:'#f0a030'}
         ]},
         options:{responsive:true,maintainAspectRatio:false,
             plugins:{legend:legendCfg,quarterDividers:{show:true},
