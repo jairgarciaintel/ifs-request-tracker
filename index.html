@@ -418,6 +418,12 @@ async function hbSubmitReport(text){
     <div class="ind-kpi"><span class="ind-kpi-val" id="kpi-sla2">—</span><span class="ind-kpi-label">Avg Total SLA</span></div>
   </div>
 
+  <!-- Completed per month strip -->
+  <div class="ind-section">
+    <h3 class="ind-chart-title" style="margin-bottom:10px;">Completed by Month (FY26)</h3>
+    <div class="ind-month-strip" id="ind-completed-months"></div>
+  </div>
+
   <!-- Charts -->
   <div class="ind-section ind-charts-grid">
     <div class="ind-chart-box" id="chart-volume-box">
@@ -426,6 +432,7 @@ async function hbSubmitReport(text){
     </div>
     <div class="ind-chart-box" id="chart-status-box">
       <h3 class="ind-chart-title">Current Status Distribution</h3>
+      <div class="ind-status-filter" id="ind-status-filter"></div>
       <div class="ind-canvas-wrap"><canvas id="chart-status"></canvas></div>
     </div>
   </div>
@@ -438,6 +445,12 @@ async function hbSubmitReport(text){
     <div class="ind-chart-box" id="chart-types-box">
       <h3 class="ind-chart-title">Requests by Type</h3>
       <div class="ind-canvas-wrap"><canvas id="chart-types"></canvas></div>
+    </div>
+  </div>
+  <div class="ind-section ind-charts-grid">
+    <div class="ind-chart-box" id="chart-customers-box" style="grid-column:1 / -1;">
+      <h3 class="ind-chart-title">Requests by Customer</h3>
+      <div class="ind-canvas-wrap" id="chart-customers-wrap"><canvas id="chart-customers"></canvas></div>
     </div>
   </div>
 
@@ -481,6 +494,21 @@ async function hbSubmitReport(text){
 .ind-chart-note{font-size:10.5px;color:rgba(255,255,255,0.4);margin-bottom:12px;}
 .ind-canvas-wrap{position:relative;height:300px;width:100%;}
 .ind-canvas-wrap canvas{position:absolute;top:0;left:0;width:100%!important;height:100%!important;}
+/* Completed-by-month strip */
+.ind-month-strip{display:grid;grid-template-columns:repeat(12,1fr);gap:8px;}
+.ind-month-cell{background:rgba(0,30,80,0.5);border:1px solid rgba(107,203,119,0.18);border-radius:10px;padding:10px 6px;text-align:center;}
+.ind-month-cell .mc-val{display:block;font-family:'Cabinet Grotesk',sans-serif;font-size:1.4rem;font-weight:700;color:#6bcb77;line-height:1;}
+.ind-month-cell .mc-lbl{display:block;font-size:10px;color:rgba(255,255,255,0.55);margin-top:6px;text-transform:uppercase;letter-spacing:.5px;}
+.ind-month-cell.mc-zero .mc-val{color:rgba(255,255,255,0.25);}
+@media(max-width:900px){.ind-month-strip{grid-template-columns:repeat(6,1fr);}}
+/* Status distribution filter */
+.ind-status-filter{display:flex;flex-wrap:wrap;gap:6px 12px;margin-bottom:10px;}
+.ind-status-filter label{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:rgba(255,255,255,0.75);cursor:pointer;user-select:none;}
+.ind-status-filter input{accent-color:var(--cyan);cursor:pointer;}
+.ind-status-filter .sf-swatch{width:10px;height:10px;border-radius:3px;display:inline-block;}
+body.light-mode .ind-status-filter label{color:#334155;}
+body.light-mode .ind-month-cell{background:rgba(0,113,197,0.06);}
+body.light-mode .ind-month-cell .mc-lbl{color:#64748b;}
 .ind-footer{font-size:11px;color:rgba(255,255,255,0.35);text-align:center;margin-top:8px;}
 @media(max-width:900px){.ind-cards-row,.ind-kpi-row,.ind-charts-grid{grid-template-columns:1fr;}}
 
@@ -806,10 +834,11 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.57';
+const APP_VERSION = 'v1.8.58';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
+    ['v1.8.58', ['Indicators tab: added a "Completed by Month" strip showing completions for every month of FY26 (not just August). Added a show/hide filter above the Current Status Distribution doughnut — one checkbox per status with its color and count; Complete and Canceled are unchecked by default so the chart starts on the active stages, and it redraws instantly when you toggle any status. Added a full-width "Requests by Customer" chart (top 15 by volume).']],
     ['v1.8.57', ['Fixed the Indicators charts that were stretching down infinitely: each chart now sits in a fixed-height container (300px) so they render correctly with the page zoom. Replaced the emoji icons in the Automation Highlights with clean inline SVG icons (no emojis).']],
     ['v1.8.56', ['New "Indicators" tab at the top (Excel-style tabs): a monthly DA Ops report next to the FS DA Requests view. Includes 3 automation highlights, KPI cards (total received, completed, open, avg 1st Ack SLA, avg Total SLA), and 4 live charts: Received vs Completed by month (with quarter swimlane dividers), current Status distribution, SLA performance by month (1st Ack SLA = Created to Acknowledged, Total SLA = Acknowledged to next stage), and Requests by Type. All computed live from SharePoint data + Firebase status history.']],
     ['v1.8.55', ['Removed the "Add for Signature" status email (that status does not exist). Status emails now cover: Acknowledged, Info Requested, In Approval Loop, Out for Signature, IT Request Submitted, On Hold, Canceled and Complete.']],
@@ -3952,6 +3981,13 @@ async function computeIndicatorMetrics(){
     const typeDist = {};
     allRequests.forEach(r=>{ const t=r.requestType||'Other'; typeDist[t]=(typeDist[t]||0)+1; });
 
+    // 6b. Requests by customer
+    const customerDist = {};
+    allRequests.forEach(r=>{ const c=(r.customer||'').trim()||'Unknown'; customerDist[c]=(customerDist[c]||0)+1; });
+
+    // 6c. Completed per month with labels (for the monthly completed KPI strip)
+    const closedByMonth = IND_MONTHS.map((mk,i)=>({ key:mk, label:IND_MONTH_LABELS[i], count:closed[mk]||0 }));
+
     // Overall KPIs
     const allSla1 = [].concat(...IND_MONTHS.map(m=>sla1ByMonth[m]));
     const allSla2 = [].concat(...IND_MONTHS.map(m=>sla2ByMonth[m]));
@@ -3965,6 +4001,8 @@ async function computeIndicatorMetrics(){
         sla1Avg, sla2Avg,
         statusDist, STATUS_ORDER, other,
         typeDist,
+        customerDist,
+        closedByMonth,
         kpis:{
             total: totalReceived,
             closed: totalClosed,
@@ -4048,15 +4086,44 @@ async function renderIndicators(){
             scales:commonScales}
     });
 
-    // 2. Status distribution (doughnut)
-    const stLabels = m.STATUS_ORDER.filter(s=>m.statusDist[s]>0);
-    const stData = stLabels.map(s=>m.statusDist[s]);
+    // 2. Status distribution (doughnut) — with show/hide filter
     const stColors = {'Info Requested':'#8b93a7','Acknowledged':'#4ec8f0','In Approval Loop':'#f0a030','Out for Signature':'#b57edc','WIP':'#0071c5','IT Request Submitted':'#e07b3a','On Hold':'#c0c0c0','Complete':'#6bcb77','Canceled':'#cc5555'};
-    indCharts.status = new Chart(document.getElementById('chart-status'),{
-        type:'doughnut',
-        data:{labels:stLabels,datasets:[{data:stData,backgroundColor:stLabels.map(s=>stColors[s]||'#888'),borderColor:'rgba(4,28,50,0.6)',borderWidth:2}]},
-        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:d.tick,font:{size:11},boxWidth:12,padding:8}}}}
-    });
+    // Statuses hidden by default (user asked to drop Complete & Canceled)
+    const statusHiddenDefault = { 'Complete':true, 'Canceled':true };
+    // Only statuses that actually have data get a filter row
+    const statusAvailable = m.STATUS_ORDER.filter(s=>m.statusDist[s]>0);
+    if(!window.indStatusVisible){
+        window.indStatusVisible = {};
+        statusAvailable.forEach(s=>{ window.indStatusVisible[s] = !statusHiddenDefault[s]; });
+    }
+    function drawStatusChart(){
+        const labels = statusAvailable.filter(s=>window.indStatusVisible[s]);
+        const data = labels.map(s=>m.statusDist[s]);
+        if(indCharts.status){ indCharts.status.destroy(); }
+        indCharts.status = new Chart(document.getElementById('chart-status'),{
+            type:'doughnut',
+            data:{labels,datasets:[{data,backgroundColor:labels.map(s=>stColors[s]||'#888'),borderColor:'rgba(4,28,50,0.6)',borderWidth:2}]},
+            options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:indChartDefaults().tick,font:{size:11},boxWidth:12,padding:8}},
+                tooltip:{callbacks:{label:c=>c.label+': '+c.parsed}}}}
+        });
+    }
+    // Build filter checkboxes
+    const sfWrap = document.getElementById('ind-status-filter');
+    if(sfWrap){
+        sfWrap.innerHTML = statusAvailable.map(s=>{
+            const checked = window.indStatusVisible[s] ? 'checked' : '';
+            const color = stColors[s]||'#888';
+            return `<label><input type="checkbox" data-status="${s}" ${checked}>`+
+                   `<span class="sf-swatch" style="background:${color}"></span>${s} (${m.statusDist[s]})</label>`;
+        }).join('');
+        sfWrap.querySelectorAll('input[data-status]').forEach(cb=>{
+            cb.addEventListener('change', e=>{
+                window.indStatusVisible[e.target.dataset.status] = e.target.checked;
+                drawStatusChart();
+            });
+        });
+    }
+    drawStatusChart();
 
     // 3. SLA line (2 lines) with quarter dividers
     indCharts.sla = new Chart(document.getElementById('chart-sla'),{
@@ -4078,6 +4145,26 @@ async function renderIndicators(){
         data:{labels:typeEntries.map(e=>e[0]),datasets:[{label:'Requests',data:typeEntries.map(e=>e[1]),backgroundColor:'rgba(0,113,197,0.7)',borderRadius:4}]},
         options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
             plugins:{legend:{display:false}},
+            scales:{x:{...commonScales.x,beginAtZero:true},y:{grid:{display:false},ticks:{color:d.tick,font:{size:10}}}}}
+    });
+
+    // 5. Completed-by-month strip (all months of FY26, not just August)
+    const cmWrap = document.getElementById('ind-completed-months');
+    if(cmWrap && m.closedByMonth){
+        cmWrap.innerHTML = m.closedByMonth.map(x=>
+            `<div class="ind-month-cell${x.count===0?' mc-zero':''}"><span class="mc-val">${x.count}</span><span class="mc-lbl">${x.label}</span></div>`
+        ).join('');
+    }
+
+    // 6. Requests by customer (horizontal bar, top 15)
+    const custEntries = Object.entries(m.customerDist).sort((a,b)=>b[1]-a[1]).slice(0,15);
+    const custWrap = document.getElementById('chart-customers-wrap');
+    if(custWrap){ custWrap.style.height = Math.max(300, custEntries.length*26 + 40) + 'px'; }
+    indCharts.customers = new Chart(document.getElementById('chart-customers'),{
+        type:'bar',
+        data:{labels:custEntries.map(e=>e[0]),datasets:[{label:'Requests',data:custEntries.map(e=>e[1]),backgroundColor:'rgba(107,203,119,0.7)',borderRadius:4}]},
+        options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+            plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.x+' requests'}}},
             scales:{x:{...commonScales.x,beginAtZero:true},y:{grid:{display:false},ticks:{color:d.tick,font:{size:10}}}}}
     });
 

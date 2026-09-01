@@ -8,6 +8,11 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.58 — 2026-09-01
+- Tab Indicators: nueva tira "Completed by Month" con los completados de cada mes del FY26 (no solo agosto).
+- Filtro de mostrar/ocultar arriba del doughnut "Current Status Distribution": un checkbox por estado con su color y conteo. Complete y Canceled vienen destildados por defecto para que la grafica arranque en los estados activos; se redibuja al instante al tildar/destildar.
+- Nueva grafica "Requests by Customer" (ancho completo, top 15 por volumen).
+
 ## v1.8.57 — 2026-09-01
 - Arreglado el estiramiento infinito de las graficas de Indicators: cada grafica ahora vive en un contenedor de altura fija (300px), asi se ven bien con el zoom de la pagina y ya no hay scroll infinito hacia abajo.
 - Se quitaron los emojis de los Automation Highlights y se reemplazaron por iconos SVG inline (dashboard, correo, workflow).
