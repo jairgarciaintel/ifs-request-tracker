@@ -8,6 +8,14 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.60 — 2026-09-02
+- Correos de Complete para COD y DA Edit reescritos:
+  - COD: dice que el COD fue completado, firmado y el ticket enviado para cerrar el status.
+  - DA Edit: dice que el DA fue extendido y aclara que se le quito el tag de COD al ticket.
+- Ambos incluyen SIEMPRE el DA Number y el DA Link (los toma de SharePoint o de un request previo del mismo customer si no se capturaron en la sesion), para que sepan cual DA se cerro/extendio.
+- DA Edit ahora tambien copia a Birthe Dallmer y James Matayabas Jr. (igual que COD).
+- Asuntos mas claros: "COD <n> Closed" y "DA <n> Extended".
+
 ## v1.8.59 — 2026-09-01
 - SLAs de Indicators renombrados y reenfocados:
   - "Ticket Triage SLA" = tiempo desde que se crea el ticket hasta que lo tomamos (Acknowledged).

@@ -834,10 +834,11 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.59';
+const APP_VERSION = 'v1.8.60';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
+    ['v1.8.60', ['COD and DA Edit completion emails rewritten: COD now says the COD was completed, signed and the ticket submitted to close the status; DA Edit says the DA was extended and notes that the COD tag was removed from the ticket. Both now ALWAYS include the DA Number and DA Link (pulled from SharePoint / prior request when not entered this session) so recipients know exactly which DA was closed/extended. DA Edit now also CCs Birthe Dallmer and James Matayabas Jr. (same as COD). Clearer subjects: "COD <n> Closed" and "DA <n> Extended".']],
     ['v1.8.59', ['Indicators SLAs renamed and refocused: "Ticket Triage SLA" = time from ticket Created until we pick it up (Acknowledged), and "2nd SLA" = time from pick-up to the next stage (In Approval Loop / Out for Signature / IT Request Submitted / Complete). Completed-by-month now pulls from SharePoint too: past months (Feb-Jul) are populated using each completed ticket\u2019s date, combined with the exact Firebase completion event where available, instead of showing only August. Received-by-month already comes 100% from SharePoint Created dates for the whole year.']],
     ['v1.8.58', ['Indicators tab: added a "Completed by Month" strip showing completions for every month of FY26 (not just August). Added a show/hide filter above the Current Status Distribution doughnut — one checkbox per status with its color and count; Complete and Canceled are unchecked by default so the chart starts on the active stages, and it redraws instantly when you toggle any status. Added a full-width "Requests by Customer" chart (top 15 by volume).']],
     ['v1.8.57', ['Fixed the Indicators charts that were stretching down infinitely: each chart now sits in a fixed-height container (300px) so they render correctly with the page zoom. Replaced the emoji icons in the Automation Highlights with clean inline SVG icons (no emojis).']],
@@ -1902,12 +1903,14 @@ async function openCanceledEmail(id) {
 //  - MP-NDA / Multi-Party -> document signed, can start relationship between the two customers
 //  - COD -> generic completion notice
 // types = array of canonical requestType strings for the group.
-function buildCompleteEmailHtml(name, id, customer, portalName, daNumber, types) {
+function buildCompleteEmailHtml(name, id, customer, portalName, daNumber, types, daLink) {
     types = types || [];
     const has = (t) => types.includes(t);
     const isPortal = has('Portal Creation') || has('New DA') || has('Portal Addition');
     const isIfsNda = has('IFS NDA');
     const isMpNda = has('MP-NDA') || has('MRUNDA');
+    const isCod = has('COD');
+    const isDaEdit = has('DA Edit');
 
     const sparkleTop = `<tr><td align="center" style="padding:0;line-height:0;font-size:0;">`
         + `<div style="font-size:34px;line-height:1;letter-spacing:14px;padding:18px 0 4px;">&#10022;&nbsp;&#10024;&nbsp;&#10022;&nbsp;&#10024;&nbsp;&#10022;</div>`
@@ -1919,6 +1922,8 @@ function buildCompleteEmailHtml(name, id, customer, portalName, daNumber, types)
     if (isPortal) subline = 'Your portal is already created.';
     else if (isIfsNda) subline = 'Your NDA is fully signed.';
     else if (isMpNda) subline = 'Your Multi-Party NDA is fully signed.';
+    else if (isCod) subline = 'Your COD has been signed and closed.';
+    else if (isDaEdit) subline = 'Your DA has been extended.';
 
     // Human-readable list of the service(s) that were completed (e.g. "COD",
     // "Portal Creation", or "New DA & Portal Creation"). Shown after the customer.
@@ -1930,10 +1935,19 @@ function buildCompleteEmailHtml(name, id, customer, portalName, daNumber, types)
     const svcSuffix = svcLabel ? ` &mdash; <strong style="color:#001E50;">${svcLabel}</strong>` : '';
 
     // Intro paragraph varies by type
-    let intro = `Great news &mdash; your request (<strong>REQ. ${id} &mdash; ${customer}</strong>${svcSuffix}) has been <strong style="color:#001E50;">Completed</strong>.`;
-    if (isPortal) intro += ` Your portal is fully set up and ready to use.`;
-    else if (isIfsNda) intro += ` The document has been signed &mdash; you can start building the business relationship with the customer.`;
-    else if (isMpNda) intro += ` The document has been signed &mdash; you can start building the relationship between these two customers.`;
+    let intro;
+    if (isCod) {
+        // COD completion: signed + submitted to close the ticket. DA number/link below.
+        intro = `Great news &mdash; the <strong style="color:#001E50;">COD</strong> for <strong>${customer}</strong> (REQ. ${id}) has been <strong style="color:#001E50;">completed and signed</strong>, and the ticket has been submitted to get the status <strong>Closed</strong>.`;
+    } else if (isDaEdit) {
+        // DA Edit = extension. The COD tag is removed from the ticket at this point.
+        intro = `Great news &mdash; the <strong style="color:#001E50;">DA${daNumber ? ' ' + daNumber : ''}</strong> for <strong>${customer}</strong> (REQ. ${id}) has been <strong style="color:#001E50;">extended</strong>.`;
+    } else {
+        intro = `Great news &mdash; your request (<strong>REQ. ${id} &mdash; ${customer}</strong>${svcSuffix}) has been <strong style="color:#001E50;">Completed</strong>.`;
+        if (isPortal) intro += ` Your portal is fully set up and ready to use.`;
+        else if (isIfsNda) intro += ` The document has been signed &mdash; you can start building the business relationship with the customer.`;
+        else if (isMpNda) intro += ` The document has been signed &mdash; you can start building the relationship between these two customers.`;
+    }
 
     // Details table (only Portal-type shows portal name / DA WebView instruction)
     let detailsBlock = '';
@@ -1956,6 +1970,27 @@ function buildCompleteEmailHtml(name, id, customer, portalName, daNumber, types)
                 + `<tr style="background-color:#001E50;color:#ffffff;"><td colspan="2" style="padding:12px 16px;font-weight:600;font-size:16px;text-align:left;">Agreement Details</td></tr>`
                 + `<tr style="background-color:#ffffff;"><td style="width:40%;padding:12px 16px;border-top:1px solid #eef2f6;font-size:16px;text-align:left;color:#6b7684;">DA (Disclosure Agreement) ID</td><td style="padding:12px 16px;border-top:1px solid #eef2f6;font-size:17px;text-align:left;font-weight:700;color:#001E50;">${daNumber}</td></tr>`
                 + `</table>`;
+        }
+    } else if (isCod || isDaEdit) {
+        // COD / DA Edit: ALWAYS show which DA it was (number + link) so recipients
+        // know exactly which agreement was closed/extended.
+        const linkCell = daLink
+            ? `<a href="${daLink}" style="color:#001E50;font-weight:700;text-decoration:underline;word-break:break-all;">${daLink}</a>`
+            : '&mdash;';
+        detailsBlock =
+            `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:18px;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0;margin-bottom:8px;">`
+            + `<tr style="background-color:#001E50;color:#ffffff;"><td colspan="2" style="padding:12px 16px;font-weight:600;font-size:16px;text-align:left;">${isDaEdit ? 'Extended DA' : 'Closed DA'} Details</td></tr>`
+            + `<tr style="background-color:#ffffff;"><td style="width:32%;padding:12px 16px;border-top:1px solid #eef2f6;font-size:16px;text-align:left;color:#6b7684;">DA (Disclosure Agreement) ID</td><td style="padding:12px 16px;border-top:1px solid #eef2f6;font-size:17px;text-align:left;font-weight:700;color:#001E50;">${daNumber || '&mdash;'}</td></tr>`
+            + `<tr style="background-color:#f5f9fc;"><td style="padding:12px 16px;border-top:1px solid #eef2f6;font-size:16px;text-align:left;color:#6b7684;">DA Link</td><td style="padding:12px 16px;border-top:1px solid #eef2f6;font-size:15px;text-align:left;">${linkCell}</td></tr>`
+            + `</table>`;
+        if (isDaEdit) {
+            detailsBlock += `<div style="margin:16px 0 0;padding:14px 16px;background-color:#eef4fb;border-left:4px solid #001E50;border-radius:6px;text-align:left;font-size:16px;color:#041c32;">`
+                + `The COD tag has been removed from this ticket. The agreement above has been extended.`
+                + `</div>`;
+        } else {
+            detailsBlock += `<div style="margin:16px 0 0;padding:14px 16px;background-color:#eef4fb;border-left:4px solid #001E50;border-radius:6px;text-align:left;font-size:16px;color:#041c32;">`
+                + `The COD has been signed and the ticket submitted to move the status to <strong>Closed</strong>.`
+                + `</div>`;
         }
     }
 
@@ -1980,11 +2015,17 @@ async function openCompleteEmail(id, portalName, daNumber) {
     const customer = req0.customer || 'your request';
     const types = reqs.filter(r => r.requestType !== 'Unknown').map(r => r.requestType);
     const svcForSubject = types.length ? ' - ' + types.join(' & ') : '';
-    const subject = `REQ. ${id} - ${customer}${svcForSubject} - Completed`;
-    const bodyHtml = buildCompleteEmailHtml(name, id, customer, portalName, daNumber, types);
-    // COD requests copy the two extra recipients
+    // DA Link from the request (recorded at In Approval Loop). Needed for COD/DA Edit.
+    const daLink = (req0.daLinkUrl || '').trim();
     const isCod = types.includes('COD');
-    const extraCc = isCod ? ['birthe.dallmer@intel.com', 'james.c.matayabas.jr@intel.com'] : [];
+    const isDaEdit = types.includes('DA Edit');
+    // COD closed vs DA Edit extended -> clearer subject.
+    let subject = `REQ. ${id} - ${customer}${svcForSubject} - Completed`;
+    if (isDaEdit && !isCod) subject = `REQ. ${id} - ${customer} - DA${daNumber ? ' ' + daNumber : ''} Extended`;
+    else if (isCod) subject = `REQ. ${id} - ${customer} - COD${daNumber ? ' ' + daNumber : ''} Closed`;
+    const bodyHtml = buildCompleteEmailHtml(name, id, customer, portalName, daNumber, types, daLink);
+    // COD and DA Edit both copy the two extra recipients (Birthe & James).
+    const extraCc = (isCod || isDaEdit) ? ['birthe.dallmer@intel.com', 'james.c.matayabas.jr@intel.com'] : [];
     await sendTrackerEmail(id, subject, bodyHtml, name, customer, 'Complete email', extraCc);
 }
 
@@ -2150,7 +2191,11 @@ async function confirmCompleteModal(){
         document.getElementById('complete-modal').classList.remove('open');
         pendingCompleteId = null;
         pendingCompleteIsCod = false;
-        const daNumber = daNumberById[String(id)] || '';
+        // Pull the DA number from every source we know: this session's DA Link popup,
+        // then this request's DA field, then a prior request from the same customer.
+        const codReq0 = allRequests.find(r => String(r.id) === String(id)) || {};
+        const codPrior = findPriorCustomerRecord(id, codReq0.customer);
+        const daNumber = daNumberById[String(id)] || (codReq0.daLinkText || '') || codPrior.daNumber || '';
         allRequests.forEach(r => { if (String(r.id) === String(id)) { r.status = 'Complete'; } });
         markAllSubStepsComplete(id);
         await saveTracking();
