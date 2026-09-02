@@ -8,6 +8,9 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.61 — 2026-09-02
+- COD y DA Edit ahora saludan "Dear Team," (no el nombre del requestor), porque van al equipo interno + Birthe y James, no a un cliente.
+
 ## v1.8.60 — 2026-09-02
 - Correos de Complete para COD y DA Edit reescritos:
   - COD: dice que el COD fue completado, firmado y el ticket enviado para cerrar el status.

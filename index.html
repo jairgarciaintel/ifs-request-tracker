@@ -834,10 +834,11 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.60';
+const APP_VERSION = 'v1.8.61';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
+    ['v1.8.61', ['COD and DA Edit completion emails now greet "Dear Team," instead of the requestor name (these go to the internal team + Birthe & James, not a customer).']],
     ['v1.8.60', ['COD and DA Edit completion emails rewritten: COD now says the COD was completed, signed and the ticket submitted to close the status; DA Edit says the DA was extended and notes that the COD tag was removed from the ticket. Both now ALWAYS include the DA Number and DA Link (pulled from SharePoint / prior request when not entered this session) so recipients know exactly which DA was closed/extended. DA Edit now also CCs Birthe Dallmer and James Matayabas Jr. (same as COD). Clearer subjects: "COD <n> Closed" and "DA <n> Extended".']],
     ['v1.8.59', ['Indicators SLAs renamed and refocused: "Ticket Triage SLA" = time from ticket Created until we pick it up (Acknowledged), and "2nd SLA" = time from pick-up to the next stage (In Approval Loop / Out for Signature / IT Request Submitted / Complete). Completed-by-month now pulls from SharePoint too: past months (Feb-Jul) are populated using each completed ticket\u2019s date, combined with the exact Firebase completion event where available, instead of showing only August. Received-by-month already comes 100% from SharePoint Created dates for the whole year.']],
     ['v1.8.58', ['Indicators tab: added a "Completed by Month" strip showing completions for every month of FY26 (not just August). Added a show/hide filter above the Current Status Distribution doughnut — one checkbox per status with its color and count; Complete and Canceled are unchecked by default so the chart starts on the active stages, and it redraws instantly when you toggle any status. Added a full-width "Requests by Customer" chart (top 15 by volume).']],
@@ -1998,7 +1999,7 @@ function buildCompleteEmailHtml(name, id, customer, portalName, daNumber, types,
         + `<tr><td style="padding:8px 34px 34px;color:#1a202c;font-size:18px;line-height:1.7;text-align:center;">`
         + `<div style="font-size:26px;font-weight:800;color:#001E50;letter-spacing:0.3px;margin-bottom:6px;">${headline}</div>`
         + `<div style="font-size:19px;font-weight:600;color:#041c32;margin-bottom:22px;">${subline}</div>`
-        + `<p style="margin:0 0 22px;font-size:18px;text-align:left;">Dear <strong>${name}</strong>,</p>`
+        + `<p style="margin:0 0 22px;font-size:18px;text-align:left;">Dear <strong>${(isCod || isDaEdit) ? 'Team' : name}</strong>,</p>`
         + `<p style="margin:0 0 24px;font-size:18px;text-align:left;">${intro}</p>`
         + detailsBlock
         + `<p style="margin:26px 0 0;font-size:18px;text-align:left;">Thank you for your patience throughout the process.</p>`
