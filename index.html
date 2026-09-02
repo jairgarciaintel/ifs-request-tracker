@@ -62,8 +62,9 @@ body{
   </defs>
 </svg>
 
-<header class="header">
+<header class="header" id="app-header">
   <div class="header-left">
+    <button id="header-collapse-btn" class="header-collapse-btn" onclick="toggleHeaderCollapse()" title="Hide/show the Intel Foundry banner" aria-label="Hide banner">&minus;</button>
     <img id="header-logo" src="logo-dark.jpg" alt="Intel Foundry" class="logo"/>
     <div class="header-title">
       <h1>FS <span class="accent">Request Tracker</span></h1>
@@ -729,9 +730,69 @@ body.light-mode .auto-toggle-label{color:#4a5568;}
 body.light-mode .sla-note{color:#4a5568;}
 body.light-mode .req-info-val{color:#1a202c;}
 body.light-mode .req-info-details{color:#4a5568;}
+/* Collapse button on the Intel Foundry banner (the "−") */
+.header-collapse-btn{
+  width:26px;height:26px;flex-shrink:0;border-radius:7px;cursor:pointer;
+  background:rgba(78,200,240,0.12);color:var(--cyan);border:1px solid rgba(78,200,240,0.35);
+  font-size:20px;line-height:1;display:inline-flex;align-items:center;justify-content:center;
+  font-family:'Satoshi',sans-serif;transition:all .2s;padding:0;
+}
+.header-collapse-btn:hover{background:rgba(78,200,240,0.25);color:#fff;}
+body.light-mode .header-collapse-btn{background:rgba(0,113,197,0.1);color:#0071c5;border-color:rgba(0,113,197,0.3);}
+/* Collapsed state: hide the Intel Foundry logo + title, shrink the header */
+.header.header-collapsed .logo,
+.header.header-collapsed .header-title{display:none;}
+.header.header-collapsed{padding-top:8px;padding-bottom:8px;}
+.header.header-collapsed .header-collapse-btn{font-size:16px;}
+
 @media(max-width:768px){
-  .header,.toolbar{flex-direction:column;gap:10px;padding:12px 16px;}
-  .filters{flex-wrap:wrap;}.request-list{padding:12px 16px;}
+  /* Kill the desktop 1.4x zoom on phones — this is what broke the mobile layout. */
+  body{zoom:1 !important;}
+  @supports not (zoom:1){ body{transform:none;width:100%;} }
+
+  .header{flex-direction:column;align-items:stretch;gap:10px;padding:10px 14px;}
+  .header-left{gap:10px;}
+  .logo{height:44px;}
+  .header-title h1{font-size:1.1rem;}
+  .header-right{gap:8px;row-gap:8px;justify-content:flex-start;}
+  .header-right .btn{flex:1 1 auto;justify-content:center;}
+  .sync-text{width:100%;}
+
+  /* Tabs full width */
+  .tabbar{padding:0 10px;overflow-x:auto;}
+  .tab-btn{padding:9px 14px;font-size:12px;}
+
+  /* Toolbar + filters stack and go full width */
+  .toolbar{flex-direction:column;align-items:stretch;gap:10px;padding:10px 14px;}
+  .filters{flex-wrap:wrap;gap:8px;}
+  .filters select,.filters input,.type-multi,.type-multi-btn{width:100%;box-sizing:border-box;}
+  .filters input{width:100%;}
+  .toolbar-actions{flex-wrap:wrap;gap:6px;}
+  .toolbar-actions .btn{flex:1 1 40%;justify-content:center;}
+
+  .stats-row{flex-direction:column;align-items:stretch;gap:8px;padding:8px 14px;}
+  .stats-bar{flex-wrap:wrap;gap:6px;}
+  #sort-order{width:100%;}
+
+  .request-list{padding:12px 14px;}
+
+  /* Cards: let sub-step selects and info grid breathe on narrow screens */
+  .group-header{gap:8px;padding:12px 14px;flex-wrap:wrap;}
+  .group-id,.group-customer{font-size:16px;}
+  .group-customer{flex:1 1 100%;order:3;}
+  .type-section{padding:10px 14px;}
+  .substep-row{flex-wrap:wrap;gap:6px;}
+  .substep-select{min-width:0;width:100%;}
+  .req-info{grid-template-columns:1fr;gap:10px;padding:12px 14px;}
+  .sp-status-row,.notes-section,.history-section{padding-left:14px;padding-right:14px;}
+
+  /* Indicators view on phones */
+  #view-indicators{padding:16px 14px 48px;}
+  .ind-kpi-row{grid-template-columns:1fr 1fr;}
+  .ind-canvas-wrap{height:240px;}
+
+  /* Modals full width */
+  .changelog-box{width:94%;max-width:94%;}
 }
 /* === NOTIFICATION BANNER === */
 .notification-banner{
@@ -834,10 +895,11 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.61';
+const APP_VERSION = 'v1.8.62';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
+    ['v1.8.62', ['Mobile support: the page is now responsive on phones. The desktop 1.4x zoom is turned off on small screens (that was what broke the mobile layout), the header/toolbar/filters/stats stack full-width, filter dropdowns and the search box go 100% wide, the request info grid drops to a single column, and sub-step dropdowns stop overflowing. Added a "-" button on the Intel Foundry banner (top-left) that hides/shows the logo + title; the choice is remembered per browser.']],
     ['v1.8.61', ['COD and DA Edit completion emails now greet "Dear Team," instead of the requestor name (these go to the internal team + Birthe & James, not a customer).']],
     ['v1.8.60', ['COD and DA Edit completion emails rewritten: COD now says the COD was completed, signed and the ticket submitted to close the status; DA Edit says the DA was extended and notes that the COD tag was removed from the ticket. Both now ALWAYS include the DA Number and DA Link (pulled from SharePoint / prior request when not entered this session) so recipients know exactly which DA was closed/extended. DA Edit now also CCs Birthe Dallmer and James Matayabas Jr. (same as COD). Clearer subjects: "COD <n> Closed" and "DA <n> Extended".']],
     ['v1.8.59', ['Indicators SLAs renamed and refocused: "Ticket Triage SLA" = time from ticket Created until we pick it up (Acknowledged), and "2nd SLA" = time from pick-up to the next stage (In Approval Loop / Out for Signature / IT Request Submitted / Complete). Completed-by-month now pulls from SharePoint too: past months (Feb-Jul) are populated using each completed ticket\u2019s date, combined with the exact Firebase completion event where available, instead of showing only August. Received-by-month already comes 100% from SharePoint Created dates for the whole year.']],
@@ -3911,6 +3973,26 @@ function toggleTheme() {
 // Apply saved theme
 if (localStorage.getItem('fs-theme') === 'light') document.body.classList.add('light-mode');
 document.addEventListener('DOMContentLoaded', updateHeaderLogo);
+
+// Collapse/expand the Intel Foundry banner (the "-" button). Remembered per browser.
+function applyHeaderCollapsed(collapsed){
+    const h = document.getElementById('app-header');
+    const btn = document.getElementById('header-collapse-btn');
+    if (!h) return;
+    h.classList.toggle('header-collapsed', collapsed);
+    if (btn){
+        btn.innerHTML = collapsed ? '&plus;' : '&minus;';
+        btn.title = collapsed ? 'Show the Intel Foundry banner' : 'Hide the Intel Foundry banner';
+    }
+}
+function toggleHeaderCollapse(){
+    const collapsed = !document.getElementById('app-header').classList.contains('header-collapsed');
+    localStorage.setItem('fs-header-collapsed', collapsed ? '1' : '0');
+    applyHeaderCollapsed(collapsed);
+}
+document.addEventListener('DOMContentLoaded', function(){
+    applyHeaderCollapsed(localStorage.getItem('fs-header-collapsed') === '1');
+});
 
 // ============================================================
 // INDICATORS / MONTHLY REPORT

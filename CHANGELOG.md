@@ -8,6 +8,10 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.62 — 2026-09-02
+- Version movil / responsiva: en pantallas chicas se desactiva el zoom 1.4x del escritorio (eso era lo que rompia el movil), el header/toolbar/filtros/stats se apilan a ancho completo, los dropdowns de filtro y el buscador ocupan el 100%, el grid de info del request baja a una columna, y los dropdowns de sub-step dejan de desbordarse.
+- Nuevo boton "-" en el banner de Intel Foundry (arriba a la izquierda) que oculta/muestra el logo + titulo. La preferencia se recuerda por navegador.
+
 ## v1.8.61 — 2026-09-02
 - COD y DA Edit ahora saludan "Dear Team," (no el nombre del requestor), porque van al equipo interno + Birthe y James, no a un cliente.
 
