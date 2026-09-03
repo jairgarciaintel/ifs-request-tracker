@@ -1,10 +1,16 @@
 # FS Request Tracker - PENDIENTES por resolver
 
-Ultima actualizacion: 2026-08-20
-Version actual deployada: v1.8.41
+Ultima actualizacion: 2026-09-02
+Version actual deployada: v1.8.62
 
-Todos estos pendientes dependen de configurar FLOWS de Power Automate (el codigo
-del tracker ya esta listo). Aqui esta cada uno con su estado y que falta hacer.
+>>> PENDIENTES ACTUALES (guia + indicadores): sync/TAREAS-PENDIENTES.md <<<
+    - Tarea 1: guia (imagenes faltantes + seccion de Comunicaciones/correos).
+    - Tarea 2: indicadores - flow de HISTORIAL de SharePoint (jalar requests
+      desde enero, fechas reales por status).
+    - Tarea 3: indicadores - grafica "total de requests por ano" (historico SP).
+
+Lo de abajo (flows 1-4) es HISTORICO: casi todo ya quedo RESUELTO. Se deja como
+referencia.
 
 >>> INSTRUCCIONES PASO A PASO DE LOS FLOWS 1, 2 y 3:
 >>> sync/FLOWS-1-2-3-INSTRUCCIONES.md
