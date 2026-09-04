@@ -2,6 +2,36 @@
 
 Version actual deployada: v1.8.62
 
+============================================================
+## TAREA 0 - URGENTE (4 DIAS): reglas de Firebase (Test Mode expira)
+============================================================
+Firebase mando aviso: la Realtime DB esta en Test Mode y las reglas EXPIRAN en
+~4 dias. Cuando expiren, TODAS las peticiones se deniegan -> el tracker deja de
+guardar/leer tracking, notas, historial, presencia y notificaciones.
+
+ACCION (el usuario, en Firebase Console):
+  1. Realtime Database -> pestana "Rules".
+  2. Pegar la OPCION E (recomendada) o la C. Publish.
+
+OPCION E (acotada a las 5 rutas del tracker, NO caduca):
+{
+  "rules": {
+    "tracking":   { ".read": true, ".write": true },
+    "history":    { ".read": true, ".write": true },
+    "lastChange": { ".read": true, ".write": true },
+    "viewing":    { ".read": true, ".write": true },
+    "presence":   { ".read": true, ".write": true },
+    "$other":     { ".read": false, ".write": false }
+  }
+}
+
+OPCION C (abierto total, NO caduca):
+{ "rules": { ".read": true, ".write": true } }
+
+Nota: ninguna pone auth real (herramienta interna 2 personas, datos no sensibles).
+Auth fuerte = otro desarrollo (login Firebase). Reglas tambien en el l4ve.
+ESTADO: PENDIENTE - solo el usuario puede cambiarlas en la consola de Firebase.
+
 Resumen: el tracker como herramienta operativa esta COMPLETO. Los pendientes
 que quedan son (A) la GUIA (le faltan imagenes + agregar la seccion de correos)
 y (B) los INDICADORES (necesitan un flow que traiga el HISTORIAL de SharePoint
@@ -130,6 +160,7 @@ Es la mas compleja (volumen de datos + paginacion). Se hace despues de la Tarea 
 3. Grafica por ano (Tarea 3): despues del flow de historico.
 
 ## LO QUE NECESITO DEL USUARIO
+- [ ] URGENTE (4 dias): cambiar las reglas de Firebase (Tarea 0) en la consola.
 - [ ] Imagenes de la guia (img10-img17).
 - [ ] Imagenes de los correos para la seccion de Comunicaciones (lista en 1.2).
 - [ ] Crear el flow de HISTORIAL de SharePoint (Tarea 2) y pasarme su URL.
