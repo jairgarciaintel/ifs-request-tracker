@@ -98,6 +98,10 @@ body{
     <svg width="14" height="14" viewBox="0 0 16 16" style="margin-right:6px;vertical-align:-2px"><line x1="2.5" y1="13.5" x2="13.5" y2="13.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><rect x="3" y="8" width="2.4" height="5" rx="0.6" fill="currentColor"/><rect x="6.8" y="5" width="2.4" height="8" rx="0.6" fill="currentColor"/><rect x="10.6" y="2.5" width="2.4" height="10.5" rx="0.6" fill="currentColor"/></svg>
     Indicators
   </button>
+  <button class="tab-btn tab-admin" id="tab-admin" onclick="switchTab('admin')" title="Admin only">
+    <svg width="14" height="14" viewBox="0 0 16 16" style="margin-right:6px;vertical-align:-2px"><rect x="3" y="7" width="10" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M5.2 7V5.2a2.8 2.8 0 0 1 5.6 0V7" fill="none" stroke="currentColor" stroke-width="1.3"/><circle cx="8" cy="10.3" r="1" fill="currentColor"/></svg>
+    Admin
+  </button>
 </div>
 
 <div id="changelog-modal" class="changelog-overlay" onclick="hideChangelog(event)">
@@ -458,6 +462,70 @@ async function hbSubmitReport(text){
   <p class="ind-footer">Data sourced from SharePoint "New DA Request" list + Firebase tracking history. Updated live.</p>
 </div><!-- /view-indicators -->
 
+<!-- ============ ADMIN VIEW (locked, password 1222) ============ -->
+<div id="view-admin" style="display:none;">
+  <!-- Lock gate -->
+  <div id="admin-lock" class="admin-lock">
+    <div class="admin-lock-box">
+      <div class="admin-lock-icon">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10.5" width="16" height="10" rx="2.5"/><path d="M7.5 10.5V7.5a4.5 4.5 0 0 1 9 0v3"/><circle cx="12" cy="15.5" r="1.4" fill="currentColor" stroke="none"/></svg>
+      </div>
+      <h2>Admin Only</h2>
+      <p>Enter the admin password to open the broadcast / risk-alert tools.</p>
+      <input type="password" id="admin-pass-input" class="admin-pass-input" placeholder="Password" onkeydown="if(event.key==='Enter')adminUnlock()"/>
+      <div id="admin-pass-warn" class="admin-pass-warn">Wrong password.</div>
+      <button class="btn btn-primary" onclick="adminUnlock()">Unlock</button>
+    </div>
+  </div>
+
+  <!-- Admin content (hidden until unlocked) -->
+  <div id="admin-content" style="display:none;">
+    <div class="ind-section">
+      <h2 class="ind-h2">Broadcast <span class="accent">/ Risk Alert</span></h2>
+      <p class="ind-subtitle">Admin only &middot; send a controlled notification to affected requestors, BD and FCE Leads</p>
+    </div>
+
+    <div class="admin-alert-card">
+      <div class="admin-alert-head">
+        <span class="admin-alert-badge">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3L2 20h20L12 3z"/><line x1="12" y1="10" x2="12" y2="14"/><circle cx="12" cy="17" r="0.6" fill="currentColor" stroke="none"/></svg>
+          RISK ALERT
+        </span>
+        <span class="admin-alert-title">Portal Creation &mdash; Service Disruption</span>
+      </div>
+      <p class="admin-alert-desc">
+        Notifies every requestor, BD and FCE Lead with a <strong>Portal Creation</strong> request created in the
+        <strong>last 3 weeks</strong> that portal creation is currently failing, IT tickets are open, and to expect a delay.
+        Uses the existing email flow. Nothing is sent until you press <strong>Send broadcast</strong>.
+      </p>
+
+      <div class="admin-recipients">
+        <div class="admin-recip-head">
+          <span class="admin-recip-title">Recipients (Portal Creation &middot; last 3 weeks)</span>
+          <button class="btn btn-secondary btn-sm" onclick="adminRefreshRecipients()">Refresh list</button>
+        </div>
+        <div id="admin-recip-list" class="admin-recip-list">Loading…</div>
+      </div>
+
+      <div class="admin-send-row">
+        <label class="auto-toggle" title="Test mode: send only to Jair"><span class="auto-toggle-label">Test mode (only me)</span>
+          <span class="switch"><input type="checkbox" id="admin-test-toggle" checked><span class="slider"></span></span>
+        </label>
+        <button class="btn btn-primary" id="admin-send-btn" onclick="adminSendBroadcast()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;vertical-align:-2px"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+          Send broadcast
+        </button>
+      </div>
+      <div id="admin-send-status" class="admin-send-status"></div>
+    </div>
+
+    <div class="ind-section" style="margin-top:24px;">
+      <h3 class="ind-chart-title" style="margin-bottom:10px;">Email preview</h3>
+      <div id="admin-email-preview" class="admin-email-preview"></div>
+    </div>
+  </div>
+</div><!-- /view-admin -->
+
 <style>
 .header{padding:16px 32px;display:flex;align-items:center;justify-content:space-between;background:rgba(0,30,80,0.95);border-bottom:1px solid rgba(78,200,240,0.15);backdrop-filter:blur(10px);position:sticky;top:0;z-index:100;}
 .header-left{display:flex;align-items:center;gap:16px;}
@@ -730,6 +798,42 @@ body.light-mode .auto-toggle-label{color:#4a5568;}
 body.light-mode .sla-note{color:#4a5568;}
 body.light-mode .req-info-val{color:#1a202c;}
 body.light-mode .req-info-details{color:#4a5568;}
+/* ====== ADMIN VIEW (locked broadcast) ====== */
+#view-admin{padding:24px 32px 60px;max-width:1100px;margin:0 auto;}
+.tab-admin{color:rgba(255,180,90,0.8)!important;}
+.tab-admin.active{color:var(--amber)!important;border-color:rgba(240,160,48,0.45)!important;background:linear-gradient(180deg,rgba(240,160,48,0.16),rgba(4,28,50,0.4))!important;}
+.admin-lock{display:flex;justify-content:center;padding:60px 20px;}
+.admin-lock-box{background:linear-gradient(160deg,rgba(13,49,88,0.6),rgba(4,28,50,0.6));border:1px solid rgba(78,200,240,0.2);border-radius:18px;padding:36px 34px;max-width:420px;width:100%;text-align:center;}
+.admin-lock-icon{color:var(--cyan);margin-bottom:12px;}
+.admin-lock-box h2{font-family:'Cabinet Grotesk',sans-serif;font-size:1.5rem;color:#fff;margin-bottom:8px;}
+.admin-lock-box p{font-size:13px;color:rgba(255,255,255,0.6);margin-bottom:18px;line-height:1.5;}
+.admin-pass-input{width:100%;background:rgba(4,28,50,0.8);color:var(--light);border:1px solid rgba(78,200,240,0.25);border-radius:9px;padding:11px 14px;font-size:15px;font-family:'Satoshi',sans-serif;margin-bottom:12px;text-align:center;letter-spacing:3px;}
+.admin-pass-input:focus{outline:none;border-color:var(--cyan);}
+.admin-pass-warn{display:none;color:#ff6b6b;font-size:12px;margin-bottom:12px;}
+.admin-alert-card{background:linear-gradient(160deg,rgba(60,30,10,0.4),rgba(4,28,50,0.55));border:1px solid rgba(240,160,48,0.35);border-radius:16px;padding:22px 24px;box-shadow:0 6px 30px rgba(240,160,48,0.06);}
+.admin-alert-head{display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap;}
+.admin-alert-badge{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:800;letter-spacing:1px;color:var(--amber);background:rgba(240,160,48,0.14);border:1px solid rgba(240,160,48,0.4);border-radius:20px;padding:5px 12px;}
+.admin-alert-title{font-family:'Cabinet Grotesk',sans-serif;font-size:1.2rem;font-weight:700;color:#fff;}
+.admin-alert-desc{font-size:13px;color:rgba(255,255,255,0.72);line-height:1.6;margin-bottom:18px;}
+.admin-recipients{background:rgba(0,30,80,0.4);border:1px solid rgba(78,200,240,0.14);border-radius:12px;padding:14px 16px;margin-bottom:18px;}
+.admin-recip-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap;}
+.admin-recip-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--cyan);}
+.admin-recip-list{font-size:12.5px;color:rgba(255,255,255,0.7);line-height:1.7;max-height:220px;overflow-y:auto;}
+.admin-recip-list .rc-req{padding:6px 0;border-top:1px solid rgba(255,255,255,0.05);}
+.admin-recip-list .rc-req:first-child{border-top:none;}
+.admin-recip-list .rc-id{color:var(--cyan);font-weight:700;}
+.admin-recip-list .rc-mail{color:rgba(255,255,255,0.55);}
+.admin-recip-summary{margin-top:10px;padding-top:10px;border-top:1px solid rgba(78,200,240,0.15);font-size:12px;color:var(--light);}
+.admin-recip-summary strong{color:var(--cyan);}
+.admin-send-row{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;}
+.admin-send-status{margin-top:12px;font-size:12.5px;color:var(--green);min-height:16px;}
+.admin-send-status.err{color:#ff6b6b;}
+.admin-email-preview{background:#001E50;border-radius:14px;overflow:auto;max-height:640px;border:1px solid rgba(78,200,240,0.15);}
+body.light-mode #view-admin .admin-lock-box,body.light-mode .admin-recipients{background:rgba(255,255,255,0.7);border-color:rgba(0,113,197,0.15);}
+body.light-mode .admin-lock-box h2,body.light-mode .admin-alert-title{color:#1a202c;}
+body.light-mode .admin-lock-box p,body.light-mode .admin-alert-desc,body.light-mode .admin-recip-list{color:#334155;}
+body.light-mode .admin-alert-card{background:linear-gradient(160deg,rgba(255,244,230,0.8),rgba(255,255,255,0.7));}
+
 /* Collapse button on the Intel Foundry banner (the "−") */
 .header-collapse-btn{
   width:26px;height:26px;flex-shrink:0;border-radius:7px;cursor:pointer;
@@ -895,10 +999,11 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.62';
+const APP_VERSION = 'v1.8.63';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
+    ['v1.8.63', ['New Admin tab (locked, password 1222) with a Broadcast / Risk Alert tool. It builds a branded Portal Creation outage alert email (amber alert banner, status steps drawn with table cells, no emojis), auto-collects every requestor + BD + FCE Lead from Portal Creation requests in the last 3 weeks, shows a live preview and the recipient list, and sends via the existing email flow only when you press Send (Test mode on by default = sends only to you). The email states the two IT tickets (Showstopper 1575-6071 + one opened yesterday), that Lavanya is engaged, to expect a delay and await instructions, and that a Teams chat link will be shared.']],
     ['v1.8.62', ['Mobile support: the page is now responsive on phones. The desktop 1.4x zoom is turned off on small screens (that was what broke the mobile layout), the header/toolbar/filters/stats stack full-width, filter dropdowns and the search box go 100% wide, the request info grid drops to a single column, and sub-step dropdowns stop overflowing. Added a "-" button on the Intel Foundry banner (top-left) that hides/shows the logo + title; the choice is remembered per browser.']],
     ['v1.8.61', ['COD and DA Edit completion emails now greet "Dear Team," instead of the requestor name (these go to the internal team + Birthe & James, not a customer).']],
     ['v1.8.60', ['COD and DA Edit completion emails rewritten: COD now says the COD was completed, signed and the ticket submitted to close the status; DA Edit says the DA was extended and notes that the COD tag was removed from the ticket. Both now ALWAYS include the DA Number and DA Link (pulled from SharePoint / prior request when not entered this session) so recipients know exactly which DA was closed/extended. DA Edit now also CCs Birthe Dallmer and James Matayabas Jr. (same as COD). Clearer subjects: "COD <n> Closed" and "DA <n> Extended".']],
@@ -3995,6 +4100,184 @@ document.addEventListener('DOMContentLoaded', function(){
 });
 
 // ============================================================
+// ADMIN VIEW — locked broadcast / risk alert (password 1222)
+// ============================================================
+let adminUnlocked = false;
+const ADMIN_PASS = '1222';
+
+function adminUnlock(){
+    const inp = document.getElementById('admin-pass-input');
+    const warn = document.getElementById('admin-pass-warn');
+    if ((inp.value || '').trim() === ADMIN_PASS){
+        adminUnlocked = true;
+        document.getElementById('admin-lock').style.display = 'none';
+        document.getElementById('admin-content').style.display = 'block';
+        if (warn) warn.style.display = 'none';
+        inp.value = '';
+        adminRefreshRecipients();
+    } else {
+        if (warn) warn.style.display = 'block';
+        inp.value = '';
+        inp.focus();
+    }
+}
+
+// Collect requestor + BD + FCE emails for Portal Creation requests created in the
+// last 3 weeks. Returns { rows:[{id,customer,created,emails:[]}], allEmails:[] }.
+function adminGetPortalRecipients(){
+    const cutoff = Date.now() - 21 * 24 * 60 * 60 * 1000; // 3 weeks
+    const rows = [];
+    const allEmails = new Set();
+    // Group by request id so we show one line per request.
+    const byId = {};
+    (allRequests || []).forEach(r => {
+        const isPortal = r.requestType === 'Portal Creation';
+        if (!isPortal) return;
+        const created = r.created ? Date.parse(r.created) : NaN;
+        if (isNaN(created) || created < cutoff) return;
+        const key = String(r.id);
+        if (!byId[key]) byId[key] = { id: r.id, customer: r.customer || '', created: r.created, emails: new Set() };
+        const add = (e) => { if (e && /@/.test(e)) { byId[key].emails.add(e.trim()); allEmails.add(e.trim().toLowerCase()); } };
+        add(r.requestorEmail);
+        (r.bdEmailList || []).forEach(add);
+        (r.fceLeadEmailList || []).forEach(add);
+    });
+    Object.values(byId).forEach(o => rows.push({ id:o.id, customer:o.customer, created:o.created, emails:Array.from(o.emails) }));
+    rows.sort((a,b) => (b.id||0) - (a.id||0));
+    return { rows, allEmails: Array.from(allEmails) };
+}
+
+function adminRefreshRecipients(){
+    const box = document.getElementById('admin-recip-list');
+    if (!box) return;
+    const { rows, allEmails } = adminGetPortalRecipients();
+    if (!rows.length){
+        box.innerHTML = '<div style="color:rgba(255,255,255,0.5)">No Portal Creation requests found in the last 3 weeks.</div>';
+    } else {
+        let html = '';
+        rows.forEach(r => {
+            const d = r.created ? new Date(r.created).toLocaleDateString() : '';
+            html += `<div class="rc-req"><span class="rc-id">REQ. ${r.id}</span> &mdash; ${r.customer} `
+                + `<span style="color:rgba(255,255,255,0.4)">(${d})</span><br>`
+                + `<span class="rc-mail">${r.emails.join(', ') || 'no emails found'}</span></div>`;
+        });
+        html += `<div class="admin-recip-summary"><strong>${rows.length}</strong> request(s) &middot; <strong>${allEmails.length}</strong> unique recipient(s)</div>`;
+        box.innerHTML = html;
+    }
+    // Update the preview too
+    const prev = document.getElementById('admin-email-preview');
+    if (prev) prev.innerHTML = buildPortalOutageEmailHtml();
+}
+
+// Build the styled HTML for the Portal Creation outage / risk alert email.
+// Same shared wrapper (blue bg + circles), header and footer. No emojis; SVG-free
+// email body uses table/box shapes since some clients strip inline SVG — we use
+// pre-blended shapes and an amber alert banner drawn with table cells.
+function buildPortalOutageEmailHtml(){
+    // Progress-style status steps rendered with table cells (Outlook-safe, no emoji).
+    const step = (label, state) => {
+        const colors = { done:'#6bcb77', active:'#f0a030', pending:'#9aa4b0' };
+        const c = colors[state] || colors.pending;
+        const dot = `<span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${c};border:2px solid ${c};font-size:0;line-height:12px;">&nbsp;</span>`;
+        return `<tr>`
+            + `<td width="26" style="width:26px;padding:6px 0;vertical-align:middle;">${dot}</td>`
+            + `<td style="padding:6px 0;vertical-align:middle;font-size:15px;color:#1a202c;">${label}</td>`
+            + `</tr>`;
+    };
+
+    const alertBanner = `<tr><td style="padding:0 0 22px;">`
+        + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:separate;">`
+        + `<tr>`
+        + `<td width="6" style="width:6px;background:#f0a030;border-radius:6px 0 0 6px;font-size:0;">&nbsp;</td>`
+        + `<td style="background:#fff7ec;border:1px solid #f0c884;border-left:none;border-radius:0 8px 8px 0;padding:16px 18px;">`
+        + `<div style="font-size:12px;font-weight:800;letter-spacing:1px;color:#b45309;text-transform:uppercase;margin-bottom:4px;">Service Alert &middot; Action pending</div>`
+        + `<div style="font-size:17px;font-weight:700;color:#7a3b00;">Portal Creation is currently delayed</div>`
+        + `</td></tr></table></td></tr>`;
+
+    const stepsTable = `<tr><td style="padding:2px 0 20px;">`
+        + `<div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:#001E50;margin-bottom:10px;">Current status</div>`
+        + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">`
+        + step('Issue identified with Portal Creation', 'done')
+        + step('IT incident 1575-6071 raised as Showstopper', 'done')
+        + step('Second IT ticket raised (opened yesterday)', 'done')
+        + step('Under active investigation &mdash; Lavanya engaged', 'active')
+        + step('Portal Creation restored', 'pending')
+        + `</table></td></tr>`;
+
+    const inner = `<tr><td style="padding:34px;color:#1a202c;font-size:16px;line-height:1.7;">`
+        + `<p style="margin:0 0 20px;font-size:18px;">Dear <strong>Team</strong>,</p>`
+        + alertBanner
+        + `<p style="margin:0 0 16px;">We want to make you aware that we are currently experiencing a <strong>failure with Portal Creation</strong>. At this time, new portals cannot be created, and requests involving Portal Creation will be <strong>delayed</strong>.</p>`
+        + `<p style="margin:0 0 8px;">Two IT tickets have already been raised to resolve this:</p>`
+        + `<ul style="margin:0 0 16px;padding-left:20px;font-size:15px;">`
+        + `<li style="margin-bottom:6px;">Incident <strong>1575-6071</strong> &mdash; logged as a <strong>Showstopper</strong>.</li>`
+        + `<li style="margin-bottom:6px;">A second incident raised <strong>yesterday</strong> for additional coverage.</li>`
+        + `</ul>`
+        + stepsTable
+        + `<p style="margin:0 0 16px;"><strong>Lavanya</strong> is already actively working on the issue and we are following up closely. Please expect a delay in Portal Creation and <strong>await further instructions</strong>.</p>`
+        + `<div style="margin:0 0 20px;padding:14px 16px;background:#eef4fb;border-left:4px solid #001E50;border-radius:6px;font-size:15px;color:#041c32;">`
+        + `A Teams chat will be created for live updates. If you would like to be added, the join link will be shared so you can follow the resolution in real time.`
+        + `</div>`
+        + `<p style="margin:0 0 4px;">Thank you for your patience while we resolve this.</p>`
+        + `<p style="margin:20px 0 0;">Best regards,<br><strong style="color:#041c32;">FS DA OPS</strong> &middot; Intel Foundry Services</p>`
+        + `</td></tr>`;
+    return wrapEmail(inner, 40);
+}
+
+async function adminSendBroadcast(){
+    if (!adminUnlocked) return;
+    const statusEl = document.getElementById('admin-send-status');
+    const btn = document.getElementById('admin-send-btn');
+    const testMode = document.getElementById('admin-test-toggle').checked;
+    const { rows, allEmails } = adminGetPortalRecipients();
+
+    if (!allEmails.length){
+        statusEl.className = 'admin-send-status err';
+        statusEl.textContent = 'No recipients found for Portal Creation in the last 3 weeks. Nothing sent.';
+        return;
+    }
+    if (!CONFIG.sendEmailUrl){
+        statusEl.className = 'admin-send-status err';
+        statusEl.textContent = 'Email flow (CONFIG.sendEmailUrl) is not configured.';
+        return;
+    }
+
+    const to = testMode ? 'jair.garcia@intel.com' : allEmails.join(';');
+    const cc = testMode ? '' : 'fs.da.ops@intel.com';
+    const subject = 'Intel Foundry Services - Portal Creation Service Disruption (Action: please await further instructions)';
+    const bodyHtml = buildPortalOutageEmailHtml();
+
+    const confirmMsg = testMode
+        ? 'TEST MODE: the alert will be sent ONLY to you (jair.garcia@intel.com). Continue?'
+        : 'This will email the Portal Creation outage alert to ' + allEmails.length + ' recipient(s) (requestors + BD + FCE, last 3 weeks), CC fs.da.ops. Continue?';
+    if (!confirm(confirmMsg)) return;
+
+    btn.disabled = true;
+    statusEl.className = 'admin-send-status';
+    statusEl.textContent = 'Sending…';
+    try {
+        const res = await fetch(CONFIG.sendEmailUrl, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ to, cc, subject, name: 'Team', id: 'PORTAL-ALERT', customer: 'Portal Creation', bodyHtml, sensitivity: '' })
+        });
+        if (res.ok){
+            statusEl.className = 'admin-send-status';
+            statusEl.textContent = testMode
+                ? 'Sent in TEST mode to jair.garcia@intel.com.'
+                : ('Broadcast sent to ' + allEmails.length + ' recipient(s).');
+        } else {
+            statusEl.className = 'admin-send-status err';
+            statusEl.textContent = 'The email flow returned ' + res.status + '. Nothing confirmed sent.';
+        }
+    } catch(e){
+        statusEl.className = 'admin-send-status err';
+        statusEl.textContent = 'Send failed: ' + e.message;
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+// ============================================================
 // INDICATORS / MONTHLY REPORT
 // ============================================================
 let indicatorsLoaded = false;
@@ -4002,11 +4285,16 @@ let indCharts = {};
 
 function switchTab(tab){
     const isInd = tab === 'indicators';
-    document.getElementById('view-requests').style.display = isInd ? 'none' : '';
+    const isAdmin = tab === 'admin';
+    const isReq = !isInd && !isAdmin;
+    document.getElementById('view-requests').style.display = isReq ? '' : 'none';
     document.getElementById('view-indicators').style.display = isInd ? 'block' : 'none';
-    document.getElementById('tab-requests').classList.toggle('active', !isInd);
+    document.getElementById('view-admin').style.display = isAdmin ? 'block' : 'none';
+    document.getElementById('tab-requests').classList.toggle('active', isReq);
     document.getElementById('tab-indicators').classList.toggle('active', isInd);
+    document.getElementById('tab-admin').classList.toggle('active', isAdmin);
     if (isInd) renderIndicators();
+    if (isAdmin && adminUnlocked) adminRefreshRecipients();
 }
 
 // Month keys FY26 (Jan..Dec 2026)

@@ -8,6 +8,12 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.63 — 2026-09-02
+- Nueva pestana "Admin" (bloqueada, contrasena 1222) con herramienta de Broadcast / Risk Alert.
+- Arma un correo de alerta de falla en Portal Creation con el diseno de siempre (banner ambar de alerta, pasos de estatus dibujados con celdas de tabla, SIN emojis).
+- Detecta automaticamente a todos los requestors + BD + FCE Lead de los requests de Portal Creation de las ultimas 3 semanas; muestra preview en vivo y la lista de destinatarios.
+- Se envia con el flujo de correo existente SOLO cuando das clic en Send (Test mode encendido por defecto = solo te llega a ti). El correo menciona los dos tickets de IT (Showstopper 1575-6071 + uno abierto ayer), que Lavanya ya trabaja en el, que esperen delay y mas instrucciones, y que se compartira liga de Teams chat.
+
 ## v1.8.62 — 2026-09-02
 - Version movil / responsiva: en pantallas chicas se desactiva el zoom 1.4x del escritorio (eso era lo que rompia el movil), el header/toolbar/filtros/stats se apilan a ancho completo, los dropdowns de filtro y el buscador ocupan el 100%, el grid de info del request baja a una columna, y los dropdowns de sub-step dejan de desbordarse.
 - Nuevo boton "-" en el banner de Intel Foundry (arriba a la izquierda) que oculta/muestra el logo + titulo. La preferencia se recuerda por navegador.
