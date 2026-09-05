@@ -8,6 +8,9 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.66 — 2026-09-05
+- Admin broadcast: arreglados los bullets de los pasos de estatus para que tengan espacio con el texto y se alineen arriba (el texto ya no queda por encima del punto). Los bullets de la lista de tickets tambien tienen mas espacio. Se limpio el draft guardado (letra grande pegada de Outlook y URL cruda; el link de ServiceNow quedo como hipervinculo limpio).
+
 ## v1.8.65 — 2026-09-05
 - Admin broadcast: subida de imagenes a Firebase Storage ("Upload image" elige archivo, lo guarda y mete su URL publica para que los destinatarios la vean; sigue "Image by URL").
 - Campo To: editable (se autollena con los destinatarios de Portal Creation de las ultimas 3 semanas; puedes agregar/quitar correos) + campo CC: editable. Send broadcast usa exactamente lo que este en To:/CC.

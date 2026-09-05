@@ -1054,10 +1054,11 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.65';
+const APP_VERSION = 'v1.8.66';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
+    ['v1.8.66', ['Admin broadcast: fixed the status-step bullets so they have proper spacing from the text and align to the top (text no longer sits above the dot). The IT ticket list bullets also get more spacing. Cleaned the saved draft (removed pasted-from-Outlook oversized text and raw URL, turned the ServiceNow link into a clean hyperlink).']],
     ['v1.8.65', ['Admin broadcast: added image upload to Firebase Storage ("Upload image" picks a file, stores it, and inserts its public URL so recipients can see it; "Image by URL" still available). Added an editable To: field (auto-filled with the Portal Creation recipients from the last 3 weeks — you can add/remove any emails) plus an editable CC: field. Send broadcast now uses exactly what is in To:/CC. Requires enabling Firebase Storage (see l4ve for the one-time rules setup).']],
     ['v1.8.64', ['Admin broadcast is now editable: the fixed parts stay (Dear Team, header, footer, and the amber alert banner), and everything AFTER the banner is an editable rich-text box. You can type, bold/italic/bullet, and insert images by URL. "Save draft" stores it in Firebase (persists + I can review it), "Update preview" re-renders the email, and Send broadcast uses whatever is in the editor. Reset restores the default text.']],
     ['v1.8.63', ['New Admin tab (locked, password 1222) with a Broadcast / Risk Alert tool. It builds a branded Portal Creation outage alert email (amber alert banner, status steps drawn with table cells, no emojis), auto-collects every requestor + BD + FCE Lead from Portal Creation requests in the last 3 weeks, shows a live preview and the recipient list, and sends via the existing email flow only when you press Send (Test mode on by default = sends only to you). The email states the two IT tickets (Showstopper 1575-6071 + one opened yesterday), that Lavanya is engaged, to expect a delay and await instructions, and that a Teams chat link will be shared.']],
@@ -4279,8 +4280,9 @@ function adminDefaultBodyHtml(){
         const colors = { done:'#6bcb77', active:'#f0a030', pending:'#9aa4b0' };
         const c = colors[state] || colors.pending;
         return `<tr>`
-            + `<td width="26" style="width:26px;padding:6px 0;vertical-align:middle;"><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${c};border:2px solid ${c};font-size:0;line-height:12px;">&nbsp;</span></td>`
-            + `<td style="padding:6px 0;vertical-align:middle;font-size:15px;color:#1a202c;">${label}</td>`
+            + `<td width="30" style="width:30px;padding:7px 12px 7px 0;vertical-align:top;text-align:center;">`
+            + `<span style="display:inline-block;width:12px;height:12px;margin-top:4px;border-radius:50%;background:${c};border:2px solid ${c};font-size:0;line-height:12px;">&nbsp;</span></td>`
+            + `<td style="padding:7px 0;vertical-align:top;font-size:15px;line-height:1.5;color:#1a202c;">${label}</td>`
             + `</tr>`;
     };
     const stepsTable = `<div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:#001E50;margin:0 0 10px;">Current status</div>`
@@ -4293,9 +4295,9 @@ function adminDefaultBodyHtml(){
         + `</table>`;
     return `<p style="margin:0 0 16px;">We want to make you aware that we are currently experiencing a <strong>failure with Portal Creation</strong>. At this time, new portals cannot be created, and requests involving Portal Creation will be <strong>delayed</strong>.</p>`
         + `<p style="margin:0 0 8px;">Two IT tickets have already been raised to resolve this:</p>`
-        + `<ul style="margin:0 0 16px;padding-left:20px;font-size:15px;">`
-        + `<li style="margin-bottom:6px;">Incident <strong>1575-6071</strong> &mdash; logged as a <strong>Showstopper</strong>.</li>`
-        + `<li style="margin-bottom:6px;">A second incident raised <strong>yesterday</strong> for additional coverage.</li>`
+        + `<ul style="margin:0 0 16px;padding-left:24px;font-size:15px;line-height:1.6;">`
+        + `<li style="margin-bottom:8px;padding-left:4px;">Incident <strong>INC15756071</strong> &mdash; logged as a <strong>Showstopper</strong>.</li>`
+        + `<li style="margin-bottom:8px;padding-left:4px;">A second incident raised <strong>yesterday</strong> for additional coverage.</li>`
         + `</ul>`
         + stepsTable
         + `<p style="margin:0 0 16px;"><strong>Lavanya</strong> is already actively working on the issue and we are following up closely. Please expect a delay in Portal Creation and <strong>await further instructions</strong>.</p>`
