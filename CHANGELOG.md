@@ -8,6 +8,10 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.64 — 2026-09-02
+- El comunicado del Admin ahora es EDITABLE: las partes fijas se quedan (Dear Team, header, footer y el banner ambar de alerta) y todo lo que va DESPUES del banner es un editor de texto enriquecido.
+- Puedes escribir, poner negritas/cursiva/vinetas e insertar imagenes por URL. "Save draft" lo guarda en Firebase (persiste y yo lo puedo revisar), "Update preview" re-renderiza el correo, y Send broadcast usa lo que este en el editor. "Reset" regresa al texto por defecto.
+
 ## v1.8.63 — 2026-09-02
 - Nueva pestana "Admin" (bloqueada, contrasena 1222) con herramienta de Broadcast / Risk Alert.
 - Arma un correo de alerta de falla en Portal Creation con el diseno de siempre (banner ambar de alerta, pasos de estatus dibujados con celdas de tabla, SIN emojis).

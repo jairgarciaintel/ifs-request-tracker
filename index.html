@@ -519,8 +519,34 @@ async function hbSubmitReport(text){
       <div id="admin-send-status" class="admin-send-status"></div>
     </div>
 
+    <!-- EDITABLE body: everything AFTER the alert banner -->
     <div class="ind-section" style="margin-top:24px;">
-      <h3 class="ind-chart-title" style="margin-bottom:10px;">Email preview</h3>
+      <div class="admin-editor-head">
+        <h3 class="ind-chart-title">Message body (editable)</h3>
+        <div class="admin-editor-tools">
+          <button type="button" class="admin-fmt-btn" title="Bold" onclick="adminFmt('bold')"><strong>B</strong></button>
+          <button type="button" class="admin-fmt-btn" title="Italic" onclick="adminFmt('italic')"><em>i</em></button>
+          <button type="button" class="admin-fmt-btn" title="Bullet list" onclick="adminFmt('insertUnorderedList')">&bull; List</button>
+          <button type="button" class="admin-fmt-btn" title="Insert image from URL" onclick="adminInsertImage()">Image</button>
+          <button type="button" class="admin-fmt-btn" title="Reset to default text" onclick="adminResetBody()">Reset</button>
+        </div>
+      </div>
+      <p class="admin-editor-note">This is the part that goes right after "Dear Team," and the alert banner. Type freely, paste or insert images. The fixed header, footer and the amber alert banner stay as they are. Press <strong>Save draft</strong> when done.</p>
+      <div id="admin-body-editor" class="admin-body-editor" contenteditable="true"></div>
+      <div class="admin-send-row" style="margin-top:12px;">
+        <span id="admin-draft-status" class="admin-send-status" style="margin-top:0;"></span>
+        <button class="btn btn-secondary" onclick="adminSaveDraft()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;vertical-align:-2px"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+          Save draft
+        </button>
+      </div>
+    </div>
+
+    <div class="ind-section" style="margin-top:8px;">
+      <div class="admin-editor-head">
+        <h3 class="ind-chart-title">Email preview</h3>
+        <button class="btn btn-secondary btn-sm" onclick="adminUpdatePreview()">Update preview</button>
+      </div>
       <div id="admin-email-preview" class="admin-email-preview"></div>
     </div>
   </div>
@@ -829,6 +855,16 @@ body.light-mode .req-info-details{color:#4a5568;}
 .admin-send-status{margin-top:12px;font-size:12.5px;color:var(--green);min-height:16px;}
 .admin-send-status.err{color:#ff6b6b;}
 .admin-email-preview{background:#001E50;border-radius:14px;overflow:auto;max-height:640px;border:1px solid rgba(78,200,240,0.15);}
+.admin-editor-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;flex-wrap:wrap;}
+.admin-editor-tools{display:flex;gap:6px;flex-wrap:wrap;}
+.admin-fmt-btn{background:rgba(78,200,240,0.12);color:var(--cyan);border:1px solid rgba(78,200,240,0.3);border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;font-family:'Satoshi',sans-serif;}
+.admin-fmt-btn:hover{background:rgba(78,200,240,0.25);}
+.admin-editor-note{font-size:12px;color:rgba(255,255,255,0.55);line-height:1.5;margin-bottom:10px;}
+.admin-body-editor{background:#ffffff;color:#1a202c;border:1px solid rgba(78,200,240,0.3);border-radius:12px;padding:18px 20px;min-height:220px;max-height:520px;overflow-y:auto;font-family:'Segoe UI',Arial,sans-serif;font-size:15px;line-height:1.7;}
+.admin-body-editor:focus{outline:none;border-color:var(--cyan);}
+.admin-body-editor img{max-width:100%;height:auto;border-radius:6px;margin:6px 0;}
+.admin-body-editor ul{padding-left:20px;}
+body.light-mode .admin-editor-note{color:#64748b;}
 body.light-mode #view-admin .admin-lock-box,body.light-mode .admin-recipients{background:rgba(255,255,255,0.7);border-color:rgba(0,113,197,0.15);}
 body.light-mode .admin-lock-box h2,body.light-mode .admin-alert-title{color:#1a202c;}
 body.light-mode .admin-lock-box p,body.light-mode .admin-alert-desc,body.light-mode .admin-recip-list{color:#334155;}
@@ -999,10 +1035,11 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.63';
+const APP_VERSION = 'v1.8.64';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
+    ['v1.8.64', ['Admin broadcast is now editable: the fixed parts stay (Dear Team, header, footer, and the amber alert banner), and everything AFTER the banner is an editable rich-text box. You can type, bold/italic/bullet, and insert images by URL. "Save draft" stores it in Firebase (persists + I can review it), "Update preview" re-renders the email, and Send broadcast uses whatever is in the editor. Reset restores the default text.']],
     ['v1.8.63', ['New Admin tab (locked, password 1222) with a Broadcast / Risk Alert tool. It builds a branded Portal Creation outage alert email (amber alert banner, status steps drawn with table cells, no emojis), auto-collects every requestor + BD + FCE Lead from Portal Creation requests in the last 3 weeks, shows a live preview and the recipient list, and sends via the existing email flow only when you press Send (Test mode on by default = sends only to you). The email states the two IT tickets (Showstopper 1575-6071 + one opened yesterday), that Lavanya is engaged, to expect a delay and await instructions, and that a Teams chat link will be shared.']],
     ['v1.8.62', ['Mobile support: the page is now responsive on phones. The desktop 1.4x zoom is turned off on small screens (that was what broke the mobile layout), the header/toolbar/filters/stats stack full-width, filter dropdowns and the search box go 100% wide, the request info grid drops to a single column, and sub-step dropdowns stop overflowing. Added a "-" button on the Intel Foundry banner (top-left) that hides/shows the logo + title; the choice is remembered per browser.']],
     ['v1.8.61', ['COD and DA Edit completion emails now greet "Dear Team," instead of the requestor name (these go to the internal team + Birthe & James, not a customer).']],
@@ -4115,6 +4152,7 @@ function adminUnlock(){
         if (warn) warn.style.display = 'none';
         inp.value = '';
         adminRefreshRecipients();
+        adminLoadDraft();
     } else {
         if (warn) warn.style.display = 'block';
         inp.value = '';
@@ -4164,50 +4202,39 @@ function adminRefreshRecipients(){
         html += `<div class="admin-recip-summary"><strong>${rows.length}</strong> request(s) &middot; <strong>${allEmails.length}</strong> unique recipient(s)</div>`;
         box.innerHTML = html;
     }
-    // Update the preview too
-    const prev = document.getElementById('admin-email-preview');
-    if (prev) prev.innerHTML = buildPortalOutageEmailHtml();
 }
 
-// Build the styled HTML for the Portal Creation outage / risk alert email.
-// Same shared wrapper (blue bg + circles), header and footer. No emojis; SVG-free
-// email body uses table/box shapes since some clients strip inline SVG — we use
-// pre-blended shapes and an amber alert banner drawn with table cells.
-function buildPortalOutageEmailHtml(){
-    // Progress-style status steps rendered with table cells (Outlook-safe, no emoji).
-    const step = (label, state) => {
-        const colors = { done:'#6bcb77', active:'#f0a030', pending:'#9aa4b0' };
-        const c = colors[state] || colors.pending;
-        const dot = `<span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${c};border:2px solid ${c};font-size:0;line-height:12px;">&nbsp;</span>`;
-        return `<tr>`
-            + `<td width="26" style="width:26px;padding:6px 0;vertical-align:middle;">${dot}</td>`
-            + `<td style="padding:6px 0;vertical-align:middle;font-size:15px;color:#1a202c;">${label}</td>`
-            + `</tr>`;
-    };
-
-    const alertBanner = `<tr><td style="padding:0 0 22px;">`
-        + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:separate;">`
+// The FIXED alert banner that goes right after "Dear Team," (not editable).
+function adminAlertBannerHtml(){
+    return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:separate;margin:0 0 22px;">`
         + `<tr>`
         + `<td width="6" style="width:6px;background:#f0a030;border-radius:6px 0 0 6px;font-size:0;">&nbsp;</td>`
         + `<td style="background:#fff7ec;border:1px solid #f0c884;border-left:none;border-radius:0 8px 8px 0;padding:16px 18px;">`
         + `<div style="font-size:12px;font-weight:800;letter-spacing:1px;color:#b45309;text-transform:uppercase;margin-bottom:4px;">Service Alert &middot; Action pending</div>`
         + `<div style="font-size:17px;font-weight:700;color:#7a3b00;">Portal Creation is currently delayed</div>`
-        + `</td></tr></table></td></tr>`;
+        + `</td></tr></table>`;
+}
 
-    const stepsTable = `<tr><td style="padding:2px 0 20px;">`
-        + `<div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:#001E50;margin-bottom:10px;">Current status</div>`
-        + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">`
+// Default editable body (what shows the first time / on Reset). This is the part
+// AFTER the banner — the user can edit it, add images, etc.
+function adminDefaultBodyHtml(){
+    const step = (label, state) => {
+        const colors = { done:'#6bcb77', active:'#f0a030', pending:'#9aa4b0' };
+        const c = colors[state] || colors.pending;
+        return `<tr>`
+            + `<td width="26" style="width:26px;padding:6px 0;vertical-align:middle;"><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${c};border:2px solid ${c};font-size:0;line-height:12px;">&nbsp;</span></td>`
+            + `<td style="padding:6px 0;vertical-align:middle;font-size:15px;color:#1a202c;">${label}</td>`
+            + `</tr>`;
+    };
+    const stepsTable = `<div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:#001E50;margin:0 0 10px;">Current status</div>`
+        + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;">`
         + step('Issue identified with Portal Creation', 'done')
         + step('IT incident 1575-6071 raised as Showstopper', 'done')
         + step('Second IT ticket raised (opened yesterday)', 'done')
         + step('Under active investigation &mdash; Lavanya engaged', 'active')
         + step('Portal Creation restored', 'pending')
-        + `</table></td></tr>`;
-
-    const inner = `<tr><td style="padding:34px;color:#1a202c;font-size:16px;line-height:1.7;">`
-        + `<p style="margin:0 0 20px;font-size:18px;">Dear <strong>Team</strong>,</p>`
-        + alertBanner
-        + `<p style="margin:0 0 16px;">We want to make you aware that we are currently experiencing a <strong>failure with Portal Creation</strong>. At this time, new portals cannot be created, and requests involving Portal Creation will be <strong>delayed</strong>.</p>`
+        + `</table>`;
+    return `<p style="margin:0 0 16px;">We want to make you aware that we are currently experiencing a <strong>failure with Portal Creation</strong>. At this time, new portals cannot be created, and requests involving Portal Creation will be <strong>delayed</strong>.</p>`
         + `<p style="margin:0 0 8px;">Two IT tickets have already been raised to resolve this:</p>`
         + `<ul style="margin:0 0 16px;padding-left:20px;font-size:15px;">`
         + `<li style="margin-bottom:6px;">Incident <strong>1575-6071</strong> &mdash; logged as a <strong>Showstopper</strong>.</li>`
@@ -4219,9 +4246,63 @@ function buildPortalOutageEmailHtml(){
         + `A Teams chat will be created for live updates. If you would like to be added, the join link will be shared so you can follow the resolution in real time.`
         + `</div>`
         + `<p style="margin:0 0 4px;">Thank you for your patience while we resolve this.</p>`
-        + `<p style="margin:20px 0 0;">Best regards,<br><strong style="color:#041c32;">FS DA OPS</strong> &middot; Intel Foundry Services</p>`
+        + `<p style="margin:20px 0 0;">Best regards,<br><strong style="color:#041c32;">FS DA OPS</strong> &middot; Intel Foundry Services</p>`;
+}
+
+// Assemble the full email: fixed Dear Team + banner + EDITABLE body from the editor.
+function buildPortalOutageEmailHtml(){
+    const editor = document.getElementById('admin-body-editor');
+    const bodyHtml = (editor && editor.innerHTML.trim()) ? editor.innerHTML : adminDefaultBodyHtml();
+    const inner = `<tr><td style="padding:34px;color:#1a202c;font-size:16px;line-height:1.7;">`
+        + `<p style="margin:0 0 20px;font-size:18px;">Dear <strong>Team</strong>,</p>`
+        + adminAlertBannerHtml()
+        + bodyHtml
         + `</td></tr>`;
     return wrapEmail(inner, 40);
+}
+
+// ---- Editor helpers ----
+function adminFmt(cmd){ document.execCommand(cmd, false, null); document.getElementById('admin-body-editor').focus(); }
+function adminInsertImage(){
+    const url = prompt('Image URL (must be publicly reachable so recipients can load it):');
+    if (url && /^https?:\/\//i.test(url)) { document.execCommand('insertImage', false, url); }
+    else if (url) { alert('Please use a full https:// image URL.'); }
+}
+function adminResetBody(){
+    if (!confirm('Reset the message body to the default text? Your current edits will be lost.')) return;
+    document.getElementById('admin-body-editor').innerHTML = adminDefaultBodyHtml();
+    adminUpdatePreview();
+}
+function adminUpdatePreview(){
+    const prev = document.getElementById('admin-email-preview');
+    if (prev) prev.innerHTML = buildPortalOutageEmailHtml();
+}
+async function adminSaveDraft(){
+    const st = document.getElementById('admin-draft-status');
+    const html = document.getElementById('admin-body-editor').innerHTML;
+    st.className = 'admin-send-status'; st.textContent = 'Saving…';
+    try {
+        await fetch(`${FIREBASE_DB}/adminBroadcast/portalOutage.json`, {
+            method:'PUT', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ html, savedBy: (typeof ensureUsername==='function'?ensureUsername():''), savedAt: new Date().toISOString() })
+        });
+        st.textContent = 'Draft saved. It will load next time and I can review it.';
+        adminUpdatePreview();
+    } catch(e){
+        st.className = 'admin-send-status err'; st.textContent = 'Save failed: ' + e.message;
+    }
+}
+async function adminLoadDraft(){
+    const editor = document.getElementById('admin-body-editor');
+    if (!editor) return;
+    try {
+        const res = await fetch(`${FIREBASE_DB}/adminBroadcast/portalOutage.json`);
+        if (res.ok){
+            const data = await res.json();
+            editor.innerHTML = (data && data.html) ? data.html : adminDefaultBodyHtml();
+        } else { editor.innerHTML = adminDefaultBodyHtml(); }
+    } catch(e){ editor.innerHTML = adminDefaultBodyHtml(); }
+    adminUpdatePreview();
 }
 
 async function adminSendBroadcast(){
