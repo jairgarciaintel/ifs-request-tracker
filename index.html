@@ -502,9 +502,21 @@ async function hbSubmitReport(text){
       <div class="admin-recipients">
         <div class="admin-recip-head">
           <span class="admin-recip-title">Recipients (Portal Creation &middot; last 3 weeks)</span>
-          <button class="btn btn-secondary btn-sm" onclick="adminRefreshRecipients()">Refresh list</button>
+          <button class="btn btn-secondary btn-sm" onclick="adminRefreshRecipients()">Rebuild from data</button>
         </div>
         <div id="admin-recip-list" class="admin-recip-list">Loading…</div>
+      </div>
+
+      <div class="admin-recipients">
+        <div class="admin-recip-head">
+          <span class="admin-recip-title">To: (editable &mdash; these get the email)</span>
+        </div>
+        <p class="admin-editor-note" style="margin-bottom:8px;">Auto-filled from the list above. Add or remove emails freely (separate with ; or comma or new lines). This is exactly who the broadcast goes to when Test mode is OFF.</p>
+        <textarea id="admin-to-field" class="admin-to-field" placeholder="name@intel.com; name2@intel.com"></textarea>
+        <div class="admin-recip-head" style="margin-top:8px;">
+          <span class="admin-recip-title" style="font-weight:400;text-transform:none;color:rgba(255,255,255,0.5);">CC:</span>
+        </div>
+        <input type="text" id="admin-cc-field" class="admin-pass-input" style="letter-spacing:0;text-align:left;margin-bottom:0;" value="fs.da.ops@intel.com" placeholder="cc@intel.com">
       </div>
 
       <div class="admin-send-row">
@@ -527,10 +539,13 @@ async function hbSubmitReport(text){
           <button type="button" class="admin-fmt-btn" title="Bold" onclick="adminFmt('bold')"><strong>B</strong></button>
           <button type="button" class="admin-fmt-btn" title="Italic" onclick="adminFmt('italic')"><em>i</em></button>
           <button type="button" class="admin-fmt-btn" title="Bullet list" onclick="adminFmt('insertUnorderedList')">&bull; List</button>
-          <button type="button" class="admin-fmt-btn" title="Insert image from URL" onclick="adminInsertImage()">Image</button>
+          <button type="button" class="admin-fmt-btn" title="Upload an image (stored in Firebase, public URL)" onclick="document.getElementById('admin-img-file').click()">Upload image</button>
+          <button type="button" class="admin-fmt-btn" title="Insert image from a URL" onclick="adminInsertImage()">Image by URL</button>
           <button type="button" class="admin-fmt-btn" title="Reset to default text" onclick="adminResetBody()">Reset</button>
+          <input type="file" id="admin-img-file" accept="image/*" style="display:none" onchange="adminUploadImage(this)">
         </div>
       </div>
+      <div id="admin-upload-status" class="admin-uploading"></div>
       <p class="admin-editor-note">This is the part that goes right after "Dear Team," and the alert banner. Type freely, paste or insert images. The fixed header, footer and the amber alert banner stay as they are. Press <strong>Save draft</strong> when done.</p>
       <div id="admin-body-editor" class="admin-body-editor" contenteditable="true"></div>
       <div class="admin-send-row" style="margin-top:12px;">
@@ -860,6 +875,10 @@ body.light-mode .req-info-details{color:#4a5568;}
 .admin-fmt-btn{background:rgba(78,200,240,0.12);color:var(--cyan);border:1px solid rgba(78,200,240,0.3);border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;font-family:'Satoshi',sans-serif;}
 .admin-fmt-btn:hover{background:rgba(78,200,240,0.25);}
 .admin-editor-note{font-size:12px;color:rgba(255,255,255,0.55);line-height:1.5;margin-bottom:10px;}
+.admin-to-field{width:100%;background:rgba(4,28,50,0.8);color:var(--light);border:1px solid rgba(78,200,240,0.25);border-radius:9px;padding:10px 12px;font-size:13px;font-family:'Satoshi',sans-serif;min-height:70px;resize:vertical;line-height:1.6;box-sizing:border-box;}
+.admin-to-field:focus{outline:none;border-color:var(--cyan);}
+body.light-mode .admin-to-field{background:#fff;color:#1a202c;border-color:rgba(0,113,197,0.2);}
+.admin-uploading{font-size:12px;color:var(--cyan);margin-top:6px;}
 .admin-body-editor{background:#ffffff;color:#1a202c;border:1px solid rgba(78,200,240,0.3);border-radius:12px;padding:18px 20px;min-height:220px;max-height:520px;overflow-y:auto;font-family:'Segoe UI',Arial,sans-serif;font-size:15px;line-height:1.7;}
 .admin-body-editor:focus{outline:none;border-color:var(--cyan);}
 .admin-body-editor img{max-width:100%;height:auto;border-radius:6px;margin:6px 0;}
@@ -1035,10 +1054,11 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.64';
+const APP_VERSION = 'v1.8.65';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
+    ['v1.8.65', ['Admin broadcast: added image upload to Firebase Storage ("Upload image" picks a file, stores it, and inserts its public URL so recipients can see it; "Image by URL" still available). Added an editable To: field (auto-filled with the Portal Creation recipients from the last 3 weeks — you can add/remove any emails) plus an editable CC: field. Send broadcast now uses exactly what is in To:/CC. Requires enabling Firebase Storage (see l4ve for the one-time rules setup).']],
     ['v1.8.64', ['Admin broadcast is now editable: the fixed parts stay (Dear Team, header, footer, and the amber alert banner), and everything AFTER the banner is an editable rich-text box. You can type, bold/italic/bullet, and insert images by URL. "Save draft" stores it in Firebase (persists + I can review it), "Update preview" re-renders the email, and Send broadcast uses whatever is in the editor. Reset restores the default text.']],
     ['v1.8.63', ['New Admin tab (locked, password 1222) with a Broadcast / Risk Alert tool. It builds a branded Portal Creation outage alert email (amber alert banner, status steps drawn with table cells, no emojis), auto-collects every requestor + BD + FCE Lead from Portal Creation requests in the last 3 weeks, shows a live preview and the recipient list, and sends via the existing email flow only when you press Send (Test mode on by default = sends only to you). The email states the two IT tickets (Showstopper 1575-6071 + one opened yesterday), that Lavanya is engaged, to expect a delay and await instructions, and that a Teams chat link will be shared.']],
     ['v1.8.62', ['Mobile support: the page is now responsive on phones. The desktop 1.4x zoom is turned off on small screens (that was what broke the mobile layout), the header/toolbar/filters/stats stack full-width, filter dropdowns and the search box go 100% wide, the request info grid drops to a single column, and sub-step dropdowns stop overflowing. Added a "-" button on the Intel Foundry banner (top-left) that hides/shows the logo + title; the choice is remembered per browser.']],
@@ -4141,6 +4161,40 @@ document.addEventListener('DOMContentLoaded', function(){
 // ============================================================
 let adminUnlocked = false;
 const ADMIN_PASS = '1222';
+// Firebase Storage bucket for broadcast images (same project). If uploads fail,
+// enable Storage in the Firebase console and set its rules (see l4ve notes).
+const FIREBASE_BUCKET = 'fs-request-tracker.appspot.com';
+
+// Upload an image to Firebase Storage and insert it into the editor with its
+// public download URL (so recipients' email clients can load it).
+async function adminUploadImage(input){
+    const file = input.files && input.files[0];
+    input.value = '';
+    if (!file) return;
+    const st = document.getElementById('admin-upload-status');
+    if (file.size > 5 * 1024 * 1024){ st.textContent = 'Image too big (max 5 MB).'; return; }
+    st.textContent = 'Uploading ' + file.name + '…';
+    const path = 'broadcast/' + Date.now() + '-' + file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+    const url = `https://firebasestorage.googleapis.com/v0/b/${FIREBASE_BUCKET}/o?uploadType=media&name=${encodeURIComponent(path)}`;
+    try {
+        const res = await fetch(url, { method:'POST', headers:{'Content-Type': file.type || 'application/octet-stream'}, body: file });
+        if (!res.ok){
+            const t = await res.text();
+            st.textContent = 'Upload failed (' + res.status + '). Firebase Storage may not be enabled yet. See l4ve for setup.';
+            console.warn('Storage upload error:', t);
+            return;
+        }
+        const data = await res.json();
+        const token = data.downloadTokens ? data.downloadTokens.split(',')[0] : '';
+        const publicUrl = `https://firebasestorage.googleapis.com/v0/b/${FIREBASE_BUCKET}/o/${encodeURIComponent(path)}?alt=media` + (token ? ('&token=' + token) : '');
+        // Insert into the editor
+        document.getElementById('admin-body-editor').focus();
+        document.execCommand('insertImage', false, publicUrl);
+        st.textContent = 'Image uploaded and inserted. Remember to Save draft.';
+    } catch(e){
+        st.textContent = 'Upload failed: ' + e.message;
+    }
+}
 
 function adminUnlock(){
     const inp = document.getElementById('admin-pass-input');
@@ -4202,6 +4256,9 @@ function adminRefreshRecipients(){
         html += `<div class="admin-recip-summary"><strong>${rows.length}</strong> request(s) &middot; <strong>${allEmails.length}</strong> unique recipient(s)</div>`;
         box.innerHTML = html;
     }
+    // Fill the editable To: field with the auto-detected recipients (user can edit).
+    const toField = document.getElementById('admin-to-field');
+    if (toField) toField.value = allEmails.join('; ');
 }
 
 // The FIXED alert banner that goes right after "Dear Team," (not editable).
@@ -4310,27 +4367,32 @@ async function adminSendBroadcast(){
     const statusEl = document.getElementById('admin-send-status');
     const btn = document.getElementById('admin-send-btn');
     const testMode = document.getElementById('admin-test-toggle').checked;
-    const { rows, allEmails } = adminGetPortalRecipients();
 
-    if (!allEmails.length){
-        statusEl.className = 'admin-send-status err';
-        statusEl.textContent = 'No recipients found for Portal Creation in the last 3 weeks. Nothing sent.';
-        return;
-    }
     if (!CONFIG.sendEmailUrl){
         statusEl.className = 'admin-send-status err';
         statusEl.textContent = 'Email flow (CONFIG.sendEmailUrl) is not configured.';
         return;
     }
 
-    const to = testMode ? 'jair.garcia@intel.com' : allEmails.join(';');
-    const cc = testMode ? '' : 'fs.da.ops@intel.com';
+    // Read the EDITABLE To: / CC: fields. Split on ; , or newlines.
+    const splitEmails = (s) => (s || '').split(/[;,\n]+/).map(x => x.trim()).filter(x => /@/.test(x));
+    const toList = splitEmails(document.getElementById('admin-to-field').value);
+    const ccField = (document.getElementById('admin-cc-field').value || '').trim();
+
+    if (!testMode && !toList.length){
+        statusEl.className = 'admin-send-status err';
+        statusEl.textContent = 'The To: field is empty. Add at least one recipient (or turn on Test mode).';
+        return;
+    }
+
+    const to = testMode ? 'jair.garcia@intel.com' : toList.join(';');
+    const cc = testMode ? '' : ccField;
     const subject = 'Intel Foundry Services - Portal Creation Service Disruption (Action: please await further instructions)';
     const bodyHtml = buildPortalOutageEmailHtml();
 
     const confirmMsg = testMode
         ? 'TEST MODE: the alert will be sent ONLY to you (jair.garcia@intel.com). Continue?'
-        : 'This will email the Portal Creation outage alert to ' + allEmails.length + ' recipient(s) (requestors + BD + FCE, last 3 weeks), CC fs.da.ops. Continue?';
+        : 'This will email the Portal Creation outage alert to ' + toList.length + ' recipient(s) in the To: field' + (cc ? (', CC ' + cc) : '') + '. Continue?';
     if (!confirm(confirmMsg)) return;
 
     btn.disabled = true;
@@ -4345,7 +4407,7 @@ async function adminSendBroadcast(){
             statusEl.className = 'admin-send-status';
             statusEl.textContent = testMode
                 ? 'Sent in TEST mode to jair.garcia@intel.com.'
-                : ('Broadcast sent to ' + allEmails.length + ' recipient(s).');
+                : ('Broadcast sent to ' + toList.length + ' recipient(s).');
         } else {
             statusEl.className = 'admin-send-status err';
             statusEl.textContent = 'The email flow returned ' + res.status + '. Nothing confirmed sent.';

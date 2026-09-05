@@ -8,6 +8,11 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.65 — 2026-09-05
+- Admin broadcast: subida de imagenes a Firebase Storage ("Upload image" elige archivo, lo guarda y mete su URL publica para que los destinatarios la vean; sigue "Image by URL").
+- Campo To: editable (se autollena con los destinatarios de Portal Creation de las ultimas 3 semanas; puedes agregar/quitar correos) + campo CC: editable. Send broadcast usa exactamente lo que este en To:/CC.
+- Requiere activar Firebase Storage una vez (reglas en el l4ve).
+
 ## v1.8.64 — 2026-09-02
 - El comunicado del Admin ahora es EDITABLE: las partes fijas se quedan (Dear Team, header, footer y el banner ambar de alerta) y todo lo que va DESPUES del banner es un editor de texto enriquecido.
 - Puedes escribir, poner negritas/cursiva/vinetas e insertar imagenes por URL. "Save draft" lo guarda en Firebase (persiste y yo lo puedo revisar), "Update preview" re-renderiza el correo, y Send broadcast usa lo que este en el editor. "Reset" regresa al texto por defecto.
