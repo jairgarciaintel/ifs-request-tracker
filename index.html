@@ -480,92 +480,24 @@ async function hbSubmitReport(text){
 
   <!-- Admin content (hidden until unlocked) -->
   <div id="admin-content" style="display:none;">
-    <div class="ind-section">
-      <h2 class="ind-h2">Broadcast <span class="accent">/ Risk Alert</span></h2>
-      <p class="ind-subtitle">Admin only &middot; send a controlled notification to affected requestors, BD and FCE Leads</p>
+    <div class="ind-section" style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+      <div>
+        <h2 class="ind-h2">Risks <span class="accent">&amp; Major Issues</span></h2>
+        <p class="ind-subtitle">Admin only &middot; log a risk, track it in STAR (Situation / Task / Action / Results) and send its notification</p>
+      </div>
+      <button class="btn btn-primary" onclick="riskCreateNew()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="margin-right:5px;vertical-align:-2px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        New risk
+      </button>
     </div>
 
-    <div class="admin-alert-card">
-      <div class="admin-alert-head">
-        <span class="admin-alert-badge">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3L2 20h20L12 3z"/><line x1="12" y1="10" x2="12" y2="14"/><circle cx="12" cy="17" r="0.6" fill="currentColor" stroke="none"/></svg>
-          RISK ALERT
-        </span>
-        <span class="admin-alert-title">Portal Creation &mdash; Service Disruption</span>
-      </div>
-      <p class="admin-alert-desc">
-        Notifies every requestor, BD and FCE Lead with a <strong>Portal Creation</strong> request created in the
-        <strong>last 3 weeks</strong> that portal creation is currently failing, IT tickets are open, and to expect a delay.
-        Uses the existing email flow. Nothing is sent until you press <strong>Send broadcast</strong>.
-      </p>
-
-      <div class="admin-recipients">
-        <div class="admin-recip-head">
-          <span class="admin-recip-title">Recipients (Portal Creation &middot; last 3 weeks)</span>
-          <button class="btn btn-secondary btn-sm" onclick="adminRefreshRecipients()">Rebuild from data</button>
-        </div>
-        <div id="admin-recip-list" class="admin-recip-list">Loading…</div>
-      </div>
-
-      <div class="admin-recipients">
-        <div class="admin-recip-head">
-          <span class="admin-recip-title">To: (editable &mdash; these get the email)</span>
-        </div>
-        <p class="admin-editor-note" style="margin-bottom:8px;">Auto-filled from the list above. Add or remove emails freely (separate with ; or comma or new lines). This is exactly who the broadcast goes to when Test mode is OFF.</p>
-        <textarea id="admin-to-field" class="admin-to-field" placeholder="name@intel.com; name2@intel.com"></textarea>
-        <div class="admin-recip-head" style="margin-top:8px;">
-          <span class="admin-recip-title" style="font-weight:400;text-transform:none;color:rgba(255,255,255,0.5);">CC:</span>
-        </div>
-        <input type="text" id="admin-cc-field" class="admin-pass-input" style="letter-spacing:0;text-align:left;margin-bottom:0;" value="fs.da.ops@intel.com" placeholder="cc@intel.com">
-      </div>
-
-      <div class="admin-send-row">
-        <label class="auto-toggle" title="Test mode: send only to Jair"><span class="auto-toggle-label">Test mode (only me)</span>
-          <span class="switch"><input type="checkbox" id="admin-test-toggle" checked><span class="slider"></span></span>
-        </label>
-        <button class="btn btn-primary" id="admin-send-btn" onclick="adminSendBroadcast()">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;vertical-align:-2px"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
-          Send broadcast
-        </button>
-      </div>
-      <div id="admin-send-status" class="admin-send-status"></div>
-    </div>
-
-    <!-- EDITABLE body: everything AFTER the alert banner -->
-    <div class="ind-section" style="margin-top:24px;">
-      <div class="admin-editor-head">
-        <h3 class="ind-chart-title">Message body (editable)</h3>
-        <div class="admin-editor-tools">
-          <button type="button" class="admin-fmt-btn" title="Bold" onclick="adminFmt('bold')"><strong>B</strong></button>
-          <button type="button" class="admin-fmt-btn" title="Italic" onclick="adminFmt('italic')"><em>i</em></button>
-          <button type="button" class="admin-fmt-btn" title="Bullet list" onclick="adminFmt('insertUnorderedList')">&bull; List</button>
-          <button type="button" class="admin-fmt-btn" title="Upload an image (stored in Firebase, public URL)" onclick="document.getElementById('admin-img-file').click()">Upload image</button>
-          <button type="button" class="admin-fmt-btn" title="Insert image from a URL" onclick="adminInsertImage()">Image by URL</button>
-          <button type="button" class="admin-fmt-btn" title="Reset to default text" onclick="adminResetBody()">Reset</button>
-          <input type="file" id="admin-img-file" accept="image/*" style="display:none" onchange="adminUploadImage(this)">
-        </div>
-      </div>
-      <div id="admin-upload-status" class="admin-uploading"></div>
-      <p class="admin-editor-note">This is the part that goes right after "Dear Team," and the alert banner. Type freely, paste or insert images. The fixed header, footer and the amber alert banner stay as they are. Press <strong>Save draft</strong> when done.</p>
-      <div id="admin-body-editor" class="admin-body-editor" contenteditable="true"></div>
-      <div class="admin-send-row" style="margin-top:12px;">
-        <span id="admin-draft-status" class="admin-send-status" style="margin-top:0;"></span>
-        <button class="btn btn-secondary" onclick="adminSaveDraft()">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;vertical-align:-2px"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
-          Save draft
-        </button>
-      </div>
-    </div>
-
-    <div class="ind-section" style="margin-top:8px;">
-      <div class="admin-editor-head">
-        <h3 class="ind-chart-title">Email preview</h3>
-        <button class="btn btn-secondary btn-sm" onclick="adminUpdatePreview()">Update preview</button>
-      </div>
-      <div id="admin-email-preview" class="admin-email-preview"></div>
-    </div>
+    <!-- Risk cards list (like the request list) -->
+    <div id="risk-list" class="risk-list"><div class="empty-state"><h3>Loading risks…</h3></div></div>
   </div>
 </div><!-- /view-admin -->
+
+<!-- Hidden shared pieces reused by the risk editor (email tools) -->
+<input type="file" id="admin-img-file" accept="image/*" style="display:none" onchange="adminUploadImage(this)">
 
 <style>
 .header{padding:16px 32px;display:flex;align-items:center;justify-content:space-between;background:rgba(0,30,80,0.95);border-bottom:1px solid rgba(78,200,240,0.15);backdrop-filter:blur(10px);position:sticky;top:0;z-index:100;}
@@ -879,6 +811,47 @@ body.light-mode .req-info-details{color:#4a5568;}
 .admin-to-field:focus{outline:none;border-color:var(--cyan);}
 body.light-mode .admin-to-field{background:#fff;color:#1a202c;border-color:rgba(0,113,197,0.2);}
 .admin-uploading{font-size:12px;color:var(--cyan);margin-top:6px;}
+/* ===== RISK CARDS (STAR) ===== */
+.risk-list{display:flex;flex-direction:column;gap:14px;}
+.risk-card{background:rgba(255,255,255,0.02);border:1px solid rgba(240,160,48,0.22);border-radius:12px;overflow:hidden;transition:border-color .3s,box-shadow .3s;}
+.risk-card:hover{border-color:rgba(240,160,48,0.45);box-shadow:0 4px 20px rgba(240,160,48,0.05);}
+.risk-card.sev-resolved{border-color:rgba(107,203,119,0.3);}
+.risk-head{display:flex;align-items:center;gap:14px;padding:16px 20px;cursor:pointer;}
+.risk-head:hover{background:rgba(240,160,48,0.04);}
+.risk-id{font-family:'Cabinet Grotesk',sans-serif;font-size:18px;font-weight:700;color:var(--amber);min-width:52px;}
+.risk-title{flex:1;font-size:17px;color:var(--light);font-weight:600;}
+.risk-status-pill{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:3px 10px;border-radius:12px;}
+.rs-open{background:rgba(240,160,48,0.14);color:var(--amber);border:1px solid rgba(240,160,48,0.4);}
+.rs-monitor{background:rgba(78,200,240,0.12);color:var(--cyan);border:1px solid rgba(78,200,240,0.35);}
+.rs-resolved{background:rgba(107,203,119,0.12);color:var(--green);border:1px solid rgba(107,203,119,0.35);}
+.risk-date{font-size:11px;color:rgba(255,255,255,0.5);min-width:80px;text-align:right;}
+.risk-chevron{font-size:16px;color:rgba(255,255,255,0.25);transition:transform .3s;}
+.risk-card.open .risk-chevron{transform:rotate(90deg);color:var(--amber);}
+.risk-body{max-height:0;overflow:hidden;transition:max-height .5s ease;}
+.risk-card.open .risk-body{max-height:6000px;}
+.risk-inner{padding:6px 20px 20px;}
+.star-block{margin-bottom:16px;border-left:3px solid rgba(78,200,240,0.3);padding-left:14px;}
+.star-label{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--cyan);margin-bottom:6px;}
+.star-label .star-letter{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:5px;background:rgba(78,200,240,0.15);border:1px solid rgba(78,200,240,0.35);font-size:11px;}
+.star-block.star-action{border-left-color:rgba(240,160,48,0.4);}
+.star-block.star-action .star-label{color:var(--amber);}
+.star-block.star-action .star-letter{background:rgba(240,160,48,0.15);border-color:rgba(240,160,48,0.35);}
+.star-block.star-results{border-left-color:rgba(107,203,119,0.4);}
+.star-block.star-results .star-label{color:var(--green);}
+.star-block.star-results .star-letter{background:rgba(107,203,119,0.15);border-color:rgba(107,203,119,0.35);}
+.star-text{width:100%;background:rgba(4,28,50,0.8);color:var(--light);border:1px solid rgba(78,200,240,0.2);border-radius:9px;padding:10px 12px;font-size:14px;font-family:'Satoshi',sans-serif;line-height:1.6;resize:vertical;min-height:56px;box-sizing:border-box;}
+.star-text:focus{outline:none;border-color:var(--cyan);}
+.risk-meta-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
+.risk-meta-row input,.risk-meta-row select{background:rgba(4,28,50,0.8);color:var(--light);border:1px solid rgba(78,200,240,0.2);border-radius:8px;padding:8px 10px;font-size:13px;font-family:'Satoshi',sans-serif;}
+.risk-meta-row .risk-title-input{flex:1;min-width:220px;}
+.risk-actions-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px;}
+.risk-actions-row .spacer{flex:1;}
+.risk-del-btn{background:rgba(204,0,0,0.1);color:#ff6b6b;border:1px solid rgba(204,0,0,0.3);border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer;font-family:'Satoshi',sans-serif;}
+.risk-del-btn:hover{background:rgba(204,0,0,0.2);}
+.email-tools-box{background:rgba(0,30,80,0.35);border:1px solid rgba(240,160,48,0.2);border-radius:10px;padding:14px 16px;margin-top:8px;}
+body.light-mode .risk-card{background:rgba(255,255,255,0.7);}
+body.light-mode .risk-title{color:#1a202c;}
+body.light-mode .star-text,body.light-mode .risk-meta-row input,body.light-mode .risk-meta-row select{background:#fff;color:#1a202c;border-color:rgba(0,113,197,0.2);}
 .admin-body-editor{background:#ffffff;color:#1a202c;border:1px solid rgba(78,200,240,0.3);border-radius:12px;padding:18px 20px;min-height:220px;max-height:520px;overflow-y:auto;font-family:'Segoe UI',Arial,sans-serif;font-size:15px;line-height:1.7;}
 .admin-body-editor:focus{outline:none;border-color:var(--cyan);}
 .admin-body-editor img{max-width:100%;height:auto;border-radius:6px;margin:6px 0;}
@@ -1054,10 +1027,11 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.66';
+const APP_VERSION = 'v1.8.67';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
+    ['v1.8.67', ['Admin tab is now a Risks & Major Issues log: risks show as cards (like the request list) with "ID N — title", a status pill (Open/Monitoring/Resolved) and a date. Open a card to see and edit it in STAR format — Situation, Task, Action, Results. "New risk" adds one; each risk is saved to Firebase. The Portal Creation risk (ID 1) carries its notification email inside Action: the editable template, To/CC (fill from Portal Creation last 3 weeks), preview and Send, all reused from before. Results is left blank until there are outcomes.']],
     ['v1.8.66', ['Admin broadcast: fixed the status-step bullets so they have proper spacing from the text and align to the top (text no longer sits above the dot). The IT ticket list bullets also get more spacing. Cleaned the saved draft (removed pasted-from-Outlook oversized text and raw URL, turned the ServiceNow link into a clean hyperlink).']],
     ['v1.8.65', ['Admin broadcast: added image upload to Firebase Storage ("Upload image" picks a file, stores it, and inserts its public URL so recipients can see it; "Image by URL" still available). Added an editable To: field (auto-filled with the Portal Creation recipients from the last 3 weeks — you can add/remove any emails) plus an editable CC: field. Send broadcast now uses exactly what is in To:/CC. Requires enabling Firebase Storage (see l4ve for the one-time rules setup).']],
     ['v1.8.64', ['Admin broadcast is now editable: the fixed parts stay (Dear Team, header, footer, and the amber alert banner), and everything AFTER the banner is an editable rich-text box. You can type, bold/italic/bullet, and insert images by URL. "Save draft" stores it in Firebase (persists + I can review it), "Update preview" re-renders the email, and Send broadcast uses whatever is in the editor. Reset restores the default text.']],
@@ -4206,8 +4180,7 @@ function adminUnlock(){
         document.getElementById('admin-content').style.display = 'block';
         if (warn) warn.style.display = 'none';
         inp.value = '';
-        adminRefreshRecipients();
-        adminLoadDraft();
+        riskLoadAll();
     } else {
         if (warn) warn.style.display = 'block';
         inp.value = '';
@@ -4329,39 +4302,240 @@ function adminInsertImage(){
 }
 function adminResetBody(){
     if (!confirm('Reset the message body to the default text? Your current edits will be lost.')) return;
-    document.getElementById('admin-body-editor').innerHTML = adminDefaultBodyHtml();
+    const ed = document.getElementById('admin-body-editor');
+    if (ed) ed.innerHTML = adminDefaultBodyHtml();
     adminUpdatePreview();
 }
 function adminUpdatePreview(){
     const prev = document.getElementById('admin-email-preview');
     if (prev) prev.innerHTML = buildPortalOutageEmailHtml();
 }
-async function adminSaveDraft(){
-    const st = document.getElementById('admin-draft-status');
-    const html = document.getElementById('admin-body-editor').innerHTML;
-    st.className = 'admin-send-status'; st.textContent = 'Saving…';
+
+// ============================================================
+// RISKS & MAJOR ISSUES — cards with STAR (Situation/Task/Action/Results)
+// Stored in Firebase /risks. Each risk optionally carries an email template
+// (Action) that can be edited and sent through the existing email flow.
+// ============================================================
+let RISKS = [];          // array of risk objects
+let riskOpenId = null;    // which risk card is expanded
+
+function riskDefaultPortal(){
+    return {
+        id: 1,
+        title: 'Issue with Portal Creation',
+        status: 'open',
+        situation: 'Portal Creation is currently failing. New portals cannot be created, so any request involving Portal Creation is delayed until the issue is resolved.',
+        task: 'Notify all affected requestors, BD and FCE Leads (Portal Creation, last 3 weeks), keep IT tickets moving, and restore Portal Creation.',
+        action: 'Raised two IT tickets: incident INC15756071 (Showstopper) and a second incident. IT is engaged and investigating. Sent a broadcast to affected requestors, BD and FCE Leads letting them know to expect a delay and await instructions. A Teams chat will be shared for live updates.',
+        results: '',
+        emailHtml: adminDefaultBodyHtml(),
+        updatedAt: new Date().toISOString()
+    };
+}
+
+async function riskLoadAll(){
+    const list = document.getElementById('risk-list');
     try {
-        await fetch(`${FIREBASE_DB}/adminBroadcast/portalOutage.json`, {
-            method:'PUT', headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({ html, savedBy: (typeof ensureUsername==='function'?ensureUsername():''), savedAt: new Date().toISOString() })
-        });
-        st.textContent = 'Draft saved. It will load next time and I can review it.';
-        adminUpdatePreview();
-    } catch(e){
-        st.className = 'admin-send-status err'; st.textContent = 'Save failed: ' + e.message;
+        const res = await fetch(`${FIREBASE_DB}/risks.json`);
+        let data = res.ok ? await res.json() : null;
+        if (data && typeof data === 'object' && !Array.isArray(data)) data = Object.values(data);
+        RISKS = Array.isArray(data) ? data : [];
+    } catch(e){ RISKS = []; }
+    if (!RISKS.length){
+        RISKS = [ riskDefaultPortal() ];
+        await riskPersist();
+    }
+    riskRenderList();
+}
+
+async function riskPersist(){
+    // Store as an object keyed by id (stable) so Firebase keeps it clean.
+    const obj = {};
+    RISKS.forEach(r => { obj['r' + r.id] = r; });
+    await fetch(`${FIREBASE_DB}/risks.json`, {
+        method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(obj)
+    });
+}
+
+function riskStatusPill(status){
+    const map = { open:['rs-open','Open'], monitoring:['rs-monitor','Monitoring'], resolved:['rs-resolved','Resolved'] };
+    const [cls,label] = map[status] || map.open;
+    return `<span class="risk-status-pill ${cls}">${label}</span>`;
+}
+
+function riskRenderList(){
+    const list = document.getElementById('risk-list');
+    if (!RISKS.length){ list.innerHTML = '<div class="empty-state"><h3>No risks logged. Use "New risk" to add one.</h3></div>'; return; }
+    RISKS.sort((a,b)=> (b.id||0)-(a.id||0));
+    list.innerHTML = RISKS.map(r => riskCardHtml(r)).join('');
+}
+
+function riskCardHtml(r){
+    const open = String(r.id) === String(riskOpenId);
+    const dt = r.updatedAt ? new Date(r.updatedAt).toLocaleDateString() : '';
+    const resolvedCls = r.status === 'resolved' ? ' sev-resolved' : '';
+    const esc = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const hasEmail = r.emailHtml != null;
+    // Editor + send tools only shown for risks that carry an email template.
+    const emailTools = hasEmail ? `
+        <div class="star-block star-action">
+          <div class="star-label"><span class="star-letter">A</span> Action &mdash; notification email</div>
+          <div class="admin-editor-head">
+            <span class="admin-recip-title" style="font-size:11px;">Email template (editable) &mdash; sent through the existing flow</span>
+            <div class="admin-editor-tools">
+              <button type="button" class="admin-fmt-btn" title="Bold" onclick="adminFmt('bold')"><strong>B</strong></button>
+              <button type="button" class="admin-fmt-btn" title="Italic" onclick="adminFmt('italic')"><em>i</em></button>
+              <button type="button" class="admin-fmt-btn" title="Bullet list" onclick="adminFmt('insertUnorderedList')">&bull; List</button>
+              <button type="button" class="admin-fmt-btn" title="Upload image" onclick="document.getElementById('admin-img-file').click()">Upload image</button>
+              <button type="button" class="admin-fmt-btn" title="Image by URL" onclick="adminInsertImage()">Image by URL</button>
+              <button type="button" class="admin-fmt-btn" title="Reset text" onclick="adminResetBody()">Reset</button>
+            </div>
+          </div>
+          <div id="admin-upload-status" class="admin-uploading"></div>
+          <p class="admin-editor-note">Goes after "Dear Team," and the amber alert banner. The header, footer and banner are fixed.</p>
+          <div id="admin-body-editor" class="admin-body-editor" contenteditable="true"></div>
+
+          <div class="admin-recipients" style="margin-top:12px;">
+            <div class="admin-recip-head">
+              <span class="admin-recip-title">To: (editable)</span>
+              <button class="btn btn-secondary btn-sm" onclick="adminRefreshRecipients()">Fill from Portal Creation (3 weeks)</button>
+            </div>
+            <textarea id="admin-to-field" class="admin-to-field" placeholder="name@intel.com; name2@intel.com"></textarea>
+            <div class="admin-recip-head" style="margin-top:8px;"><span class="admin-recip-title" style="font-weight:400;text-transform:none;color:rgba(255,255,255,0.5);">CC:</span></div>
+            <input type="text" id="admin-cc-field" class="admin-pass-input" style="letter-spacing:0;text-align:left;margin-bottom:0;" value="fs.da.ops@intel.com">
+            <div id="admin-recip-list" style="display:none"></div>
+          </div>
+
+          <div class="admin-send-row" style="margin-top:12px;">
+            <label class="auto-toggle" title="Test mode: only me"><span class="auto-toggle-label">Test mode (only me)</span>
+              <span class="switch"><input type="checkbox" id="admin-test-toggle" checked><span class="slider"></span></span></label>
+            <div>
+              <button class="btn btn-secondary" onclick="adminUpdatePreview()">Update preview</button>
+              <button class="btn btn-primary" id="admin-send-btn" onclick="adminSendBroadcast()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;vertical-align:-2px"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+                Send email
+              </button>
+            </div>
+          </div>
+          <div id="admin-send-status" class="admin-send-status"></div>
+          <div style="margin-top:14px;"><span class="admin-recip-title" style="font-size:11px;">Email preview</span></div>
+          <div id="admin-email-preview" class="admin-email-preview" style="margin-top:6px;"></div>
+        </div>` : `
+        <div class="star-block star-action">
+          <div class="star-label"><span class="star-letter">A</span> Action</div>
+          <textarea class="star-text" id="risk-action-${r.id}" placeholder="What was done: emails sent, tickets raised, escalations...">${esc(r.action)}</textarea>
+        </div>`;
+
+    return `<div class="risk-card${resolvedCls}${open?' open':''}" data-rid="${r.id}">
+      <div class="risk-head" onclick="riskToggle(${r.id})">
+        <span class="risk-id">ID ${r.id}</span>
+        <span class="risk-title">${esc(r.title)}</span>
+        ${riskStatusPill(r.status)}
+        <span class="risk-date">${dt}</span>
+        <span class="risk-chevron">&#9656;</span>
+      </div>
+      <div class="risk-body"><div class="risk-inner">
+        <div class="risk-meta-row">
+          <input type="text" class="risk-title-input" id="risk-title-${r.id}" value="${esc(r.title)}" placeholder="Risk title"/>
+          <select id="risk-status-${r.id}">
+            <option value="open"${r.status==='open'?' selected':''}>Open</option>
+            <option value="monitoring"${r.status==='monitoring'?' selected':''}>Monitoring</option>
+            <option value="resolved"${r.status==='resolved'?' selected':''}>Resolved</option>
+          </select>
+        </div>
+        <div class="star-block">
+          <div class="star-label"><span class="star-letter">S</span> Situation</div>
+          <textarea class="star-text" id="risk-situation-${r.id}" placeholder="What is happening / description of the risk...">${esc(r.situation)}</textarea>
+        </div>
+        <div class="star-block">
+          <div class="star-label"><span class="star-letter">T</span> Task</div>
+          <textarea class="star-text" id="risk-task-${r.id}" placeholder="What needs to be achieved...">${esc(r.task)}</textarea>
+        </div>
+        ${emailTools}
+        ${hasEmail ? `<div class="star-block star-action" style="margin-top:14px;"><div class="star-label"><span class="star-letter">A+</span> Action notes</div><textarea class="star-text" id="risk-action-${r.id}" placeholder="Extra notes about actions taken...">${esc(r.action)}</textarea></div>` : ''}
+        <div class="star-block star-results">
+          <div class="star-label"><span class="star-letter">R</span> Results</div>
+          <textarea class="star-text" id="risk-results-${r.id}" placeholder="Left blank until there are results / outcomes...">${esc(r.results)}</textarea>
+        </div>
+        <div class="risk-actions-row">
+          <button class="btn btn-primary" onclick="riskSave(${r.id})">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;vertical-align:-2px"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+            Save risk
+          </button>
+          <span class="spacer"></span>
+          <button class="risk-del-btn" onclick="riskDelete(${r.id})">Delete</button>
+        </div>
+      </div></div>
+    </div>`;
+}
+
+function riskToggle(id){
+    riskOpenId = (String(riskOpenId) === String(id)) ? null : id;
+    riskRenderList();
+    if (riskOpenId != null){
+        const r = RISKS.find(x => String(x.id) === String(riskOpenId));
+        if (r && r.emailHtml != null){
+            const ed = document.getElementById('admin-body-editor');
+            if (ed){ ed.innerHTML = r.emailHtml || adminDefaultBodyHtml(); adminUpdatePreview(); }
+            adminRefreshRecipients();
+        }
     }
 }
-async function adminLoadDraft(){
-    const editor = document.getElementById('admin-body-editor');
-    if (!editor) return;
-    try {
-        const res = await fetch(`${FIREBASE_DB}/adminBroadcast/portalOutage.json`);
-        if (res.ok){
-            const data = await res.json();
-            editor.innerHTML = (data && data.html) ? data.html : adminDefaultBodyHtml();
-        } else { editor.innerHTML = adminDefaultBodyHtml(); }
-    } catch(e){ editor.innerHTML = adminDefaultBodyHtml(); }
-    adminUpdatePreview();
+
+function riskCreateNew(){
+    const nextId = RISKS.reduce((m,r)=>Math.max(m, r.id||0), 0) + 1;
+    const r = { id: nextId, title: 'New risk', status: 'open', situation: '', task: '', action: '', results: '', updatedAt: new Date().toISOString() };
+    RISKS.push(r);
+    riskOpenId = nextId;
+    riskRenderList();
+}
+
+async function riskSave(id){
+    const r = RISKS.find(x => String(x.id) === String(id));
+    if (!r) return;
+    const val = sel => { const el = document.getElementById(sel); return el ? el.value : ''; };
+    r.title = val('risk-title-'+id) || r.title;
+    r.status = val('risk-status-'+id) || r.status;
+    r.situation = val('risk-situation-'+id);
+    r.task = val('risk-task-'+id);
+    r.action = val('risk-action-'+id);
+    r.results = val('risk-results-'+id);
+    if (r.emailHtml != null){
+        const ed = document.getElementById('admin-body-editor');
+        if (ed) r.emailHtml = ed.innerHTML;
+    }
+    r.updatedAt = new Date().toISOString();
+    try { await riskPersist(); } catch(e){}
+    riskRenderList();
+}
+
+async function riskDelete(id){
+    if (!confirm('Delete this risk? This cannot be undone.')) return;
+    RISKS = RISKS.filter(x => String(x.id) !== String(id));
+    if (String(riskOpenId) === String(id)) riskOpenId = null;
+    try { await riskPersist(); } catch(e){}
+    riskRenderList();
+}
+
+// ---- Email recipients + send (used by a risk that carries an email template) ----
+function adminGetPortalRecipients(){
+    const cutoff = Date.now() - 21 * 24 * 60 * 60 * 1000; // 3 weeks
+    const allEmails = new Set();
+    (allRequests || []).forEach(r => {
+        if (r.requestType !== 'Portal Creation') return;
+        const created = r.created ? Date.parse(r.created) : NaN;
+        if (isNaN(created) || created < cutoff) return;
+        const add = (e) => { if (e && /@/.test(e)) allEmails.add(e.trim().toLowerCase()); };
+        add(r.requestorEmail);
+        (r.bdEmailList || []).forEach(add);
+        (r.fceLeadEmailList || []).forEach(add);
+    });
+    return { allEmails: Array.from(allEmails) };
+}
+function adminRefreshRecipients(){
+    const { allEmails } = adminGetPortalRecipients();
+    const toField = document.getElementById('admin-to-field');
+    if (toField && !toField.value.trim()) toField.value = allEmails.join('; ');
 }
 
 async function adminSendBroadcast(){
@@ -4375,8 +4549,6 @@ async function adminSendBroadcast(){
         statusEl.textContent = 'Email flow (CONFIG.sendEmailUrl) is not configured.';
         return;
     }
-
-    // Read the EDITABLE To: / CC: fields. Split on ; , or newlines.
     const splitEmails = (s) => (s || '').split(/[;,\n]+/).map(x => x.trim()).filter(x => /@/.test(x));
     const toList = splitEmails(document.getElementById('admin-to-field').value);
     const ccField = (document.getElementById('admin-cc-field').value || '').trim();
@@ -4386,7 +4558,6 @@ async function adminSendBroadcast(){
         statusEl.textContent = 'The To: field is empty. Add at least one recipient (or turn on Test mode).';
         return;
     }
-
     const to = testMode ? 'jair.garcia@intel.com' : toList.join(';');
     const cc = testMode ? '' : ccField;
     const subject = 'Intel Foundry Services - Portal Creation Service Disruption (Action: please await further instructions)';
@@ -4394,7 +4565,7 @@ async function adminSendBroadcast(){
 
     const confirmMsg = testMode
         ? 'TEST MODE: the alert will be sent ONLY to you (jair.garcia@intel.com). Continue?'
-        : 'This will email the Portal Creation outage alert to ' + toList.length + ' recipient(s) in the To: field' + (cc ? (', CC ' + cc) : '') + '. Continue?';
+        : 'This will email the alert to ' + toList.length + ' recipient(s) in the To: field' + (cc ? (', CC ' + cc) : '') + '. Continue?';
     if (!confirm(confirmMsg)) return;
 
     btn.disabled = true;
@@ -4407,9 +4578,7 @@ async function adminSendBroadcast(){
         });
         if (res.ok){
             statusEl.className = 'admin-send-status';
-            statusEl.textContent = testMode
-                ? 'Sent in TEST mode to jair.garcia@intel.com.'
-                : ('Broadcast sent to ' + toList.length + ' recipient(s).');
+            statusEl.textContent = testMode ? 'Sent in TEST mode to jair.garcia@intel.com.' : ('Sent to ' + toList.length + ' recipient(s).');
         } else {
             statusEl.className = 'admin-send-status err';
             statusEl.textContent = 'The email flow returned ' + res.status + '. Nothing confirmed sent.';
@@ -4417,9 +4586,7 @@ async function adminSendBroadcast(){
     } catch(e){
         statusEl.className = 'admin-send-status err';
         statusEl.textContent = 'Send failed: ' + e.message;
-    } finally {
-        btn.disabled = false;
-    }
+    } finally { btn.disabled = false; }
 }
 
 // ============================================================
@@ -4439,7 +4606,7 @@ function switchTab(tab){
     document.getElementById('tab-indicators').classList.toggle('active', isInd);
     document.getElementById('tab-admin').classList.toggle('active', isAdmin);
     if (isInd) renderIndicators();
-    if (isAdmin && adminUnlocked) adminRefreshRecipients();
+    if (isAdmin && adminUnlocked) riskLoadAll();
 }
 
 // Month keys FY26 (Jan..Dec 2026)

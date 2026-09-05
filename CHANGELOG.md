@@ -8,6 +8,11 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.67 — 2026-09-05
+- La pestana Admin ahora es un registro de Riesgos e Issues graves: los riesgos se ven como tarjetas (como la lista de requests) con "ID N — titulo", pill de estatus (Open/Monitoring/Resolved) y fecha.
+- Al abrir una tarjeta se edita en formato STAR: Situation, Task, Action, Results. "New risk" agrega uno; cada riesgo se guarda en Firebase.
+- El riesgo de Portal Creation (ID 1) lleva su correo de notificacion dentro de Action: el template editable, To/CC (llenar desde Portal Creation ultimas 3 semanas), preview y Send. Results queda en blanco hasta que haya resultados.
+
 ## v1.8.66 — 2026-09-05
 - Admin broadcast: arreglados los bullets de los pasos de estatus para que tengan espacio con el texto y se alineen arriba (el texto ya no queda por encima del punto). Los bullets de la lista de tickets tambien tienen mas espacio. Se limpio el draft guardado (letra grande pegada de Outlook y URL cruda; el link de ServiceNow quedo como hipervinculo limpio).
 
