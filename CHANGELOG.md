@@ -8,6 +8,9 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.68 — 2026-09-05
+- La contrasena del Admin ahora se pide solo UNA vez por navegador: tras desbloquear la primera vez, queda desbloqueado en esa compu (se recuerda en localStorage), ya no pide 1222 cada vez.
+
 ## v1.8.67 — 2026-09-05
 - La pestana Admin ahora es un registro de Riesgos e Issues graves: los riesgos se ven como tarjetas (como la lista de requests) con "ID N — titulo", pill de estatus (Open/Monitoring/Resolved) y fecha.
 - Al abrir una tarjeta se edita en formato STAR: Situation, Task, Action, Results. "New risk" agrega uno; cada riesgo se guarda en Firebase.

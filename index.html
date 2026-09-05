@@ -1027,10 +1027,11 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.67';
+const APP_VERSION = 'v1.8.68';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
+    ['v1.8.68', ['Admin password is now asked only once per browser: after you unlock it the first time, it stays unlocked on that device (remembered in localStorage) so you do not have to type 1222 every time.']],
     ['v1.8.67', ['Admin tab is now a Risks & Major Issues log: risks show as cards (like the request list) with "ID N — title", a status pill (Open/Monitoring/Resolved) and a date. Open a card to see and edit it in STAR format — Situation, Task, Action, Results. "New risk" adds one; each risk is saved to Firebase. The Portal Creation risk (ID 1) carries its notification email inside Action: the editable template, To/CC (fill from Portal Creation last 3 weeks), preview and Send, all reused from before. Results is left blank until there are outcomes.']],
     ['v1.8.66', ['Admin broadcast: fixed the status-step bullets so they have proper spacing from the text and align to the top (text no longer sits above the dot). The IT ticket list bullets also get more spacing. Cleaned the saved draft (removed pasted-from-Outlook oversized text and raw URL, turned the ServiceNow link into a clean hyperlink).']],
     ['v1.8.65', ['Admin broadcast: added image upload to Firebase Storage ("Upload image" picks a file, stores it, and inserts its public URL so recipients can see it; "Image by URL" still available). Added an editable To: field (auto-filled with the Portal Creation recipients from the last 3 weeks — you can add/remove any emails) plus an editable CC: field. Send broadcast now uses exactly what is in To:/CC. Requires enabling Firebase Storage (see l4ve for the one-time rules setup).']],
@@ -4129,6 +4130,14 @@ function toggleHeaderCollapse(){
 }
 document.addEventListener('DOMContentLoaded', function(){
     applyHeaderCollapsed(localStorage.getItem('fs-header-collapsed') === '1');
+    // Remember the admin unlock: ask the password only once per browser (ever).
+    if (localStorage.getItem('fs-admin-unlocked') === '1'){
+        adminUnlocked = true;
+        const lock = document.getElementById('admin-lock');
+        const content = document.getElementById('admin-content');
+        if (lock) lock.style.display = 'none';
+        if (content) content.style.display = 'block';
+    }
 });
 
 // ============================================================
@@ -4175,6 +4184,7 @@ function adminUnlock(){
     const inp = document.getElementById('admin-pass-input');
     const warn = document.getElementById('admin-pass-warn');
     if ((inp.value || '').trim() === ADMIN_PASS){
+        localStorage.setItem('fs-admin-unlocked', '1');
         adminUnlocked = true;
         document.getElementById('admin-lock').style.display = 'none';
         document.getElementById('admin-content').style.display = 'block';
