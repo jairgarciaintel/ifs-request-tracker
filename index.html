@@ -1027,10 +1027,11 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.69';
+const APP_VERSION = 'v1.8.70';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
+    ['v1.8.70', ['FIX: saving a risk could wipe its email template (and mix risks) when the editor was empty or another card was open. Now the email template is only written when that risk is the one open in the editor AND the editor is not empty, so it never overwrites a saved template with blank. Restored risk ID 1 (open, outage email) and ID 2 (resolved, resolution email) after the mix-up.']],
     ['v1.8.69', ['Risk ID 2 added: "Portal Creation issue RESOLVED" (status Resolved) with its STAR filled in and a ready-to-send resolution email. The email now shows a GREEN "Service Restored / Resolved" banner automatically when the open risk is Resolved (amber alert banner stays for open risks). Message: the error was fixed yesterday thanks to Gina\u2019s team over the weekend, all pending portals from the shared list are resolved and completed, and FALUPS continue separately to make everything fully active while the projects themselves are already complete.']],
     ['v1.8.68', ['Admin password is now asked only once per browser: after you unlock it the first time, it stays unlocked on that device (remembered in localStorage) so you do not have to type 1222 every time.']],
     ['v1.8.67', ['Admin tab is now a Risks & Major Issues log: risks show as cards (like the request list) with "ID N — title", a status pill (Open/Monitoring/Resolved) and a date. Open a card to see and edit it in STAR format — Situation, Task, Action, Results. "New risk" adds one; each risk is saved to Firebase. The Portal Creation risk (ID 1) carries its notification email inside Action: the editable template, To/CC (fill from Portal Creation last 3 weeks), preview and Send, all reused from before. Results is left blank until there are outcomes.']],
@@ -4523,9 +4524,11 @@ async function riskSave(id){
     r.task = val('risk-task-'+id);
     r.action = val('risk-action-'+id);
     r.results = val('risk-results-'+id);
-    if (r.emailHtml != null){
+    // Only touch the email template when THIS risk is the one open in the editor,
+    // and NEVER overwrite a saved template with an empty editor (that was the bug).
+    if (r.emailHtml != null && String(riskOpenId) === String(id)){
         const ed = document.getElementById('admin-body-editor');
-        if (ed) r.emailHtml = ed.innerHTML;
+        if (ed && ed.innerHTML.trim()) r.emailHtml = ed.innerHTML;
     }
     r.updatedAt = new Date().toISOString();
     try { await riskPersist(); } catch(e){}

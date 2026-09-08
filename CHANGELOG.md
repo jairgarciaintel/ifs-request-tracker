@@ -8,6 +8,9 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.70 — 2026-09-08
+- FIX: guardar un riesgo podia borrar su template de correo (y mezclar riesgos) cuando el editor estaba vacio o habia otra card abierta. Ahora el template solo se escribe cuando ese riesgo es el abierto en el editor Y el editor no esta vacio, asi nunca sobrescribe un template guardado con vacio. Se restauraron el riesgo ID 1 (open, correo de alerta) y el ID 2 (resolved, correo de resolucion).
+
 ## v1.8.69 — 2026-09-08
 - Riesgo ID 2 agregado: "Portal Creation issue RESOLVED" (status Resolved) con su STAR lleno y correo de resolucion listo para enviar.
 - El correo ahora muestra un banner VERDE "Service Restored / Resolved" automaticamente cuando el riesgo abierto esta Resolved (el banner ambar se queda para riesgos abiertos).
