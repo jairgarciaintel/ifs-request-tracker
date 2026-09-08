@@ -8,6 +8,9 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.72 — 2026-09-08
+- "+ Add Chris" ahora usa el correo real del jefe (chris.e.vaughan@intel.com).
+
 ## v1.8.71 — 2026-09-08
 - Correo del riesgo: campo Subject editable (se guarda por riesgo; el default cambia entre open y resolved). Boton "+ Add Chris" junto a CC para copiar rapido al jefe. NOTA: el correo de Chris es placeholder (chris@intel.com) hasta confirmarlo.
 
