@@ -8,6 +8,11 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.69 — 2026-09-08
+- Riesgo ID 2 agregado: "Portal Creation issue RESOLVED" (status Resolved) con su STAR lleno y correo de resolucion listo para enviar.
+- El correo ahora muestra un banner VERDE "Service Restored / Resolved" automaticamente cuando el riesgo abierto esta Resolved (el banner ambar se queda para riesgos abiertos).
+- Mensaje: el error se reparo ayer gracias al equipo de Gina durante el fin de semana, todos los portales pendientes de la lista compartida ya estan resueltos y completados, y los FALUPS siguen por separado para dejar todo activo mientras los proyectos ya estan completados.
+
 ## v1.8.68 — 2026-09-05
 - La contrasena del Admin ahora se pide solo UNA vez por navegador: tras desbloquear la primera vez, queda desbloqueado en esa compu (se recuerda en localStorage), ya no pide 1222 cada vez.
 

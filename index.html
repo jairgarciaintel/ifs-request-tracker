@@ -1027,10 +1027,11 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.68';
+const APP_VERSION = 'v1.8.69';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
+    ['v1.8.69', ['Risk ID 2 added: "Portal Creation issue RESOLVED" (status Resolved) with its STAR filled in and a ready-to-send resolution email. The email now shows a GREEN "Service Restored / Resolved" banner automatically when the open risk is Resolved (amber alert banner stays for open risks). Message: the error was fixed yesterday thanks to Gina\u2019s team over the weekend, all pending portals from the shared list are resolved and completed, and FALUPS continue separately to make everything fully active while the projects themselves are already complete.']],
     ['v1.8.68', ['Admin password is now asked only once per browser: after you unlock it the first time, it stays unlocked on that device (remembered in localStorage) so you do not have to type 1222 every time.']],
     ['v1.8.67', ['Admin tab is now a Risks & Major Issues log: risks show as cards (like the request list) with "ID N — title", a status pill (Open/Monitoring/Resolved) and a date. Open a card to see and edit it in STAR format — Situation, Task, Action, Results. "New risk" adds one; each risk is saved to Firebase. The Portal Creation risk (ID 1) carries its notification email inside Action: the editable template, To/CC (fill from Portal Creation last 3 weeks), preview and Send, all reused from before. Results is left blank until there are outcomes.']],
     ['v1.8.66', ['Admin broadcast: fixed the status-step bullets so they have proper spacing from the text and align to the top (text no longer sits above the dot). The IT ticket list bullets also get more spacing. Cleaned the saved draft (removed pasted-from-Outlook oversized text and raw URL, turned the ServiceNow link into a clean hyperlink).']],
@@ -4245,8 +4246,20 @@ function adminRefreshRecipients(){
     if (toField) toField.value = allEmails.join('; ');
 }
 
-// The FIXED alert banner that goes right after "Dear Team," (not editable).
+// The FIXED banner that goes right after "Dear Team," (not editable).
+// Amber "alert" for open risks, green "resolved" when the open risk is resolved.
 function adminAlertBannerHtml(){
+    const r = (typeof RISKS !== 'undefined') ? RISKS.find(x => String(x.id) === String(riskOpenId)) : null;
+    const resolved = r && r.status === 'resolved';
+    if (resolved){
+        return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:separate;margin:0 0 22px;">`
+            + `<tr>`
+            + `<td width="6" style="width:6px;background:#6bcb77;border-radius:6px 0 0 6px;font-size:0;">&nbsp;</td>`
+            + `<td style="background:#eefaf0;border:1px solid #b6e3c0;border-left:none;border-radius:0 8px 8px 0;padding:16px 18px;">`
+            + `<div style="font-size:12px;font-weight:800;letter-spacing:1px;color:#2f8f46;text-transform:uppercase;margin-bottom:4px;">Service Restored &middot; Resolved</div>`
+            + `<div style="font-size:17px;font-weight:700;color:#256b34;">Portal Creation is back up and running</div>`
+            + `</td></tr></table>`;
+    }
     return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:separate;margin:0 0 22px;">`
         + `<tr>`
         + `<td width="6" style="width:6px;background:#f0a030;border-radius:6px 0 0 6px;font-size:0;">&nbsp;</td>`
