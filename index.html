@@ -1027,10 +1027,11 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.72';
+const APP_VERSION = 'v1.8.73';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
+    ['v1.8.73', ['FIX: pressing "Save risk" no longer clears the email preview and the To: list. The Save re-render used to wipe the editor DOM; now the template, subject, To: and CC are saved with the risk and the editor is restored right after saving (and reloaded when you re-open the card), so nothing disappears.']],
     ['v1.8.72', ['"+ Add Chris" now uses the real manager email (chris.e.vaughan@intel.com).']],
     ['v1.8.71', ['Risk email now has an editable Subject field (saved per risk; defaults differ for open vs resolved). Added a "+ Add Chris" button next to CC to quickly copy the manager. NOTE: Chris\u2019s email is a placeholder (chris@intel.com) until confirmed.']],
     ['v1.8.70', ['FIX: saving a risk could wipe its email template (and mix risks) when the editor was empty or another card was open. Now the email template is only written when that risk is the one open in the editor AND the editor is not empty, so it never overwrites a saved template with blank. Restored risk ID 1 (open, outage email) and ID 2 (resolved, resolution email) after the mix-up.']],
@@ -4521,11 +4522,7 @@ function riskToggle(id){
     riskRenderList();
     if (riskOpenId != null){
         const r = RISKS.find(x => String(x.id) === String(riskOpenId));
-        if (r && r.emailHtml != null){
-            const ed = document.getElementById('admin-body-editor');
-            if (ed){ ed.innerHTML = r.emailHtml || adminDefaultBodyHtml(); adminUpdatePreview(); }
-            adminRefreshRecipients();
-        }
+        if (r && r.emailHtml != null) riskRestoreEditor(r);
     }
 }
 
@@ -4547,10 +4544,15 @@ async function riskSave(id){
     r.task = val('risk-task-'+id);
     r.action = val('risk-action-'+id);
     r.results = val('risk-results-'+id);
-    // Save the editable subject (only when this risk is the one open).
+    // Save the editable subject, To: and CC (only when this risk is the one open),
+    // so they persist and survive the re-render below.
     if (String(riskOpenId) === String(id)){
         const subj = val('admin-subject-field');
         if (subj) r.subject = subj;
+        const toEl = document.getElementById('admin-to-field');
+        const ccEl = document.getElementById('admin-cc-field');
+        if (toEl) r.toList = toEl.value;
+        if (ccEl) r.cc = ccEl.value;
     }
     // Only touch the email template when THIS risk is the one open in the editor,
     // and NEVER overwrite a saved template with an empty editor (that was the bug).
@@ -4561,6 +4563,28 @@ async function riskSave(id){
     r.updatedAt = new Date().toISOString();
     try { await riskPersist(); } catch(e){}
     riskRenderList();
+    // Re-renders wipes the editor DOM; restore it for the still-open risk so the
+    // To:, CC, template and preview do NOT disappear after Save.
+    if (String(riskOpenId) === String(id)) riskRestoreEditor(r);
+    const st = document.getElementById('admin-send-status');
+    if (st){ st.className = 'admin-send-status'; st.textContent = 'Saved.'; setTimeout(()=>{ if(st) st.textContent=''; }, 2500); }
+}
+
+// Repopulate the email editor (template, subject, To:, CC) + preview for a risk.
+function riskRestoreEditor(r){
+    if (!r || r.emailHtml == null) return;
+    const ed = document.getElementById('admin-body-editor');
+    if (ed) ed.innerHTML = r.emailHtml || adminDefaultBodyHtml();
+    const subj = document.getElementById('admin-subject-field');
+    if (subj) subj.value = r.subject || riskDefaultSubject(r);
+    const toEl = document.getElementById('admin-to-field');
+    if (toEl){
+        if (r.toList != null) toEl.value = r.toList;
+        else adminRefreshRecipients();
+    }
+    const ccEl = document.getElementById('admin-cc-field');
+    if (ccEl && r.cc != null) ccEl.value = r.cc;
+    adminUpdatePreview();
 }
 
 async function riskDelete(id){

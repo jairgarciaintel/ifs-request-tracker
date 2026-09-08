@@ -8,6 +8,9 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.73 — 2026-09-08
+- FIX: darle "Save risk" ya no borra el preview del correo ni la lista de To:. El re-render del Save borraba el editor; ahora el template, subject, To: y CC se guardan con el riesgo y el editor se restaura justo despues de guardar (y se recarga al reabrir la card), asi no desaparece nada.
+
 ## v1.8.72 — 2026-09-08
 - "+ Add Chris" ahora usa el correo real del jefe (chris.e.vaughan@intel.com).
 
