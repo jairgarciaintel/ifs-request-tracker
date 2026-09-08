@@ -8,6 +8,9 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.71 — 2026-09-08
+- Correo del riesgo: campo Subject editable (se guarda por riesgo; el default cambia entre open y resolved). Boton "+ Add Chris" junto a CC para copiar rapido al jefe. NOTA: el correo de Chris es placeholder (chris@intel.com) hasta confirmarlo.
+
 ## v1.8.70 — 2026-09-08
 - FIX: guardar un riesgo podia borrar su template de correo (y mezclar riesgos) cuando el editor estaba vacio o habia otra card abierta. Ahora el template solo se escribe cuando ese riesgo es el abierto en el editor Y el editor no esta vacio, asi nunca sobrescribe un template guardado con vacio. Se restauraron el riesgo ID 1 (open, correo de alerta) y el ID 2 (resolved, correo de resolucion).
 

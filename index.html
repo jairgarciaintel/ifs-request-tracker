@@ -1027,10 +1027,11 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.70';
+const APP_VERSION = 'v1.8.71';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
+    ['v1.8.71', ['Risk email now has an editable Subject field (saved per risk; defaults differ for open vs resolved). Added a "+ Add Chris" button next to CC to quickly copy the manager. NOTE: Chris\u2019s email is a placeholder (chris@intel.com) until confirmed.']],
     ['v1.8.70', ['FIX: saving a risk could wipe its email template (and mix risks) when the editor was empty or another card was open. Now the email template is only written when that risk is the one open in the editor AND the editor is not empty, so it never overwrites a saved template with blank. Restored risk ID 1 (open, outage email) and ID 2 (resolved, resolution email) after the mix-up.']],
     ['v1.8.69', ['Risk ID 2 added: "Portal Creation issue RESOLVED" (status Resolved) with its STAR filled in and a ready-to-send resolution email. The email now shows a GREEN "Service Restored / Resolved" banner automatically when the open risk is Resolved (amber alert banner stays for open risks). Message: the error was fixed yesterday thanks to Gina\u2019s team over the weekend, all pending portals from the shared list are resolved and completed, and FALUPS continue separately to make everything fully active while the projects themselves are already complete.']],
     ['v1.8.68', ['Admin password is now asked only once per browser: after you unlock it the first time, it stays unlocked on that device (remembered in localStorage) so you do not have to type 1222 every time.']],
@@ -4381,6 +4382,22 @@ async function riskPersist(){
     });
 }
 
+// Chris (manager) email — used by the "+ Add Chris" button.
+const CHRIS_EMAIL = 'chris@intel.com';
+function adminAddChris(){
+    const cc = document.getElementById('admin-cc-field');
+    if (!cc) return;
+    const list = cc.value.split(/[;,]+/).map(x=>x.trim()).filter(Boolean);
+    if (!list.some(e => e.toLowerCase() === CHRIS_EMAIL.toLowerCase())) list.push(CHRIS_EMAIL);
+    cc.value = list.join('; ');
+}
+
+// Default subject per risk (used until you edit it).
+function riskDefaultSubject(r){
+    if (r && r.status === 'resolved') return 'Intel Foundry Services - Portal Creation RESOLVED (projects completed)';
+    return 'Intel Foundry Services - Portal Creation Service Disruption (Action: please await further instructions)';
+}
+
 function riskStatusPill(status){
     const map = { open:['rs-open','Open'], monitoring:['rs-monitor','Monitoring'], resolved:['rs-resolved','Resolved'] };
     const [cls,label] = map[status] || map.open;
@@ -4416,7 +4433,9 @@ function riskCardHtml(r){
             </div>
           </div>
           <div id="admin-upload-status" class="admin-uploading"></div>
-          <p class="admin-editor-note">Goes after "Dear Team," and the amber alert banner. The header, footer and banner are fixed.</p>
+          <div class="admin-recip-head" style="margin-top:4px;"><span class="admin-recip-title">Subject: (editable)</span></div>
+          <input type="text" id="admin-subject-field" class="admin-pass-input" style="letter-spacing:0;text-align:left;margin-bottom:10px;" value="${esc(r.subject || riskDefaultSubject(r))}">
+          <p class="admin-editor-note">Goes after "Dear Team," and the alert banner. The header, footer and banner are fixed.</p>
           <div id="admin-body-editor" class="admin-body-editor" contenteditable="true"></div>
 
           <div class="admin-recipients" style="margin-top:12px;">
@@ -4425,7 +4444,10 @@ function riskCardHtml(r){
               <button class="btn btn-secondary btn-sm" onclick="adminRefreshRecipients()">Fill from Portal Creation (3 weeks)</button>
             </div>
             <textarea id="admin-to-field" class="admin-to-field" placeholder="name@intel.com; name2@intel.com"></textarea>
-            <div class="admin-recip-head" style="margin-top:8px;"><span class="admin-recip-title" style="font-weight:400;text-transform:none;color:rgba(255,255,255,0.5);">CC:</span></div>
+            <div class="admin-recip-head" style="margin-top:8px;">
+              <span class="admin-recip-title" style="font-weight:400;text-transform:none;color:rgba(255,255,255,0.5);">CC:</span>
+              <button class="btn btn-secondary btn-sm" onclick="adminAddChris()" title="Add Chris (our manager) to CC">+ Add Chris</button>
+            </div>
             <input type="text" id="admin-cc-field" class="admin-pass-input" style="letter-spacing:0;text-align:left;margin-bottom:0;" value="fs.da.ops@intel.com">
             <div id="admin-recip-list" style="display:none"></div>
           </div>
@@ -4524,6 +4546,11 @@ async function riskSave(id){
     r.task = val('risk-task-'+id);
     r.action = val('risk-action-'+id);
     r.results = val('risk-results-'+id);
+    // Save the editable subject (only when this risk is the one open).
+    if (String(riskOpenId) === String(id)){
+        const subj = val('admin-subject-field');
+        if (subj) r.subject = subj;
+    }
     // Only touch the email template when THIS risk is the one open in the editor,
     // and NEVER overwrite a saved template with an empty editor (that was the bug).
     if (r.emailHtml != null && String(riskOpenId) === String(id)){
@@ -4586,7 +4613,9 @@ async function adminSendBroadcast(){
     }
     const to = testMode ? 'jair.garcia@intel.com' : toList.join(';');
     const cc = testMode ? '' : ccField;
-    const subject = 'Intel Foundry Services - Portal Creation Service Disruption (Action: please await further instructions)';
+    const subjField = document.getElementById('admin-subject-field');
+    const subject = (subjField && subjField.value.trim()) ? subjField.value.trim()
+        : 'Intel Foundry Services - Portal Creation Service Disruption (Action: please await further instructions)';
     const bodyHtml = buildPortalOutageEmailHtml();
 
     const confirmMsg = testMode
