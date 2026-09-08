@@ -1027,10 +1027,11 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.73';
+const APP_VERSION = 'v1.8.74';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
+    ['v1.8.74', ['FIX (double emails): added an anti double-send guard on the risk broadcast. A second Send within 15s is ignored and the button stays disabled during the cooldown, so a double-click or accidental double trigger can no longer send the same communication twice. If two emails still arrive, the duplication is in the Power Automate flow itself (see l4ve for how to check).']],
     ['v1.8.73', ['FIX: pressing "Save risk" no longer clears the email preview and the To: list. The Save re-render used to wipe the editor DOM; now the template, subject, To: and CC are saved with the risk and the editor is restored right after saving (and reloaded when you re-open the card), so nothing disappears.']],
     ['v1.8.72', ['"+ Add Chris" now uses the real manager email (chris.e.vaughan@intel.com).']],
     ['v1.8.71', ['Risk email now has an editable Subject field (saved per risk; defaults differ for open vs resolved). Added a "+ Add Chris" button next to CC to quickly copy the manager. NOTE: Chris\u2019s email is a placeholder (chris@intel.com) until confirmed.']],
@@ -4150,6 +4151,9 @@ document.addEventListener('DOMContentLoaded', function(){
 // ============================================================
 let adminUnlocked = false;
 const ADMIN_PASS = '1222';
+// Anti double-send guard for the risk broadcast email.
+let adminSending = false;
+let adminLastSendAt = 0;
 // Firebase Storage bucket for broadcast images (same project). If uploads fail,
 // enable Storage in the Firebase console and set its rules (see l4ve notes).
 const FIREBASE_BUCKET = 'fs-request-tracker.appspot.com';
@@ -4648,7 +4652,17 @@ async function adminSendBroadcast(){
         : 'This will email the alert to ' + toList.length + ' recipient(s) in the To: field' + (cc ? (', CC ' + cc) : '') + '. Continue?';
     if (!confirm(confirmMsg)) return;
 
-    btn.disabled = true;
+    // Anti double-send guard: block any second send within 15s (kills double-click
+    // and any accidental double trigger that was sending the email twice).
+    const now = Date.now();
+    if (adminSending || (now - adminLastSendAt) < 15000){
+        statusEl.className = 'admin-send-status';
+        statusEl.textContent = 'Already sending / just sent — ignored the duplicate.';
+        return;
+    }
+    adminSending = true;
+    adminLastSendAt = now;
+    if (btn) btn.disabled = true;
     statusEl.className = 'admin-send-status';
     statusEl.textContent = 'Sending…';
     try {
@@ -4666,7 +4680,11 @@ async function adminSendBroadcast(){
     } catch(e){
         statusEl.className = 'admin-send-status err';
         statusEl.textContent = 'Send failed: ' + e.message;
-    } finally { btn.disabled = false; }
+    } finally {
+        adminSending = false;
+        // keep the button disabled for the 15s cooldown so it can't fire twice
+        setTimeout(()=>{ if (btn) btn.disabled = false; }, 15000);
+    }
 }
 
 // ============================================================

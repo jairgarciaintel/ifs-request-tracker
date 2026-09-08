@@ -8,6 +8,9 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.74 — 2026-09-08
+- FIX (correos dobles): candado anti-doble-envio en el comunicado de riesgo. Un segundo Send en menos de 15s se ignora y el boton queda deshabilitado durante ese tiempo, asi un doble clic o doble disparo no manda dos veces. Si aun asi llegan dos correos, la duplicacion esta en el flujo de Power Automate (ver l4ve).
+
 ## v1.8.73 — 2026-09-08
 - FIX: darle "Save risk" ya no borra el preview del correo ni la lista de To:. El re-render del Save borraba el editor; ahora el template, subject, To: y CC se guardan con el riesgo y el editor se restaura justo despues de guardar (y se recarga al reabrir la card), asi no desaparece nada.
 
