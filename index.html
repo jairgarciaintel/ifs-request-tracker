@@ -571,15 +571,15 @@ body.light-mode .ind-kpi-label{color:#64748b;}
 .version-badge{display:inline-block;font-size:12px;font-weight:700;color:#041c32;background:var(--cyan);border:1px solid var(--cyan);padding:3px 10px;border-radius:10px;vertical-align:middle;margin-right:4px;letter-spacing:0.3px;white-space:nowrap;cursor:pointer;transition:transform 0.2s;}
 .version-badge:hover{transform:translateY(-1px);background:#7dd8f5;}
 /* Changelog modal */
-.changelog-overlay{display:none;position:fixed;inset:0;background:rgba(4,28,50,0.75);z-index:2000;backdrop-filter:blur(4px);align-items:center;justify-content:center;}
+.changelog-overlay{display:none;position:fixed;inset:0;background:rgba(4,28,50,0.75);z-index:2000;backdrop-filter:blur(4px);align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px 0;}
 .changelog-overlay.open{display:flex;}
-.changelog-box{background:linear-gradient(160deg,#0d3158,#041c32);border:1px solid rgba(78,200,240,0.3);border-radius:14px;width:90%;max-width:640px;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.5);}
-.changelog-head{display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid rgba(78,200,240,0.15);}
+.changelog-box{background:linear-gradient(160deg,#0d3158,#041c32);border:1px solid rgba(78,200,240,0.3);border-radius:14px;width:90%;max-width:640px;max-height:calc(100vh - 48px);margin:auto;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.5);overflow:hidden;}
+.changelog-head{display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid rgba(78,200,240,0.15);flex-shrink:0;}
 .changelog-head h3{font-family:'Cabinet Grotesk',sans-serif;font-size:18px;color:var(--cyan);}
 .changelog-head #changelog-current{font-size:12px;color:rgba(255,255,255,0.5);font-weight:400;margin-left:8px;}
 .changelog-close{background:none;border:none;color:rgba(255,255,255,0.6);font-size:26px;cursor:pointer;line-height:1;}
 .changelog-close:hover{color:#fff;}
-.changelog-content{padding:20px 24px;overflow-y:auto;}
+.changelog-content{padding:20px 24px;overflow-y:auto;flex:1;min-height:0;}
 .cl-version{margin-bottom:18px;}
 .cl-version h4{font-size:14px;color:var(--cyan);font-weight:700;margin-bottom:6px;font-family:'Cabinet Grotesk',sans-serif;}
 .cl-version ul{margin:0;padding-left:18px;}
@@ -1027,10 +1027,11 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.75';
+const APP_VERSION = 'v1.8.76';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
+    ['v1.8.76', ['FIX: the Version History modal header (title + close X) was getting cut off at the top when there were many versions (the tall modal overflowed past the top of the screen with the page zoom). The modal now pins its header, scrolls only the version list inside, aligns to the top and the whole overlay can scroll, so the header is always visible.']],
     ['v1.8.75', ['Double emails on status change traced to the Power Automate flow (205f9f20), not the page: the tracker calls the send flow exactly once per status change, so the duplication is inside the flow (a second "Send an email V2" action or a Condition running both branches). Fix steps documented; the page code was confirmed to send once.']],
     ['v1.8.74', ['FIX (double emails): added an anti double-send guard on the risk broadcast. A second Send within 15s is ignored and the button stays disabled during the cooldown, so a double-click or accidental double trigger can no longer send the same communication twice. If two emails still arrive, the duplication is in the Power Automate flow itself (see l4ve for how to check).']],
     ['v1.8.73', ['FIX: pressing "Save risk" no longer clears the email preview and the To: list. The Save re-render used to wipe the editor DOM; now the template, subject, To: and CC are saved with the risk and the editor is restored right after saving (and reloaded when you re-open the card), so nothing disappears.']],

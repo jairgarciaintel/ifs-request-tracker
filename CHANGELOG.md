@@ -8,6 +8,9 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.76 — 2026-09-08
+- FIX: el encabezado del modal de Version History (titulo + X de cerrar) se cortaba arriba cuando habia muchas versiones (el modal quedaba mas alto que la pantalla con el zoom). Ahora el header queda fijo, solo la lista de versiones hace scroll, el modal se alinea arriba y todo el overlay puede desplazarse, asi el encabezado siempre se ve.
+
 ## v1.8.75 — 2026-09-08
 - Correos dobles al cambiar status: rastreado al flujo de Power Automate (205f9f20), NO a la pagina. El tracker llama al flujo UNA sola vez por cambio de status, asi que la duplicacion esta dentro del flujo (una segunda accion "Send an email V2" o una Condition que corre las dos ramas). Pasos de arreglo documentados en el l4ve.
 
