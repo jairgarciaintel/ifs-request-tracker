@@ -8,6 +8,9 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.78 — 2026-09-09
+- Separate request ahora sigue la regla completa: SOLO Portal Creation + New DA pueden ir juntos en un request. Todo lo demas (Codename, IFS NDA, DA Edit, COD, MP-NDA, WebView, ...) se separa a su propio request. Asi IFS NDA se separa de Codename Y de Portal Creation + New DA. Si un request no trae Portal/New DA (ej. IFS NDA + Codename), el primer servicio se queda en el original y el resto se separa. El boton Separate aparece cuando el request quedaria en mas de un request.
+
 ## v1.8.77 — 2026-09-08
 - Captura de DA Link / DA Number ahora tambien para DA Edit: el popup sale automatico cuando un Portal Creation, New DA O DA Edit pasa a In Approval Loop. Ademas puedes abrirlo cuando quieras con doble clic en la fila DA Link (o DA Number) de cualquier card, o con el nuevo boton "Set / Edit" junto a DA Link. El popup precarga los valores actuales para editarlos y los guarda en SharePoint con el flujo de update-fields existente.
 

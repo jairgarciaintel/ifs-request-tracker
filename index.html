@@ -1027,10 +1027,11 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.77';
+const APP_VERSION = 'v1.8.78';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
+    ['v1.8.78', ['Separate request now follows the full rule: ONLY Portal Creation + New DA may share one request. Every other service (Codename, IFS NDA, DA Edit, COD, MP-NDA, WebView, ...) is split to its own request. So IFS NDA is now separated from Codename AND from Portal Creation + New DA. If a request has no Portal/New DA at all (e.g. IFS NDA + Codename), the first service stays on the original and the rest are split out. The Separate button shows whenever the request would become more than one request.']],
     ['v1.8.77', ['DA Link / DA Number capture now also works for DA Edit: the popup opens automatically when a Portal Creation, New DA OR DA Edit moves to In Approval Loop. You can also open it anytime by double-clicking the DA Link (or DA Number) row on any card, or with the new "Set / Edit" button next to DA Link. The popup pre-fills the current values so you can edit them, and it saves to SharePoint via the existing update-fields flow.']],
     ['v1.8.76', ['FIX: the Version History modal header (title + close X) was getting cut off at the top when there were many versions (the tall modal overflowed past the top of the screen with the page zoom). The modal now pins its header, scrolls only the version list inside, aligns to the top and the whole overlay can scroll, so the header is always visible.']],
     ['v1.8.75', ['Double emails on status change traced to the Power Automate flow (205f9f20), not the page: the tracker calls the send flow exactly once per status change, so the duplication is inside the flow (a second "Send an email V2" action or a Condition running both branches). Fix steps documented; the page code was confirmed to send once.']],
@@ -2641,9 +2642,10 @@ async function confirmAssignModal(){
 // NEW SharePoint request (new ID) that only carries the Codename, and removes
 // Codename from the original. Needs a "Create Request" Power Automate flow
 // (CONFIG.createRequestUrl). See sync/Separate-request-flow.md.
-// Services that must ALWAYS be on their own request (separated out).
-// New DA + Portal Creation stay together; everything else stays with them.
-const STANDALONE_TYPES = ['Codename', 'IFS NDA'];
+// Business rule: the ONLY services allowed to share one request are
+// Portal Creation + New DA. EVERY other service (Codename, IFS NDA, DA Edit,
+// COD, MP-NDA, WebView, etc.) must live on its OWN request.
+const KEEP_TOGETHER_TYPES = ['Portal Creation', 'New DA'];
 
 async function separateCodename(id) {
     const reqs = allRequests.filter(r => String(r.id) === String(id));
@@ -2658,14 +2660,26 @@ async function separateCodename(id) {
     reqs.forEach(r => { if (r.requestTypeRaw) rawByNorm[r.requestType] = r.requestTypeRaw; });
     const allRawTypes = reqs.map(r => r.requestTypeRaw || r.requestType);
 
-    // Which services to split off (Codename, IFS NDA) that are present here.
-    const toSplit = reqs.filter(r => STANDALONE_TYPES.includes(r.requestType));
-    if (toSplit.length === 0) return; // nothing to separate
+    // Everything that is NOT Portal Creation / New DA must be split to its own request.
+    const keepers = reqs.filter(r => KEEP_TOGETHER_TYPES.includes(r.requestType));
+    let splittable = reqs.filter(r => !KEEP_TOGETHER_TYPES.includes(r.requestType));
+    if (splittable.length === 0) return; // only Portal/New DA -> nothing to separate
 
-    // What stays on the original = everything that is NOT a standalone type.
-    const remainingRaw = reqs
-        .filter(r => !STANDALONE_TYPES.includes(r.requestType))
-        .map(r => r.requestTypeRaw || r.requestType);
+    // What stays on the ORIGINAL request:
+    //  - If there ARE Portal/New DA keepers, the original keeps ONLY those, and
+    //    every other service is split off.
+    //  - If there are NO keepers (e.g. IFS NDA + Codename), we can't leave the
+    //    original empty, so the FIRST splittable service stays on the original and
+    //    the rest are split off.
+    let toSplit, remainingRaw;
+    if (keepers.length > 0) {
+        toSplit = splittable;
+        remainingRaw = keepers.map(r => r.requestTypeRaw || r.requestType);
+    } else {
+        toSplit = splittable.slice(1);          // all but the first
+        remainingRaw = [ splittable[0].requestTypeRaw || splittable[0].requestType ];
+        if (toSplit.length === 0) return;        // only one service total -> nothing to split
+    }
 
     const splitNames = toSplit.map(r => r.requestType).join(', ');
     const ok = confirm(
@@ -3464,16 +3478,20 @@ function renderGroupCard(id, reqs) {
     // "Separate request" button: shown when a single request bundles Codename together
     // with New DA / Portal Creation. Clicking it creates a NEW SharePoint request with
     // only the Codename, and removes Codename from this one.
-    // Standalone services (Codename, IFS NDA) must each be on their own request.
-    // Show the Separate button when at least one standalone type is bundled with
-    // any other (different) service.
-    const STANDALONE = ['Codename', 'IFS NDA'];
+    // Rule: only Portal Creation + New DA may share one request. Everything else
+    // (Codename, IFS NDA, DA Edit, COD, MP-NDA, WebView, ...) must be on its own.
+    // The request needs separation if, after keeping Portal/New DA together, it
+    // would still split into more than one request.
+    const KEEP = ['Portal Creation', 'New DA'];
     const typeSet = knownReqs.map(r => r.requestType);
-    const standalonePresent = typeSet.filter(t => STANDALONE.includes(t));
-    const uniqueTypes = Array.from(new Set(typeSet));
-    // Bundled if there's a standalone type AND the request has more than one distinct type.
-    const needsSeparation = standalonePresent.length > 0 && uniqueTypes.length > 1;
-    const splitLabel = Array.from(new Set(standalonePresent)).join(' + ');
+    const keepersPresent = Array.from(new Set(typeSet.filter(t => KEEP.includes(t))));
+    const splittablePresent = Array.from(new Set(typeSet.filter(t => !KEEP.includes(t))));
+    // How many separate requests this would become:
+    //  - one request for the Portal/New DA group (if any keepers), plus
+    //  - one request per splittable service.
+    const resultingRequests = (keepersPresent.length > 0 ? 1 : 0) + splittablePresent.length;
+    const needsSeparation = resultingRequests > 1;
+    const splitLabel = splittablePresent.join(' + ');
     const separateBtn = needsSeparation
         ? `<div class="separate-row"><button class="separate-btn" onclick="event.stopPropagation();separateCodename('${id}')"><svg width="13" height="13" viewBox="0 0 16 16" style="margin-right:6px;vertical-align:-2px;"><path d="M5,2 L5,14 M11,2 L11,14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-dasharray="2 2"/></svg>Separate request &mdash; move ${splitLabel} to its own request</button></div>`
         : '';
