@@ -8,6 +8,9 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.77 — 2026-09-08
+- Captura de DA Link / DA Number ahora tambien para DA Edit: el popup sale automatico cuando un Portal Creation, New DA O DA Edit pasa a In Approval Loop. Ademas puedes abrirlo cuando quieras con doble clic en la fila DA Link (o DA Number) de cualquier card, o con el nuevo boton "Set / Edit" junto a DA Link. El popup precarga los valores actuales para editarlos y los guarda en SharePoint con el flujo de update-fields existente.
+
 ## v1.8.76 — 2026-09-08
 - FIX: el encabezado del modal de Version History (titulo + X de cerrar) se cortaba arriba cuando habia muchas versiones (el modal quedaba mas alto que la pantalla con el zoom). Ahora el header queda fijo, solo la lista de versiones hace scroll, el modal se alinea arriba y todo el overlay puede desplazarse, asi el encabezado siempre se ve.
 

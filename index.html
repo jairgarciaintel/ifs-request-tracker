@@ -121,7 +121,7 @@ body{
       <button class="changelog-close" onclick="hideDaLinkModal()">&times;</button>
     </div>
     <div class="changelog-content">
-      <p class="complete-modal-hint">This <strong>Portal Creation / New DA</strong> request just moved to <strong>In Approval Loop</strong> &mdash; this is the stage where the DA is created. Enter the <strong>DA Link</strong> and <strong>DA Number</strong> so they get recorded in SharePoint. Internal only &mdash; the customer is not notified about this.</p>
+      <p class="complete-modal-hint">Enter the <strong>DA Link</strong> and <strong>DA Number</strong> so they get recorded in <strong>SharePoint</strong>. Shown automatically for <strong>Portal Creation, New DA and DA Edit</strong> when they move to <strong>In Approval Loop</strong>, and you can open it anytime by double-clicking the DA Link row on a card. Internal only &mdash; the customer is not notified about this.</p>
       <label class="complete-field-label">DA Link (URL)</label>
       <input type="text" id="dalink-url-input" class="complete-field-input" placeholder="https://intel.sharepoint.com/...">
       <label class="complete-field-label">DA Number</label>
@@ -1027,10 +1027,11 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.76';
+const APP_VERSION = 'v1.8.77';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
+    ['v1.8.77', ['DA Link / DA Number capture now also works for DA Edit: the popup opens automatically when a Portal Creation, New DA OR DA Edit moves to In Approval Loop. You can also open it anytime by double-clicking the DA Link (or DA Number) row on any card, or with the new "Set / Edit" button next to DA Link. The popup pre-fills the current values so you can edit them, and it saves to SharePoint via the existing update-fields flow.']],
     ['v1.8.76', ['FIX: the Version History modal header (title + close X) was getting cut off at the top when there were many versions (the tall modal overflowed past the top of the screen with the page zoom). The modal now pins its header, scrolls only the version list inside, aligns to the top and the whole overlay can scroll, so the header is always visible.']],
     ['v1.8.75', ['Double emails on status change traced to the Power Automate flow (205f9f20), not the page: the tracker calls the send flow exactly once per status change, so the duplication is inside the flow (a second "Send an email V2" action or a Condition running both branches). Fix steps documented; the page code was confirmed to send once.']],
     ['v1.8.74', ['FIX (double emails): added an anti double-send guard on the risk broadcast. A second Send within 15s is ignored and the button stays disabled during the cooldown, so a double-click or accidental double trigger can no longer send the same communication twice. If two emails still arrive, the duplication is in the Power Automate flow itself (see l4ve for how to check).']],
@@ -1801,11 +1802,12 @@ async function changeSpStatus(id, newStatus, selectEl) {
     const st = String(newStatus).toLowerCase();
     // Internal popups: always shown, independent of the customer-email toggle.
     if (st === 'in approval loop') {
-        // Only Portal Creation / New DA generate the DA at this stage, so only
-        // those ask for the DA Link + DA Number. Other types skip the popup.
+        // Portal Creation / New DA / DA Edit involve a DA at this stage, so those
+        // ask for the DA Link + DA Number. Other types skip the popup (but you can
+        // still set them anytime by double-clicking the DA Link row on the card).
         const grp = allRequests.filter(r => String(r.id) === String(id));
-        const isPortalOrDA = grp.some(r => r.requestType === 'Portal Creation' || r.requestType === 'New DA');
-        if (isPortalOrDA) {
+        const isDaType = grp.some(r => r.requestType === 'Portal Creation' || r.requestType === 'New DA' || r.requestType === 'DA Edit');
+        if (isDaType) {
             openDaLinkModal(id);
         }
     } else if (st === 'complete') {
@@ -2251,8 +2253,11 @@ function openDaLinkModal(id) {
     const reqs = allRequests.filter(r => String(r.id) === String(id));
     const req0 = reqs[0] || {};
     document.getElementById('dalink-modal-req').textContent = 'REQ. ' + id + (req0.customer ? ' \u2014 ' + req0.customer : '');
-    document.getElementById('dalink-url-input').value = '';
-    document.getElementById('dalink-number-input').value = '';
+    // Pre-fill with whatever is already set (SharePoint or locally saved) so you can
+    // EDIT it, not just create from scratch.
+    const localDaLink = (trackingData._daLink && trackingData._daLink[id]) || {};
+    document.getElementById('dalink-url-input').value = req0.daLinkUrl || localDaLink.url || '';
+    document.getElementById('dalink-number-input').value = req0.daLinkText || localDaLink.text || '';
     const warn = document.getElementById('dalink-modal-warn');
     if (warn) warn.style.display = 'none';
     document.getElementById('dalink-modal').classList.add('open');
@@ -3450,8 +3455,8 @@ function renderGroupCard(id, reqs) {
       <div class="req-info-row"><span class="req-info-label">Assigned BD</span><span class="req-info-val">${bdNameHtml}</span></div>
       <div class="req-info-row"><span class="req-info-label">FCE Lead / Account Owner</span><span class="req-info-val">${fceLeadHtml}</span></div>
       <div class="req-info-row"><span class="req-info-label">Portal Name</span><span class="req-info-val">${portalNameHtml}</span></div>
-      <div class="req-info-row"><span class="req-info-label">DA Link</span><span class="req-info-val">${daLinkHtml}</span></div>
-      <div class="req-info-row"><span class="req-info-label">DA Number</span><span class="req-info-val">${daNumberHtml}</span></div>
+      <div class="req-info-row" ondblclick="openDaLinkModal('${id}')" title="Double-click to set/edit the DA Link and DA Number"><span class="req-info-label">DA Link <button class="assign-btn" style="margin-left:6px;" onclick="event.stopPropagation();openDaLinkModal('${id}')">Set / Edit</button></span><span class="req-info-val">${daLinkHtml}</span></div>
+      <div class="req-info-row" ondblclick="openDaLinkModal('${id}')" title="Double-click to set/edit the DA Link and DA Number"><span class="req-info-label">DA Number</span><span class="req-info-val">${daNumberHtml}</span></div>
       <div class="req-info-row req-info-full"><span class="req-info-label">Details</span><span class="req-info-val req-info-details">${details ? details : '<span class="info-empty">No details</span>'}</span></div>
       <div class="req-info-row req-info-full"><span class="req-info-label">Attachments</span><span class="req-info-val req-info-attach">${attachmentsHtml}</span></div>
     </div>`;
