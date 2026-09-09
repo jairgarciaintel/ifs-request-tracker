@@ -8,6 +8,9 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.75 — 2026-09-08
+- Correos dobles al cambiar status: rastreado al flujo de Power Automate (205f9f20), NO a la pagina. El tracker llama al flujo UNA sola vez por cambio de status, asi que la duplicacion esta dentro del flujo (una segunda accion "Send an email V2" o una Condition que corre las dos ramas). Pasos de arreglo documentados en el l4ve.
+
 ## v1.8.74 — 2026-09-08
 - FIX (correos dobles): candado anti-doble-envio en el comunicado de riesgo. Un segundo Send en menos de 15s se ignora y el boton queda deshabilitado durante ese tiempo, asi un doble clic o doble disparo no manda dos veces. Si aun asi llegan dos correos, la duplicacion esta en el flujo de Power Automate (ver l4ve).
 

@@ -1027,10 +1027,11 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.74';
+const APP_VERSION = 'v1.8.75';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
+    ['v1.8.75', ['Double emails on status change traced to the Power Automate flow (205f9f20), not the page: the tracker calls the send flow exactly once per status change, so the duplication is inside the flow (a second "Send an email V2" action or a Condition running both branches). Fix steps documented; the page code was confirmed to send once.']],
     ['v1.8.74', ['FIX (double emails): added an anti double-send guard on the risk broadcast. A second Send within 15s is ignored and the button stays disabled during the cooldown, so a double-click or accidental double trigger can no longer send the same communication twice. If two emails still arrive, the duplication is in the Power Automate flow itself (see l4ve for how to check).']],
     ['v1.8.73', ['FIX: pressing "Save risk" no longer clears the email preview and the To: list. The Save re-render used to wipe the editor DOM; now the template, subject, To: and CC are saved with the risk and the editor is restored right after saving (and reloaded when you re-open the card), so nothing disappears.']],
     ['v1.8.72', ['"+ Add Chris" now uses the real manager email (chris.e.vaughan@intel.com).']],
