@@ -371,6 +371,7 @@ async function hbSubmitReport(text){
   <div class="stats-bar">
     <span id="stat-total" class="stat-pill stat-clickable stat-active" onclick="toggleStatFilter('all')">0 total</span>
     <span id="stat-progress" class="stat-pill s-progress stat-clickable" onclick="toggleStatFilter('in-progress')">0 WIP</span>
+    <span id="stat-inforeq" class="stat-pill s-inforeq stat-clickable" onclick="toggleStatFilter('info-requested')">0 info req</span>
     <span id="stat-complete" class="stat-pill s-done stat-clickable" onclick="toggleStatFilter('complete')">0 done</span>
     <span id="stat-new" class="stat-pill s-new stat-clickable" onclick="toggleStatFilter('not-started')">0 new</span>
     <span id="stat-ack" class="stat-pill s-ack stat-clickable" onclick="toggleStatFilter('acknowledged')">0 ack</span>
@@ -663,6 +664,8 @@ body.light-mode .auto-toggle-label{color:#4a5568;}
 .s-new.stat-active{border-color:rgba(255,255,255,0.4);box-shadow:0 0 6px rgba(255,255,255,0.1);}
 .s-ack{background:rgba(78,200,240,0.12);color:var(--cyan);}
 .s-ack.stat-active{border-color:var(--cyan);box-shadow:0 0 6px rgba(78,200,240,0.3);}
+.s-inforeq{background:rgba(160,175,195,0.14);color:#c3ccd8;}
+.s-inforeq.stat-active{border-color:#c3ccd8;box-shadow:0 0 6px rgba(160,175,195,0.35);}
 .s-canceled{background:rgba(204,0,0,0.12);color:#ff6b6b;}
 .s-canceled.stat-active{border-color:#ff6b6b;box-shadow:0 0 6px rgba(204,0,0,0.3);}
 .request-list{padding:20px 32px;display:flex;flex-direction:column;gap:14px;}
@@ -1027,10 +1030,11 @@ body.light-mode .empty-state h3{color:#0071c5;}
 // ============================================================
 // VERSION — bump this on every deploy (matches CHANGELOG.md)
 // ============================================================
-const APP_VERSION = 'v1.8.79';
+const APP_VERSION = 'v1.8.80';
 
 // Changelog shown in the modal (newest first). Includes features, fixes and deploy issues.
 const CHANGELOG = [
+    ['v1.8.80', ['New quick-filter stat pill "info req" (next to WIP) that shows how many requests are in the Info Requested status and lets you click to filter to only those — useful for the ones the customer already replied to. Works with the existing multi-select pills.']],
     ['v1.8.79', ['Platform renamed to "DA Operations Tracker" (per Jenn): page title, header, help chatbot, Indicators card, email header/footer and feedback subject all updated on the tracker and the user guide. The "FS DA Requests" tab name and the "FS DA OPS" email signature are unchanged (those are the team/queue names, not the platform name).']],
     ['v1.8.78', ['Separate request now follows the full rule: ONLY Portal Creation + New DA may share one request. Every other service (Codename, IFS NDA, DA Edit, COD, MP-NDA, WebView, ...) is split to its own request. So IFS NDA is now separated from Codename AND from Portal Creation + New DA. If a request has no Portal/New DA at all (e.g. IFS NDA + Codename), the first service stays on the original and the rest are split out. The Separate button shows whenever the request would become more than one request.']],
     ['v1.8.77', ['DA Link / DA Number capture now also works for DA Edit: the popup opens automatically when a Portal Creation, New DA OR DA Edit moves to In Approval Loop. You can also open it anytime by double-clicking the DA Link (or DA Number) row on any card, or with the new "Set / Edit" button next to DA Link. The popup pre-fills the current values so you can edit them, and it saves to SharePoint via the existing update-fields flow.']],
@@ -3068,6 +3072,8 @@ function toggleStatFilter(status) {
     document.getElementById('stat-new').classList.toggle('stat-active', activeStatFilters.has('not-started'));
     const ackPill = document.getElementById('stat-ack');
     if (ackPill) ackPill.classList.toggle('stat-active', activeStatFilters.has('acknowledged'));
+    const infoPill = document.getElementById('stat-inforeq');
+    if (infoPill) infoPill.classList.toggle('stat-active', activeStatFilters.has('info-requested'));
     const cancPill = document.getElementById('stat-canceled');
     if (cancPill) cancPill.classList.toggle('stat-active', activeStatFilters.has('canceled'));
     
@@ -3179,15 +3185,17 @@ function renderRequests() {
     // Stats
     const allGrouped = groupByID(filtered);
     let totalGroups = Object.keys(allGrouped).length;
-    let wipCount = 0, doneCount = 0, newCount = 0, canceledCount = 0, ackCount = 0;
+    let wipCount = 0, doneCount = 0, newCount = 0, canceledCount = 0, ackCount = 0, infoReqCount = 0;
     Object.entries(allGrouped).forEach(([id, reqs]) => {
         const s = getGroupOverall(id, reqs);
         if (s==='complete') doneCount++;
         else if (s==='canceled') canceledCount++;
         else if (s==='in-progress') wipCount++;
         else newCount++;
-        // Acknowledged count (subset, based on the raw SharePoint status)
-        if (String(reqs[0].status || '').toLowerCase() === 'acknowledged') ackCount++;
+        // Acknowledged / Info Requested counts (subsets, based on the raw SharePoint status)
+        const raw = String(reqs[0].status || '').toLowerCase();
+        if (raw === 'acknowledged') ackCount++;
+        if (raw === 'info requested') infoReqCount++;
     });
     document.getElementById('stat-total').textContent = totalGroups + ' total';
     document.getElementById('stat-progress').textContent = wipCount + ' WIP';
@@ -3197,6 +3205,8 @@ function renderRequests() {
     if (cancEl) cancEl.textContent = canceledCount + ' canceled';
     const ackEl = document.getElementById('stat-ack');
     if (ackEl) ackEl.textContent = ackCount + ' ack';
+    const infoEl = document.getElementById('stat-inforeq');
+    if (infoEl) infoEl.textContent = infoReqCount + ' info req';
 
     // Filter by overall status (from pills or dropdown)
     let ids = Object.keys(grouped);
@@ -3206,9 +3216,10 @@ function renderRequests() {
         ids = ids.filter(id => {
             const overall = getGroupOverall(id, grouped[id]);
             if (activeStatFilters.has(overall)) return true;
-            // "acknowledged" is a sub-filter based on the raw SharePoint status
-            if (activeStatFilters.has('acknowledged')
-                && String(grouped[id][0].status || '').toLowerCase() === 'acknowledged') return true;
+            // "acknowledged" / "info-requested" are sub-filters based on the raw SharePoint status
+            const raw = String(grouped[id][0].status || '').toLowerCase();
+            if (activeStatFilters.has('acknowledged') && raw === 'acknowledged') return true;
+            if (activeStatFilters.has('info-requested') && raw === 'info requested') return true;
             return false;
         });
     } else if (statusFilter !== 'all') {

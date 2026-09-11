@@ -8,6 +8,9 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.80 — 2026-09-09
+- Nuevo filtro rapido "info req" (junto a WIP): muestra cuantos requests estan en status Info Requested y al hacer clic filtra solo esos. Util para los que el cliente ya contesto. Funciona con los pills multi-seleccion existentes.
+
 ## v1.8.79 — 2026-09-09
 - Plataforma renombrada a "DA Operations Tracker" (peticion de Jenn): titulo de la pagina, header, chatbot de ayuda, tarjeta de Indicators, header/footer de los correos y asunto de feedback, tanto en el tracker como en la guia. El nombre de la pestana "FS DA Requests" y la firma "FS DA OPS" de los correos NO se tocan (son nombres del equipo/cola, no de la plataforma).
 
