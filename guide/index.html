@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FS Request Tracker — User Guide</title>
+<title>DA Operations Tracker — User Guide</title>
 <link href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@700,400&f[]=satoshi@400,700&display=swap" rel="stylesheet">
 <style>
 html,body{height:100%;overflow-x:hidden;margin:0;padding:0;}
@@ -55,7 +55,7 @@ p,.body-text{font-size:clamp(0.9rem,1.6vw,1.2rem);color:var(--light);line-height
   <span class="confidential">Intel Confidential</span>
   <div class="slide-content" style="align-items:center;text-align:center;">
     <p class="meta">INTEL FOUNDRY SERVICES · DA OPS · AUGUST 2026</p>
-    <h1 style="margin-top:0.5rem;">FS <span class="accent">Request Tracker</span></h1>
+    <h1 style="margin-top:0.5rem;">DA <span class="accent">Operations Tracker</span></h1>
     <p style="font-size:clamp(1rem,2vw,1.5rem);color:var(--cyan);margin-top:0.5rem;">User Guide</p>
     <p style="margin-top:1.5rem;color:var(--light);">Jenn Glavan & Jair Garcia</p>
   </div>
@@ -67,7 +67,7 @@ p,.body-text{font-size:clamp(0.9rem,1.6vw,1.2rem);color:var(--light);line-height
   <img src="../Logo.png" alt="Intel Foundry" class="intel-logo"/>
   <span class="confidential">Intel Confidential</span>
   <div class="slide-content">
-    <h2>What is the FS Request Tracker?</h2>
+    <h2>What is the DA Operations Tracker?</h2>
     <div class="two-col">
       <div>
         <p>A private dashboard that <strong>connects directly to our SharePoint list</strong> and lets us track the internal status of every DA Ops request in real time.</p>
@@ -449,7 +449,7 @@ p,.body-text{font-size:clamp(0.9rem,1.6vw,1.2rem);color:var(--light);line-height
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 20l1.4-4.2A8.5 8.5 0 1 1 21 11.5z"/></svg>
 </button>
 <div id="hb-panel">
-  <div class="hb-head"><strong>FS Tracker Help</strong><button class="hb-x" onclick="hbToggle()">&times;</button></div>
+  <div class="hb-head"><strong>DA Operations Tracker Help</strong><button class="hb-x" onclick="hbToggle()">&times;</button></div>
   <div class="hb-body" id="hb-body"></div>
   <div class="hb-foot">
     <input id="hb-input" type="text" placeholder="Ask a question..." onkeydown="if(event.key==='Enter')hbSend()"/>
@@ -489,7 +489,7 @@ const HB_FAQ = [
 ];
 const HB_SUGGEST=['How do I assign a request?','How do emails work?','What is Test mode?','How do I separate a Codename?','What do the age badges mean?','How do I export data?'];
 let hbReportMode=false;
-function hbToggle(){ const p=document.getElementById('hb-panel'); p.classList.toggle('open'); if(p.classList.contains('open') && !document.getElementById('hb-body').dataset.init){ hbBot("Hi! Ask me anything about using the FS Tracker, or report a bug/feature below."); hbChips(HB_SUGGEST); document.getElementById('hb-body').dataset.init='1'; } }
+function hbToggle(){ const p=document.getElementById('hb-panel'); p.classList.toggle('open'); if(p.classList.contains('open') && !document.getElementById('hb-body').dataset.init){ hbBot("Hi! Ask me anything about using the DA Operations Tracker, or report a bug/feature below."); hbChips(HB_SUGGEST); document.getElementById('hb-body').dataset.init='1'; } }
 function hbBubble(t,c){ const b=document.getElementById('hb-body'); const d=document.createElement('div'); d.className='hb-msg '+c; d.innerHTML=t; b.appendChild(d); b.scrollTop=b.scrollHeight; }
 function hbBot(t){ hbBubble(t,'hb-bot'); }
 function hbUser(t){ hbBubble(t,'hb-user'); }
@@ -498,9 +498,9 @@ function hbAnswer(q){ const low=q.toLowerCase(); let best=null,score=0; HB_FAQ.f
 function hbSend(){ const inp=document.getElementById('hb-input'); const q=inp.value.trim(); if(!q) return; inp.value=''; hbUser(q); if(hbReportMode){ hbSubmitReport(q); hbReportMode=false; return; } setTimeout(()=>hbBot(hbAnswer(q)),150); }
 function hbReport(){ hbReportMode=true; document.getElementById('hb-panel').classList.add('open'); hbBot("Describe the <b>bug</b> or <b>feature</b> below and hit Send. It'll be emailed to Jair for the next development round."); document.getElementById('hb-input').focus(); }
 async function hbSubmitReport(text){
-  const subject='[FS Tracker FEEDBACK] '+text.slice(0,60);
-  const bodyHtml='<div style="font-family:Arial,sans-serif;font-size:14px;color:#1a202c;"><h3 style="color:#001E50;">FS Tracker &mdash; Bug / Feature report</h3><p><b>Report:</b></p><p style="background:#f1f5f9;padding:12px;border-radius:8px;">'+text.replace(/</g,'&lt;')+'</p><p style="color:#6b7684;font-size:12px;">Sent from the FS Tracker guide chatbot.</p></div>';
-  try{ const res=await fetch(HB_SEND_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ to:'jair.garcia@intel.com', cc:'', subject, name:'Jair', id:'FEEDBACK', customer:'FS Tracker', bodyHtml, sensitivity:'' })}); if(res.ok) hbBot('Thanks! Your report was sent to Jair. \u2705'); else hbBot('Could not send (flow returned '+res.status+').'); }catch(e){ hbBot('Could not send: '+e.message); }
+  const subject='[DA Ops Tracker FEEDBACK] '+text.slice(0,60);
+  const bodyHtml='<div style="font-family:Arial,sans-serif;font-size:14px;color:#1a202c;"><h3 style="color:#001E50;">DA Operations Tracker &mdash; Bug / Feature report</h3><p><b>Report:</b></p><p style="background:#f1f5f9;padding:12px;border-radius:8px;">'+text.replace(/</g,'&lt;')+'</p><p style="color:#6b7684;font-size:12px;">Sent from the DA Operations Tracker guide chatbot.</p></div>';
+  try{ const res=await fetch(HB_SEND_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ to:'jair.garcia@intel.com', cc:'', subject, name:'Jair', id:'FEEDBACK', customer:'DA Operations Tracker', bodyHtml, sensitivity:'' })}); if(res.ok) hbBot('Thanks! Your report was sent to Jair. \u2705'); else hbBot('Could not send (flow returned '+res.status+').'); }catch(e){ hbBot('Could not send: '+e.message); }
 }
 </script>
 <!-- ============ END HELP CHATBOT ============ -->

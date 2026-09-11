@@ -8,6 +8,9 @@ Formato: vMAJOR.MINOR — fecha — cambios.
 
 ---
 
+## v1.8.79 — 2026-09-09
+- Plataforma renombrada a "DA Operations Tracker" (peticion de Jenn): titulo de la pagina, header, chatbot de ayuda, tarjeta de Indicators, header/footer de los correos y asunto de feedback, tanto en el tracker como en la guia. El nombre de la pestana "FS DA Requests" y la firma "FS DA OPS" de los correos NO se tocan (son nombres del equipo/cola, no de la plataforma).
+
 ## v1.8.78 — 2026-09-09
 - Separate request ahora sigue la regla completa: SOLO Portal Creation + New DA pueden ir juntos en un request. Todo lo demas (Codename, IFS NDA, DA Edit, COD, MP-NDA, WebView, ...) se separa a su propio request. Asi IFS NDA se separa de Codename Y de Portal Creation + New DA. Si un request no trae Portal/New DA (ej. IFS NDA + Codename), el primer servicio se queda en el original y el resto se separa. El boton Separate aparece cuando el request quedaria en mas de un request.
 
